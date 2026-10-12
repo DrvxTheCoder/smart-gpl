@@ -19,6 +19,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ArrowDown,
+  Target,
+  TrendingUp,
   Users,
 } from "@/components/ui/icons";
 import { useStore } from "@/lib/store";
@@ -65,7 +67,11 @@ const SECTIONS: { label: string; items: NavItem[] }[] = [
   },
   {
     label: "Commercial",
-    items: [{ href: "/ventes/clients", label: "Clients", icon: Users }],
+    items: [
+      { href: "/ventes", label: "Ventes", icon: TrendingUp },
+      { href: "/ventes/clients", label: "Clients", icon: Users },
+      { href: "/ventes/previsions", label: "Prévisions", icon: Target },
+    ],
   },
 ];
 
@@ -184,6 +190,22 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
 
   useEffect(() => hide(true), [path, hide]);
 
+  // On a short screen the nav scrolls; a fade at its foot says there is more below.
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const read = () => setMore(el.scrollTop + el.clientHeight < el.scrollHeight - 4);
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    el.addEventListener("scroll", read, { passive: true });
+    return () => {
+      ro.disconnect();
+      el.removeEventListener("scroll", read);
+    };
+  }, []);
+
   const year = new Date().getFullYear();
   const reportLabel = `Rapport annuel ${year}`;
   // Runs in the background; the hub shows its progress and outcome.
@@ -224,7 +246,11 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
 
         {/* Scrolls when the sections outgrow a short screen; it spans the
             aside's padding so the rail on its left edge is not clipped. */}
-        <div ref={navRef} className="no-scrollbar relative -mx-5 mt-8 min-h-0 flex-1 overflow-y-auto px-5">
+        <div
+          ref={navRef}
+          className="no-scrollbar relative -mx-5 mt-8 min-h-0 flex-1 overflow-y-auto px-5"
+          style={more ? { maskImage: "linear-gradient(to bottom, black calc(100% - 40px), transparent)", WebkitMaskImage: "linear-gradient(to bottom, black calc(100% - 40px), transparent)" } : undefined}
+        >
           <span ref={railRef} aria-hidden className="absolute top-0 left-0 h-7 w-[3px] rounded-r-full bg-brand-800 opacity-0" />
           {SECTIONS.map((section, si) => (
             <div key={section.label}>

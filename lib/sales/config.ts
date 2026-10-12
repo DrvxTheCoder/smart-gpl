@@ -146,6 +146,15 @@ export function checkSalesConfig(raw: unknown, c: Checker): SalesConfig | null {
   const sk = c.obj(raw, "stock", "Stock");
   const stock = { backorder: c.oneOf(sk, "backorder", ["RELIQUAT", "BLOQUER"] as const, "Stock"), safetyDays: c.int(sk, "safetyDays", "Stock"), atpHorizonDays: c.int(sk, "atpHorizonDays", "Stock") };
 
+  const tg = c.obj(raw, "targets", "Objectifs");
+  const pair = (k: string, higherIsBetter: boolean): [number, number] => {
+    const v = tg[k];
+    if (Array.isArray(v) && v.length === 2 && v.every((n) => typeof n === "number" && Number.isFinite(n)) && (higherIsBetter ? v[0] >= v[1] : v[0] <= v[1])) return [v[0], v[1]];
+    c.fail("Objectifs", `« ${k} » deux seuils attendus, ${higherIsBetter ? "le premier supérieur ou égal" : "le premier inférieur ou égal"} au second.`);
+    return [0, 0];
+  };
+  const targets = { fillRate: pair("fillRate", true), otif: pair("otif", true), mape: pair("mape", false), capacityWarnPct: c.num(tg, "capacityWarnPct", "Objectifs") };
+
   const rs = c.obj(raw, "reasons", "Motifs");
   const rp = c.obj(raw, "reports", "Rapports");
   const roles = c.list<Role>(raw.roles, "Rôle", (x, at) => ({ id: c.str(x, "id", at), label: c.str(x, "label", at), person: c.str(x, "person", at) }));
@@ -173,6 +182,7 @@ export function checkSalesConfig(raw: unknown, c: Checker): SalesConfig | null {
     solvency,
     consignment,
     stock,
+    targets,
     reasons: { variance: reasons(c, rs.variance, "Motifs d'écart"), reliquat: reasons(c, rs.reliquat, "Motifs de reliquat"), adjustment: reasons(c, rs.adjustment, "Motifs d'ajustement") },
     reports: { authority: template(c, rp.authority, "Rapport autorité"), sage: template(c, rp.sage, "Export Sage") },
     roles,

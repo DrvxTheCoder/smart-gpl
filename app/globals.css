@@ -362,3 +362,27 @@ input[type="number"] {
       "tm tm pg tr";
   }
 }
+
+/* Commercial dashboard bento (/ventes). Same rhythm as .dash-grid. */
+.sales-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+  grid-template-areas: "s1" "s2" "s3" "s4" "fc" "wh" "dp" "ar" "fp";
+}
+@media (min-width: 640px) {
+  .sales-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: "s1 s2" "s3 s4" "fc fc" "wh wh" "dp dp" "ar fp";
+  }
+}
+@media (min-width: 1280px) {
+  .sales-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-areas:
+      "s1 s2 s3 s4"
+      "fc fc fc ar"
+      "wh wh dp dp"
+      "fp fp dp dp";
+  }
+}

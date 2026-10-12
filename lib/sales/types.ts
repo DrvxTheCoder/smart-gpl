@@ -106,6 +106,14 @@ export interface ConsignmentConfig {
   balanceBasis: "FORMAT" | "BRAND";
 }
 
+/** Service targets behind the ok / warn / alert tones of the dashboards. */
+export interface Targets {
+  fillRate: [number, number]; // % at or above: ok, at or above: warn
+  otif: [number, number];
+  mape: [number, number]; // % at or below: ok, at or below: warn
+  capacityWarnPct: number; // fill plan: line load above this is "à surveiller"
+}
+
 export interface StockConfig {
   backorder: "RELIQUAT" | "BLOQUER";
   safetyDays: number;
@@ -149,6 +157,7 @@ export interface SalesConfig {
   solvency: SolvencyConfig;
   consignment: ConsignmentConfig;
   stock: StockConfig;
+  targets: Targets;
   reasons: ReasonLists;
   reports: { authority: ReportTemplate; sage: ReportTemplate };
   roles: Role[];

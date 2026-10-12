@@ -166,6 +166,7 @@ export const DEFAULT_SALES: SalesConfig = {
     balanceBasis: "FORMAT",
   },
   stock: { backorder: "RELIQUAT", safetyDays: 2, atpHorizonDays: 1 },
+  targets: { fillRate: [98, 95], otif: [95, 90], mape: [15, 30], capacityWarnPct: 85 },
   reasons: {
     variance: [
       { code: "PERTE", label: "Perte" },

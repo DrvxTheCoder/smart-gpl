@@ -122,6 +122,66 @@ export function WeekBars({ data, unit = "T" }: { data: BarDatum[]; unit?: string
 }
 
 /* ------------------------------------------------------------------
+   Forecast vs actual: the forecast is a hatched pill (planned), what
+   happened a solid pill in front of it. Future periods show the hatch only.
+   ------------------------------------------------------------------ */
+export interface ForecastDatum {
+  label: string;
+  full: string;
+  forecast: number;
+  actual: number | null; // null: period not over yet
+}
+
+export function ForecastBars({ data, unit = "bt" }: { data: ForecastDatum[]; unit?: string }) {
+  const rows = useMemo(
+    () =>
+      data.map((d) => ({
+        ...d,
+        plan: d.forecast > 0 ? d.forecast : undefined,
+        done: d.actual != null && d.actual > 0 ? d.actual : undefined,
+        tone: d.actual == null ? "var(--b-400)" : d.actual >= d.forecast * 0.95 ? "var(--b-800)" : "var(--b-600)",
+      })),
+    [data],
+  );
+  const current = data.find((d) => d.actual == null)?.label;
+  const row = (v: number | null) => (v == null ? "À venir" : `${fmt(v)} ${unit}`);
+  return (
+    <div className="relative h-full">
+      <BarChart data={rows} xDataKey="label" aspectRatio="auto" className="h-full" margin={{ top: 8, right: 0, bottom: 34, left: 0 }} barGap={0.3} animationDuration={1100} animationEasing={EASE}>
+        <Hatch id="fc-hatch" />
+        <Grid horizontal numTicksRows={4} hideHorizontalEdgeLines />
+        <Bar dataKey="plan" overlay lineCap="pill" fill="url(#fc-hatch)" stroke="var(--hatch)" fadedOpacity={0.3} />
+        <Bar dataKey="done" overlay lineCap="pill" fill={(d) => String(d.tone)} stroke="var(--b-800)" fadedOpacity={0.3} />
+        <BarXAxis labelClassName={(l) => (l === current ? "font-semibold text-ink" : undefined)} />
+        <ChartTooltip
+          showCrosshair={false}
+          showDots={false}
+          content={({ point }) => {
+            const d = point as (typeof rows)[number];
+            return (
+              <TooltipContent
+                title={d.full}
+                rows={[
+                  { color: "var(--hatch)", label: "Prévision", value: `${fmt(d.forecast)} ${unit}` },
+                  { color: "var(--b-400)", label: "Réalisé", value: row(d.actual) },
+                ]}
+              />
+            );
+          }}
+        />
+      </BarChart>
+      <ul className="sr-only">
+        {data.map((d) => (
+          <li key={d.full}>
+            {d.full} : prévision {fmt(d.forecast)} {unit}, réalisé {row(d.actual)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------
    Tank fill: notched half gauge, solid stock over hatch-tinted headspace.
    ------------------------------------------------------------------ */
 export function SemiGauge({ pct, children }: { pct: number; children?: React.ReactNode }) {

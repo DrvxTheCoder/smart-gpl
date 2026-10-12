@@ -521,6 +521,43 @@ export function WorkflowPanel() {
       </div>
 
       <Card>
+        <CardTitle>Objectifs de service</CardTitle>
+        <p className="mt-1 text-[13px] text-muted">Seuils des pastilles des tableaux de bord : dans l&apos;objectif, à surveiller, sous l&apos;objectif.</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {(
+            [
+              ["fillRate", "Taux de service", "au moins"],
+              ["otif", "Livré complet et à l'heure", "au moins"],
+              ["mape", "Écart de prévision (MAPE)", "au plus"],
+            ] as const
+          ).map(([k, label, way]) => (
+            <fieldset key={k} className="grid grid-cols-2 gap-2">
+              <legend className="mb-1.5 text-[13px] text-muted">{label}</legend>
+              {([0, 1] as const).map((i) => (
+                <Field key={i} label={i === 0 ? `Objectif, ${way}` : "Alerte au-delà"} unit="%">
+                  <NumberInput
+                    value={sales.targets[k][i]}
+                    onChange={(v) =>
+                      set((s) => {
+                        const pair = [...s.targets[k]] as [number, number];
+                        pair[i] = Math.min(Math.max(v, 0), 100);
+                        // Keep the pair ordered: the objective is always the stricter threshold.
+                        if (k === "mape" ? pair[0] > pair[1] : pair[0] < pair[1]) pair[i === 0 ? 1 : 0] = pair[i];
+                        return { ...s, targets: { ...s.targets, [k]: pair } };
+                      })
+                    }
+                  />
+                </Field>
+              ))}
+            </fieldset>
+          ))}
+          <Field label="Charge des lignes à surveiller au-delà de" unit="%">
+            <IntegerInput value={sales.targets.capacityWarnPct} onChange={(v) => set((s) => ({ ...s, targets: { ...s.targets, capacityWarnPct: Math.min(v, 100) } }))} />
+          </Field>
+        </div>
+      </Card>
+
+      <Card>
         <CardTitle>Motifs</CardTitle>
         <div className="mt-4 grid gap-6 lg:grid-cols-3">
           <ReasonList title="Reliquats" sub="Pourquoi une quantité n'a pas été servie." items={sales.reasons.reliquat} onChange={(v) => set((s) => ({ ...s, reasons: { ...s.reasons, reliquat: v } }))} />

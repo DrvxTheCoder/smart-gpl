@@ -60,3 +60,26 @@ export const at = (date: string, hh: number, mm = 0) => {
   const d = parse(date);
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), hh, mm).toISOString();
 };
+
+/** Consecutive periods around today: `back` complete ones before the current, `ahead` after it. */
+export function periodsAround(today: string, granularity: "SEMAINE" | "MOIS", back: number, ahead: number): string[] {
+  const cur = periodOf(today, granularity);
+  const before: string[] = [];
+  let p = cur;
+  for (let i = 0; i < back; i++) before.unshift((p = periodOf(shiftDate(periodRange(p, granularity)[0], -1), granularity)));
+  const after: string[] = [];
+  p = cur;
+  for (let i = 0; i < ahead; i++) after.push((p = periodOf(shiftDate(periodRange(p, granularity)[1], 1), granularity)));
+  return [...before, cur, ...after];
+}
+
+/** Short French label of a period: "S42" or "oct.". */
+export function periodLabel(period: string, granularity: "SEMAINE" | "MOIS", long = false): string {
+  if (granularity === "SEMAINE") {
+    const [a, b] = weekRange(period);
+    const f = (s: string) => new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(parse(s));
+    return long ? `Semaine ${Number(period.split("-W")[1])}, du ${f(a)} au ${f(b)}` : `S${Number(period.split("-W")[1])}`;
+  }
+  const d = parse(`${period}-01`);
+  return new Intl.DateTimeFormat("fr-FR", long ? { month: "long", year: "numeric" } : { month: "short" }).format(d);
+}
