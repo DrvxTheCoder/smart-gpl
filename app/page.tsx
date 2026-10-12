@@ -12,6 +12,7 @@ import { Button, ButtonLink, Card, CardTitle, CornerLink, EcartPill, Segmented, 
 import { AnimatedNumber, SemiGauge, WeekBars, type BarDatum } from "@/components/charts/charts";
 import { LiveTimerCard } from "@/components/production/production";
 import { ReservoirsCard, type TankStock } from "@/components/tanks/ReservoirsCard";
+import { DemandCard } from "@/components/sales/demand-card";
 
 function Trend({ value, invert, dark }: { value: number | null; invert?: boolean; dark?: boolean }) {
   if (value == null) return <span className={dark ? "text-white/70" : "text-muted"}>Pas de période de comparaison</span>;
@@ -296,6 +297,8 @@ export default function Dashboard() {
           </ul>
         </Card>
       </div>
+
+      <DemandCard />
     </div>
   );
 }

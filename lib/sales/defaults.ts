@@ -17,7 +17,7 @@ const terms = (patch: Partial<ContractTerms>): ContractTerms => ({
   ...patch,
 });
 
-export const DEFAULT_CATEGORIES: CustomerCategory[] = [
+const DEFAULT_CATEGORIES: CustomerCategory[] = [
   {
     id: "distributeur",
     label: "Distributeur",
@@ -88,7 +88,7 @@ export const PRESETS: { id: "simple" | "complet"; label: string; sub: string; st
   },
 ];
 
-export const DEFAULT_WORKFLOW: WorkflowConfig = {
+const DEFAULT_WORKFLOW: WorkflowConfig = {
   version: 1,
   steps: ALL_ON,
   approvalThreshold: 10_000_000,

@@ -1,6 +1,5 @@
 import { fmtMoney } from "../format";
-import { cell, centreSite, clientSite, gridTotal } from "./bottle-ledger";
-import { dayOf } from "./dates";
+import { centreSite, clientSite } from "./bottle-ledger";
 import type { CreditDecision } from "./exposure";
 import type { Shortfall } from "./stock";
 import {
@@ -75,7 +74,7 @@ export type SalesEvent =
   | (EventBase & { type: "PAYMENT"; amount: Money; method: PaymentMethod; label: string });
 
 /** Bottle-ledger rows of an event. Bulk has no bottles. */
-export function movementsFor(e: SalesEvent): BottleMovement[] {
+function movementsFor(e: SalesEvent): BottleMovement[] {
   const refs = { ...e.refs, customerId: e.customerId };
   const out: BottleMovement[] = [];
   const row = (id: string, m: Omit<BottleMovement, "id" | "ts" | "by" | "refs">) => out.push({ id, ts: e.ts, by: e.by, refs, ...m });
@@ -101,7 +100,7 @@ export function movementsFor(e: SalesEvent): BottleMovement[] {
 }
 
 /** Account rows of an event. */
-export function entriesFor(e: SalesEvent): AccountEntry[] {
+function entriesFor(e: SalesEvent): AccountEntry[] {
   if (e.type === "BILL" && e.amount > 0) return [{ id: `${e.docId}:db`, customerId: e.customerId, ts: e.ts, kind: "DEBIT", amount: e.amount, dueDate: e.dueDate, label: e.label, refs: e.refs, by: e.by }];
   if (e.type === "PAYMENT" && e.amount > 0) return [{ id: `${e.docId}:cr`, customerId: e.customerId, ts: e.ts, kind: "CREDIT", amount: e.amount, dueDate: null, method: e.method, label: e.label, refs: e.refs, by: e.by }];
   return [];
@@ -378,7 +377,6 @@ export const DISPATCH_FLOW: Transition<DispatchStatus, DispatchCtx>[] = [
 
 /* ---------------- immutability ---------------- */
 
-export const orderLocked = (o: Order) => o.status !== "BROUILLON";
 export const dispatchLocked = (d: Dispatch) => d.status === "EXPEDIE" || d.status === "LIVRE";
 
 /* ---------------- numbering ---------------- */
@@ -395,17 +393,4 @@ export function formatNumber(pattern: string, o: { centre: string; date: string;
     .replace(/\{MM\}/g, m)
     .replace(/\{JJ\}/g, d)
     .replace(/\{N(?::(\d+))?\}/g, (_, w) => String(o.seq).padStart(Number(w) || 1, "0"));
-}
-
-/** Next counter for documents of a centre and year. */
-export const nextSeq = (docs: { centreId: string; createdAt?: string; ts?: string; slot?: string }[], centreId: string, year: string) =>
-  docs.filter((x) => x.centreId === centreId && dayOf(x.createdAt ?? x.ts ?? x.slot ?? "").startsWith(year)).length + 1;
-
-/** Fulls out of a gate grid that cannot be filled: competitor and unknown brands. */
-export function competitorShare(g: BrandGrid, own: string): number {
-  const total = gridTotal(g);
-  if (!total) return 0;
-  let ownN = 0;
-  for (const f of Object.keys(g[own] ?? {})) ownN += cell(g, own, f);
-  return (total - ownN) / total;
 }

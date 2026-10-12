@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo } from "react";
 import { Phone } from "@/components/ui/icons";
 import { Button, Card, CardTitle } from "@/components/ui/primitives";
 import { PassageDialog } from "@/components/sales/passage-dialog";
 import { Meter, TonePill } from "@/components/sales/ui";
+import { useQuery } from "@/components/sales/use-query";
 import { useStore } from "@/lib/store";
 import { useSales } from "@/lib/sales/store";
 import { wholesalerStatuses } from "@/lib/sales/alerts";
@@ -18,10 +19,12 @@ import { cap, cn, fmt, fmtDate, fmtMoneyShort } from "@/lib/format";
 
 const DAYS = 42;
 
-export default function GrossistesPage() {
+function Inner() {
   const { config, centreId, centre } = useStore();
   const { data, ledger, today, own, env } = useSales();
-  const [passing, setPassing] = useState<string | null>(null);
+  const [q, setQ] = useQuery({ passage: "" });
+  const passing = q.passage || null;
+  const setPassing = (id: string | null) => setQ({ passage: id ?? "" });
   const cur = config.sales.currency.label;
 
   const rows = useMemo(() => wholesalerStatuses({ cfg: config, data, ledger, today, own, centreId }), [config, data, ledger, today, own, centreId]);
@@ -226,5 +229,13 @@ export default function GrossistesPage() {
 
       <PassageDialog open={passing !== null} onClose={() => setPassing(null)} customerId={passing} />
     </div>
+  );
+}
+
+export default function GrossistesPage() {
+  return (
+    <Suspense>
+      <Inner />
+    </Suspense>
   );
 }

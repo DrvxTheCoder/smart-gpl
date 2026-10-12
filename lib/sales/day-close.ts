@@ -1,5 +1,5 @@
 import { centreSite } from "./bottle-ledger";
-import { at, dayOf, shiftDate } from "./dates";
+import { at, shiftDate } from "./dates";
 import { UNKNOWN_BRAND, type BottleMovement, type Brand, type DayClose, type ReportRow, type ReportTemplate } from "./types";
 
 /* ------------------------------------------------------------------
@@ -43,9 +43,6 @@ export function reportRows(movements: BottleMovement[], centreId: string, date: 
 export const closeId = (centreId: string, date: string) => `${centreId}_${date}`;
 
 export const isClosed = (closes: DayClose[], centreId: string, date: string) => closes.some((c) => c.centreId === centreId && c.date === date);
-
-/** Movements dated on a closed day are frozen: later corrections are dated adjustments. */
-export const isMovementLocked = (closes: DayClose[], m: BottleMovement) => m.site.startsWith("centre:") && isClosed(closes, m.site.slice(7), dayOf(m.ts));
 
 /** Past working days (Monday to Saturday) since `from` that nobody closed. */
 export function unclosedDays(closes: DayClose[], centreId: string, from: string, today: string): string[] {

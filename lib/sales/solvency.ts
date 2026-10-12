@@ -39,7 +39,7 @@ export interface Solvency {
   inputs: SolvencyInputs;
 }
 
-export const TONE_LABEL: Record<Tone, string> = { ok: "Solvable", warn: "À surveiller", alert: "À justifier" };
+const TONE_LABEL: Record<Tone, string> = { ok: "Solvable", warn: "À surveiller", alert: "À justifier" };
 
 const clamp = (n: number) => Math.min(Math.max(n, 0), 1);
 

@@ -45,7 +45,7 @@ export function weekRange(week: string): [string, string] {
 }
 
 /** First and last day of a "yyyy-mm" month. */
-export function monthRange(month: string): [string, string] {
+function monthRange(month: string): [string, string] {
   const [y, m] = month.split("-").map(Number);
   return [`${month}-01`, ymd(new Date(y, m, 0))];
 }

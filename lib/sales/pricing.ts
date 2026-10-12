@@ -12,11 +12,6 @@ export function priceFor(lists: PriceList[], listId: string, formatId: string, d
   return best ? best.price : null;
 }
 
-/** Formats a list can price on a date, in the order given. */
-export function pricedFormats(lists: PriceList[], listId: string, formatIds: string[], date: string): string[] {
-  return formatIds.filter((f) => priceFor(lists, listId, f, date) != null);
-}
-
 /** Integer amount of a line: whole quantities times whole prices. */
 export const lineAmount = (l: Pick<OrderLine, "qty" | "price">): Money => Math.round(l.qty) * Math.round(l.price);
 

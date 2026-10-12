@@ -28,7 +28,7 @@ const LADDER: readonly LadderAction[] = ["TACHE", "NOTIFIER", "BLOQUER"];
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Contract terms, shared by category defaults and contracts. */
-export function checkTerms(c: Checker, t: Obj, at: string, priceListIds?: string[]): ContractTerms {
+function checkTerms(c: Checker, t: Obj, at: string, priceListIds?: string[]): ContractTerms {
   const p = c.obj(t, "payment", at);
   const kind = c.oneOf(p, "kind", ["COMPTANT", "DIFFERE"] as const, at);
   const days = kind === "COMPTANT" ? 0 : c.int(p, "days", at, 1);

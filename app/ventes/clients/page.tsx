@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Plus, Search } from "@/components/ui/icons";
 import { Button, Card, CardTitle, inputCls } from "@/components/ui/primitives";
 import { Select } from "@/components/ui/select";
@@ -19,9 +19,8 @@ const PAGE = 12;
 function Inner() {
   const { config, centreId, centre } = useStore();
   const { data, ledger, today, own } = useSales();
-  const [query, setQuery] = useQuery({ q: "", cat: "all", page: "1" });
+  const [query, setQuery] = useQuery({ q: "", cat: "all", page: "1", nouveau: "" });
   const [q, setQ] = useQueryText(query.q, (v) => setQuery({ q: v, page: "1" }));
-  const [creating, setCreating] = useState(false);
   const cur = config.sales.currency.label;
 
   const rows = useMemo(
@@ -70,7 +69,7 @@ function Inner() {
           <h1 className="text-[34px] font-semibold tracking-[-0.03em] sm:text-[40px]">Clients</h1>
           <p className="mt-1 text-[15px] text-muted">Contrats, encours et solvabilité, {centreId === "all" ? "tous les centres" : centre(centreId).name}.</p>
         </div>
-        <Button onClick={() => setCreating(true)}>
+        <Button onClick={() => setQuery({ nouveau: "1" })}>
           <Plus className="size-4" />
           Nouveau client
         </Button>
@@ -220,7 +219,7 @@ function Inner() {
         </div>
       </div>
 
-      <CustomerDialog open={creating} onClose={() => setCreating(false)} />
+      <CustomerDialog open={query.nouveau === "1"} onClose={() => setQuery({ nouveau: "" })} />
     </div>
   );
 }

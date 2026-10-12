@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Plus, Search } from "@/components/ui/icons";
+import { Suspense, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, FileSpreadsheet, Plus, Search } from "@/components/ui/icons";
+import { DatePicker } from "@/components/ui/calendar";
+import { markExported, salesToExport } from "@/lib/sales/commands/export";
+import { sageCsv } from "@/lib/sales/sage";
+import { shiftDate } from "@/lib/sales/dates";
 import { Button, Card, CardTitle, inputCls } from "@/components/ui/primitives";
 import { Select } from "@/components/ui/select";
 import { OrderEntry } from "@/components/sales/order-entry";
@@ -21,8 +25,24 @@ const PAGE = 12;
 const SPECIAL = { validation: "À valider", partielle: "Partielles", reliquat: "Avec reliquat" } as const;
 
 function Inner() {
-  const { config, centreId, centre } = useStore();
-  const { data } = useSales();
+  const { config, centreId, centre, startJob } = useStore();
+  const { data, env, exec, today } = useSales();
+  const [range, setRange] = useState({ from: shiftDate(today, -7), to: shiftDate(today, -1) });
+  const toExport = useMemo(() => salesToExport(env, { ...range, centreId }), [env, range, centreId]);
+  const exportSage = () =>
+    startJob({
+      kind: "sage",
+      busyMsg: "Un export Sage est déjà en cours",
+      doneMsg: "Export Sage téléchargé",
+      run: async (onProgress) => {
+        onProgress(0.3);
+        const ctx = { format: (f: string) => config.bottleTypes.find((b) => b.id === f)?.label ?? f, centre: (id: string) => config.centres.find((c) => c.id === id)?.code ?? id };
+        const file = sageCsv(toExport, config.sales.reports.sage, ctx, { centre: centreId === "all" ? "TOUS" : centre(centreId).code, date: range.to });
+        exec((e) => markExported(e, toExport));
+        onProgress(1);
+        return file;
+      },
+    });
   const [query, setQuery] = useQuery({ q: "", statut: "all", page: "1", nouveau: "", client: "" });
   const [q, setQ] = useQueryText(query.q, (v) => setQuery({ q: v, page: "1" }));
   const cur = config.sales.currency.label;
@@ -200,6 +220,22 @@ function Inner() {
                 ))}
               </ul>
             )}
+          </Card>
+          <Card>
+            <CardTitle>Export vers Sage</CardTitle>
+            <p className="mt-1 text-[13px] text-muted">Les ventes expédiées et les passages des grossistes, une ligne par format. La facturation reste dans Sage.</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <DatePicker ariaLabel="Du" value={range.from} max={range.to} onChange={(v) => v && setRange({ ...range, from: v })} />
+              <DatePicker ariaLabel="Au" value={range.to} min={range.from} max={today} onChange={(v) => v && setRange({ ...range, to: v })} />
+            </div>
+            <p className="tnum mt-2 text-[13px] text-muted">
+              {toExport.length} ligne{toExport.length > 1 ? "s" : ""}, {fmtMoney(toExport.reduce((a, l) => a + l.amount, 0), cur)}
+            </p>
+            {config.sales.reports.sage.placeholder && <p className="mt-2 text-[12px] text-[#7a5306]">Colonnes provisoires : à aligner sur l&apos;import Sage du client (Paramètres, Rapports).</p>}
+            <Button variant="ghost" className="mt-3 w-full" disabled={!toExport.length} onClick={exportSage}>
+              <FileSpreadsheet className="size-4" />
+              Exporter en CSV
+            </Button>
           </Card>
           <Card>
             <CardTitle>Par statut</CardTitle>

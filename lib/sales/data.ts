@@ -7,9 +7,9 @@ import type { Collection, SalesData } from "./types";
    rolling with "today" while user documents and ledger rows survive.
    ------------------------------------------------------------------ */
 
-export const SALES_STORAGE_VERSION = 1;
+const SALES_STORAGE_VERSION = 1;
 
-export const COLLECTIONS: Collection[] = ["customers", "contracts", "forecasts", "orders", "dispatches", "movements", "entries", "incidents", "settlements", "counts", "declarations", "calls", "closes"];
+const COLLECTIONS: Collection[] = ["customers", "contracts", "forecasts", "orders", "dispatches", "movements", "entries", "incidents", "settlements", "counts", "declarations", "calls", "closes"];
 
 export const emptyData = (): SalesData => ({
   customers: [],
@@ -60,7 +60,7 @@ export function addToOverlay(overlay: Overlay, patch: Patch): Overlay {
   return next;
 }
 
-export const overlayPatch = (o: Overlay): Patch => Object.fromEntries(COLLECTIONS.filter((k) => o[k]).map((k) => [k, Object.values(o[k] as object)])) as Patch;
+const overlayPatch = (o: Overlay): Patch => Object.fromEntries(COLLECTIONS.filter((k) => o[k]).map((k) => [k, Object.values(o[k] as object)])) as Patch;
 
 export const mergeOverlay = (seed: SalesData, overlay: Overlay) => applyPatch(seed, overlayPatch(overlay));
 

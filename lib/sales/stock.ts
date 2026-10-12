@@ -67,7 +67,7 @@ export function plannedQty(dispatches: Dispatch[], orderId: string): Qty {
   return out;
 }
 
-export const orderedQty = (lines: OrderLine[]): Qty => {
+const orderedQty = (lines: OrderLine[]): Qty => {
   const out: Qty = {};
   for (const l of lines) add(out, l.formatId, l.qty);
   return out;

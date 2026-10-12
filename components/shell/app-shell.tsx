@@ -12,7 +12,6 @@ import {
   Settings2,
   LifeBuoy,
   LogOut,
-  Bell,
   Menu,
   X,
   FileDown,
@@ -33,6 +32,7 @@ import { wholesalerStatuses } from "@/lib/sales/alerts";
 import { Select } from "@/components/ui/select";
 import { CommandMenu } from "./command-menu";
 import { Island } from "./island";
+import { AlertBell } from "./alert-bell";
 import { cn } from "@/lib/format";
 import { buildYearReport } from "@/lib/year-report";
 import { failingExport } from "@/lib/dev/failing-export"; // DEV ONLY, temporary
@@ -471,8 +471,12 @@ function ScrollJump({ y, max }: { y: number; max: number }) {
 }
 
 function Topbar({ onMenu, collapsed, onCollapse, raised }: { onMenu: () => void; collapsed: boolean; onCollapse: () => void; raised: boolean }) {
-  const { user, toast, inventories } = useStore();
-  const initials = user.name.split(" ").map((p) => p[0]).join("");
+  const { user } = useStore();
+  const sales = useSalesMaybe();
+  // The prototype role switcher shows whose view this is.
+  const name = sales?.actor ?? user.name;
+  const role = sales?.role.label ?? user.role;
+  const initials = name.split(" ").map((p) => p[0]).join("");
   const Toggle = collapsed ? PanelLeftOpen : PanelLeftClose;
 
   return (
@@ -498,22 +502,12 @@ function Topbar({ onMenu, collapsed, onCollapse, raised }: { onMenu: () => void;
         <div className="hidden md:block">
           <CentreSwitcher />
         </div>
-        <button
-          className="relative grid size-11 place-items-center rounded-full bg-card"
-          aria-label="Notifications"
-          onClick={() => {
-            const alert = inventories.find((i) => i.status === "EN_COURS");
-            toast(alert ? "Inventaire en cours" : "Aucune notification", "bell");
-          }}
-        >
-          <Bell className="size-[19px]" />
-          <span className="absolute top-2.5 right-3 size-2 rounded-full bg-alert ring-2 ring-card" />
-        </button>
-        <Link href="/parametres" className="flex items-center gap-2.5 rounded-full pr-2" aria-label={`Paramètres du compte de ${user.name}`}>
+        <AlertBell />
+        <Link href="/parametres" className="flex items-center gap-2.5 rounded-full pr-2" aria-label={`Paramètres du compte de ${name}`}>
           <span className="grid size-11 place-items-center rounded-full bg-[#f2cdb8] text-[14px] font-semibold text-[#5b2f19]">{initials}</span>
           <span className="hidden flex-col leading-tight xl:flex">
-            <span className="text-[15px] font-medium">{user.name}</span>
-            <span className="text-[12px] text-muted">{user.role}</span>
+            <span className="text-[15px] font-medium">{name}</span>
+            <span className="text-[12px] text-muted">{role}</span>
           </span>
         </Link>
       </div>

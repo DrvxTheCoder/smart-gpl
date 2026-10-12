@@ -1,3 +1,4 @@
+import { fmtMoney } from "../format";
 import { mulberry32 } from "../seed";
 import type { Inventory, TenantConfig } from "../types";
 import { adjustmentsFor, centreSite, clientSite, ownBrand, siteBalance } from "./bottle-ledger";
@@ -438,7 +439,7 @@ export function generateSales(cfg: TenantConfig, inventories: Inventory[], today
           const big = Object.fromEntries(Object.entries(qty).map(([f, n]) => [f, f === "b38" ? n * 3 : r10(n * 2.6)]));
           const bl = linesFor(s, big, d);
           const o = addOrder({ id, centreId: s.centre, customerId: s.id, mode: s.mode, date: d, createdAt, createdBy: s.rep, lines: bl, status: "CONFIRMEE" });
-          o.approval = { required: true, reasons: [`Montant de ${new Intl.NumberFormat("fr-FR").format(linesAmount(bl))} F CFA au-delà du seuil de validation.`], by: null, at: null, note: null };
+          o.approval = { required: true, reasons: [`Montant de ${fmtMoney(linesAmount(bl), sc.currency.label)} au-delà du seuil de validation (${fmtMoney(sc.workflow.approvalThreshold, sc.currency.label)}).`], by: null, at: null, note: null };
           o.history.push({ at: at(d, hour), by: s.rep, label: "Commande confirmée, en attente de validation" });
           ship(s, o, big, d, hour + 2, "PLANIFIE");
           continue;

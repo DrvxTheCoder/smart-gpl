@@ -18,6 +18,11 @@ import {
   Search,
   Settings2,
   SlidersHorizontal,
+  ShoppingCart,
+  Target,
+  TrendingUp,
+  Truck,
+  Warehouse,
   Users,
   Workflow,
   Store,
@@ -37,6 +42,8 @@ import {
   Kbd,
 } from "@/components/ui/command";
 import { useStore } from "@/lib/store";
+import { useSalesMaybe } from "@/lib/sales/store";
+import { ORDER_STATUS } from "@/lib/sales/lifecycle";
 import { cap, cn, fmtDate, invCode } from "@/lib/format";
 
 const PAGES: { href: string; label: string; icon: Icon; key: string }[] = [
@@ -44,6 +51,21 @@ const PAGES: { href: string; label: string; icon: Icon; key: string }[] = [
   { href: "/inventaires", label: "Inventaires", icon: ClipboardList, key: "I" },
   { href: "/analyses", label: "Analyses", icon: ChartColumn, key: "A" },
   { href: "/parametres", label: "Paramètres", icon: Settings2, key: "P" },
+  { href: "/ventes", label: "Ventes", icon: TrendingUp, key: "V" },
+  { href: "/ventes/commandes", label: "Commandes", icon: ShoppingCart, key: "C" },
+  { href: "/ventes/clients", label: "Clients", icon: Users, key: "K" },
+  { href: "/ventes/previsions", label: "Prévisions", icon: Target, key: "R" },
+  { href: "/ventes/grossistes", label: "Grossistes", icon: Store, key: "G" },
+  { href: "/magasin", label: "Stock et bouteilles", icon: Warehouse, key: "S" },
+  { href: "/expeditions", label: "Expéditions", icon: Truck, key: "E" },
+];
+
+/* Single-key sales actions; letters only, so they survive AZERTY layouts. */
+const SALES_ACTIONS: { id: string; label: string; key: string; href: string; icon: Icon; words: string }[] = [
+  { id: "order", label: "Nouvelle commande", key: "C", href: "/ventes/commandes?nouveau=1", icon: ShoppingCart, words: "nouvelle commande bon bc vente" },
+  { id: "customer", label: "Nouveau client", key: "K", href: "/ventes/clients?nouveau=1", icon: Users, words: "nouveau client creer" },
+  { id: "forecast", label: "Saisir une prévision", key: "F", href: "/ventes/previsions", icon: Target, words: "saisir prevision forecast" },
+  { id: "passage", label: "Enregistrer un passage", key: "P", href: "/ventes/grossistes", icon: Store, words: "enregistrer passage grossiste reglement" },
 ];
 
 const SETTINGS: { tab: string; label: string; icon: Icon }[] = [
@@ -86,6 +108,11 @@ function popupOpen() {
 export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onCollapse: () => void }) {
   const router = useRouter();
   const { inventories, config, centreId, setCentreId, density, setDensity, toast } = useStore();
+  const sales = useSalesMaybe();
+  const customers = useMemo(() => sales?.data.customers ?? [], [sales]);
+  const orders = useMemo(() => [...(sales?.data.orders ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [sales]);
+  const wholesalers = useMemo(() => customers.filter((c) => config.sales.categories.find((k) => k.id === c.categoryId)?.kind === "GROSSISTE" && c.active), [customers, config.sales.categories]);
+  const customerName = (id: string) => customers.find((c) => c.id === id)?.name ?? "";
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [mac, setMac] = useState(false);
@@ -142,6 +169,13 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
       } else if (k === "n") actions.current.openToday();
       else if (k === "m") actions.current.collapse();
       else if (k === "l") actions.current.toggleWidth();
+      else {
+        const a = SALES_ACTIONS.find((x) => x.key.toLowerCase() === k);
+        if (a) {
+          e.preventDefault();
+          router.push(a.href);
+        }
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -161,7 +195,7 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
         className="hidden h-11 flex-1 items-center rounded-full bg-card px-4 text-left text-[14px] text-muted transition-colors hover:text-ink sm:flex sm:max-w-[360px]"
       >
         <Search className="size-[18px]" />
-        <span className="ml-2.5 flex-1 truncate">Chercher un inventaire, une date</span>
+        <span className="ml-2.5 flex-1 truncate">Chercher un client, une commande, une date</span>
         <Kbd className="bg-board ring-0">{mac ? "⌘ K" : "Ctrl K"}</Kbd>
       </button>
       <button type="button" onClick={() => setOpen(true)} className="grid size-11 place-items-center rounded-full bg-card sm:hidden" aria-label="Rechercher">
@@ -175,7 +209,7 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
           if (!o) setQuery("");
         }}
       >
-        <CommandInput value={query} onValueChange={setQuery} placeholder="Chercher une page, un inventaire, une action…" />
+        <CommandInput value={query} onValueChange={setQuery} placeholder="Chercher une page, un client, une commande, une action…" />
         <CommandList>
           <CommandEmpty>Aucun résultat pour « {query} »</CommandEmpty>
 
@@ -195,6 +229,16 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
               {density === "compact" ? "Passer en vue étendue" : "Passer en vue compacte"}
               <CommandShortcut keys={["L"]} />
             </CommandItem>
+          </CommandGroup>
+
+          <CommandGroup heading="Ventes">
+            {SALES_ACTIONS.map((a) => (
+              <CommandItem key={a.id} value={a.words} onSelect={() => run(() => router.push(a.href))}>
+                <a.icon />
+                {a.label}
+                <CommandShortcut keys={[a.key]} />
+              </CommandItem>
+            ))}
           </CommandGroup>
 
           <CommandGroup heading="Aller à">
@@ -231,6 +275,42 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
               </CommandItem>
             )}
           </CommandGroup>
+
+          {query && (
+            <>
+              <CommandGroup heading="Clients">
+                {customers.map((c) => (
+                  <CommandItem key={c.id} value={`client ${c.name} ${c.code} ${c.zone} ${c.contact.name}`} onSelect={() => run(() => router.push(`/ventes/clients/${c.id}`))}>
+                    <Users />
+                    <span className="min-w-0 flex-1 truncate">
+                      {c.name}
+                      <span className="text-muted"> · {c.code}</span>
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+              <CommandGroup heading="Commandes">
+                {orders.slice(0, 300).map((o) => (
+                  <CommandItem key={o.id} value={`commande ${o.number} ${customerName(o.customerId)}`} onSelect={() => run(() => router.push(`/ventes/commandes/${o.id}`))}>
+                    <ShoppingCart />
+                    <span className="min-w-0 flex-1 truncate">
+                      {o.number}
+                      <span className="text-muted"> · {customerName(o.customerId)}</span>
+                    </span>
+                    <span className="text-[12px] text-faint">{ORDER_STATUS[o.status].label}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+              <CommandGroup heading="Passages">
+                {wholesalers.map((c) => (
+                  <CommandItem key={c.id} value={`passage grossiste ${c.name} ${c.code}`} onSelect={() => run(() => router.push(`/ventes/grossistes?passage=${c.id}`))}>
+                    <Store />
+                    Enregistrer un passage : {c.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </>
+          )}
 
           <CommandGroup heading="Centre affiché">
             {[...config.centres.map((c) => ({ id: c.id, name: c.name })), { id: "all", name: "Tous les centres" }].map((c) => (

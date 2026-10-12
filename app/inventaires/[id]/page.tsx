@@ -15,6 +15,7 @@ import { TimePicker } from "@/components/ui/time-picker";
 import { DateTimePicker } from "@/components/ui/calendar";
 import { iso } from "@/lib/seed";
 import { LiveTimerCard, TankLevel } from "@/components/production/production";
+import { BulkShipments } from "@/components/sales/bulk-shipments";
 
 type Tab = "appro" | "bouteilles" | "nuit" | "sorties" | "reservoirs" | "arrets" | "vehicules";
 
@@ -393,6 +394,14 @@ export default function FichePage() {
                   <p className="tnum mt-5 text-right text-[14px] text-muted">
                     Total sorties vrac <b className="ml-2 text-[16px] text-ink">{fmt(s.vracT, 1)} T</b>
                   </p>
+                  <BulkShipments
+                    centreId={inv.centreId}
+                    date={inv.date}
+                    field={c.sortieFields[0]}
+                    entered={c.sortieFields[0] ? inv.sorties[c.sortieFields[0].id] ?? 0 : 0}
+                    editable={editable}
+                    onTake={(t) => c.sortieFields[0] && set((i) => ({ ...i, sorties: { ...i.sorties, [c.sortieFields[0].id]: t } }))}
+                  />
                 </div>
               )}
 

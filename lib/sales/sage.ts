@@ -1,5 +1,6 @@
 import { dayOf } from "./dates";
-import { BULK, type Customer, type Dispatch, type Money, type Order, type Settlement } from "./types";
+import { fileName, templateCsv } from "./day-close";
+import { BULK, type Customer, type Dispatch, type Money, type Order, type ReportTemplate, type Settlement } from "./types";
 
 /* ------------------------------------------------------------------
    Validated sales lines for Sage Gestion Commerciale. Invoicing stays
@@ -65,3 +66,9 @@ export const SAGE_COLUMNS: Record<string, { label: string; value: (r: SaleLine, 
   montant: { label: "Montant", value: (r) => r.amount },
   centre: { label: "Centre", value: (r, c) => c.centre(r.centreId) },
 };
+
+/** The CSV file for Sage, through the tenant's template. Provisional until the real import format is set. */
+export function sageCsv(lines: SaleLine[], template: ReportTemplate, ctx: Ctx, file: { centre: string; date: string }): { blob: Blob; filename: string } {
+  const t = template.placeholder ? { ...template, header: `MODÈLE PROVISOIRE. ${template.header}`.trim() } : template;
+  return { blob: new Blob([templateCsv(lines, t, SAGE_COLUMNS, ctx)], { type: "text/csv;charset=utf-8" }), filename: fileName(template.filename, file.centre, file.date) };
+}

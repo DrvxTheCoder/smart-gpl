@@ -60,7 +60,8 @@ function Inner() {
         </header>
         {t.placeholder && <p className="mt-4 rounded-lg border border-warn/45 bg-warn/8 px-3 py-2 text-[13px] font-medium text-[#7a5306]">{PLACEHOLDER}</p>}
         {t.header && t.header !== PLACEHOLDER && <p className="mt-3 text-[13px] text-muted">{t.header}</p>}
-        <table className="mt-5 w-full text-[13px]">
+        <div className="relative mt-5 overflow-x-auto print:overflow-visible">
+        <table className="w-full min-w-[640px] text-[13px] print:min-w-0">
           <thead>
             <tr className="border-b-2 border-ink/80 text-left">
               {t.columns.map((k) => (
@@ -82,6 +83,7 @@ function Inner() {
             ))}
           </tbody>
         </table>
+        </div>
         {rows.length === 0 && <p className="py-8 text-center text-muted">Aucune bouteille en stock ni mouvement ce jour-là.</p>}
         <footer className="mt-8 flex items-center justify-between text-[11px] text-muted">
           <span>Établi d&apos;après le registre des mouvements de bouteilles.</span>

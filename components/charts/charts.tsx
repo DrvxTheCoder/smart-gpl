@@ -132,7 +132,7 @@ export interface ForecastDatum {
   actual: number | null; // null: period not over yet
 }
 
-export function ForecastBars({ data, unit = "bt" }: { data: ForecastDatum[]; unit?: string }) {
+export function ForecastBars({ data, unit = "bt", labels = { plan: "Prévision", done: "Réalisé" }, barGap = 0.3 }: { data: ForecastDatum[]; unit?: string; labels?: { plan: string; done: string }; barGap?: number }) {
   const rows = useMemo(
     () =>
       data.map((d) => ({
@@ -147,7 +147,7 @@ export function ForecastBars({ data, unit = "bt" }: { data: ForecastDatum[]; uni
   const row = (v: number | null) => (v == null ? "À venir" : `${fmt(v)} ${unit}`);
   return (
     <div className="relative h-full overflow-x-clip">
-      <BarChart data={rows} xDataKey="label" aspectRatio="auto" className="h-full" margin={{ top: 8, right: 0, bottom: 34, left: 0 }} barGap={0.3} animationDuration={1100} animationEasing={EASE}>
+      <BarChart data={rows} xDataKey="label" aspectRatio="auto" className="h-full" margin={{ top: 8, right: 0, bottom: 34, left: 0 }} barGap={barGap} animationDuration={1100} animationEasing={EASE}>
         <Hatch id="fc-hatch" />
         <Grid horizontal numTicksRows={4} hideHorizontalEdgeLines />
         <Bar dataKey="plan" overlay lineCap="pill" fill="url(#fc-hatch)" stroke="var(--hatch)" fadedOpacity={0.3} />
@@ -162,8 +162,8 @@ export function ForecastBars({ data, unit = "bt" }: { data: ForecastDatum[]; uni
               <TooltipContent
                 title={d.full}
                 rows={[
-                  { color: "var(--hatch)", label: "Prévision", value: `${fmt(d.forecast)} ${unit}` },
-                  { color: "var(--b-400)", label: "Réalisé", value: row(d.actual) },
+                  { color: "var(--hatch)", label: labels.plan, value: `${fmt(d.forecast)} ${unit}` },
+                  { color: "var(--b-400)", label: labels.done, value: row(d.actual) },
                 ]}
               />
             );
@@ -173,7 +173,7 @@ export function ForecastBars({ data, unit = "bt" }: { data: ForecastDatum[]; uni
       <ul className="sr-only">
         {data.map((d) => (
           <li key={d.full}>
-            {d.full} : prévision {fmt(d.forecast)} {unit}, réalisé {row(d.actual)}
+            {d.full} : {labels.plan.toLowerCase()} {fmt(d.forecast)} {unit}, {labels.done.toLowerCase()} {row(d.actual)}
           </li>
         ))}
       </ul>

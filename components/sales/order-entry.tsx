@@ -297,5 +297,5 @@ export function OrderEntry({ open, onClose, initialCustomer }: { open: boolean; 
 }
 
 /** The customer's latest order that was not cancelled. */
-export const lastOrder = (orders: Order[], customerId: string) =>
+const lastOrder = (orders: Order[], customerId: string) =>
   orders.filter((o) => o.customerId === customerId && o.status !== "ANNULEE").sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
