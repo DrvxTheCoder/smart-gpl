@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, Lock, Plus, Trash2 } from "@/components/ui/icons";
-import { Button, Card, CardTitle, Field, NumberInput, Segmented, Switch, inputCls } from "@/components/ui/primitives";
+import { Button, Card, CardTitle, Field, IntegerInput, NumberInput, Segmented, Switch, inputCls } from "@/components/ui/primitives";
 import { Select } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/calendar";
 import { useStore } from "@/lib/store";
@@ -49,10 +49,6 @@ function RemoveBtn({ label, onClick, disabled }: { label: string; onClick: () =>
   );
 }
 
-/** Whole-number field (money, days, counts): rounds what is typed, never below `min`. */
-function IntInput({ value, onChange, ariaLabel, min = 0, disabled }: { value: number; onChange: (v: number) => void; ariaLabel?: string; min?: number; disabled?: boolean }) {
-  return <NumberInput value={value} step={1} ariaLabel={ariaLabel} disabled={disabled} onChange={(v) => onChange(Math.max(Math.round(v), min))} />;
-}
 
 const DECISIONS: Exclude<Decision, "ALLOW">[] = ["WARN", "APPROVAL", "BLOCK"];
 
@@ -79,13 +75,13 @@ export function TermsEditor({ terms, onChange, wholesaler, disabled }: { terms: 
         />
       </Field>
       <Field label="Plafond de crédit" unit={sales.currency.label}>
-        <IntInput value={terms.creditLimit} disabled={disabled} onChange={(v) => set({ creditLimit: v })} />
+        <IntegerInput value={terms.creditLimit} disabled={disabled} onChange={(v) => set({ creditLimit: v })} />
       </Field>
       <Field label="Tarif">
         <Select ariaLabel="Tarif" disabled={disabled} value={terms.priceListId} onChange={(v) => set({ priceListId: v })} options={sales.priceLists.map((p) => ({ value: p.id, label: p.label }))} />
       </Field>
       <Field label="Garanties détenues" unit={sales.currency.label}>
-        <IntInput value={terms.guarantees} disabled={disabled} onChange={(v) => set({ guarantees: v })} />
+        <IntegerInput value={terms.guarantees} disabled={disabled} onChange={(v) => set({ guarantees: v })} />
       </Field>
       <Field label="Facturation">
         <Select ariaLabel="Facturation" disabled={disabled} value={terms.billing} onChange={(v) => set({ billing: v })} options={Object.entries(BILLING).map(([value, label]) => ({ value: value as ContractTerms["billing"], label }))} />
@@ -148,7 +144,7 @@ export function TermsEditor({ terms, onChange, wholesaler, disabled }: { terms: 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             {formats.map((b) => (
               <Field key={b.id} label={b.label}>
-                <IntInput ariaLabel={`Plafond ${b.label}`} disabled={disabled} value={terms.floatCap[b.id] ?? 0} onChange={(v) => set({ floatCap: { ...terms.floatCap, [b.id]: v } })} />
+                <IntegerInput ariaLabel={`Plafond ${b.label}`} disabled={disabled} value={terms.floatCap[b.id] ?? 0} onChange={(v) => set({ floatCap: { ...terms.floatCap, [b.id]: v } })} />
               </Field>
             ))}
           </div>
@@ -234,7 +230,7 @@ export function CustomersPanel() {
                           <Select ariaLabel="Plafond dépassé" value={cat.credit.onLimit} onChange={(v) => setCat(cat.id, (c) => ({ ...c, credit: { ...c.credit, onLimit: v } }))} options={DECISIONS.map((d) => ({ value: d, label: DECISION[d] }))} />
                         </Field>
                         <Field label="Retard toléré" unit="jours">
-                          <IntInput value={cat.credit.overdueDays} onChange={(v) => setCat(cat.id, (c) => ({ ...c, credit: { ...c.credit, overdueDays: v } }))} />
+                          <IntegerInput value={cat.credit.overdueDays} onChange={(v) => setCat(cat.id, (c) => ({ ...c, credit: { ...c.credit, overdueDays: v } }))} />
                         </Field>
                         <Field label="Au-delà du retard toléré">
                           <Select ariaLabel="Au-delà du retard toléré" value={cat.credit.onOverdue} onChange={(v) => setCat(cat.id, (c) => ({ ...c, credit: { ...c.credit, onOverdue: v } }))} options={DECISIONS.map((d) => ({ value: d, label: DECISION[d] }))} />
@@ -293,7 +289,7 @@ export function CustomersPanel() {
                             <DatePicker ariaLabel="Date d'effet" disabled={!canPrice} value={l.from} onChange={(v) => v && upd({ from: v })} />
                           </td>
                           <td className="py-2 pr-2">
-                            <IntInput ariaLabel={`Prix ${l.formatId}`} disabled={!canPrice} value={l.price} onChange={(v) => upd({ price: v })} />
+                            <IntegerInput ariaLabel={`Prix ${l.formatId}`} disabled={!canPrice} value={l.price} onChange={(v) => upd({ price: v })} />
                           </td>
                           <td className="py-2">
                             <RemoveBtn label="Supprimer la ligne" disabled={!canPrice} onClick={() => set((s) => ({ ...s, priceLists: s.priceLists.map((x) => (x.id === pl.id ? { ...x, lines: x.lines.filter((_, j) => j !== i) } : x)) }))} />
@@ -334,19 +330,19 @@ export function CustomersPanel() {
             ] as const
           ).map(([k, label]) => (
             <Field key={k} label={label} unit={`${fmt((w[k] / wTotal) * 100)} %`}>
-              <IntInput value={w[k]} onChange={(v) => set((s) => ({ ...s, solvency: { ...s.solvency, weights: { ...s.solvency.weights, [k]: v } } }))} />
+              <IntegerInput value={w[k]} onChange={(v) => set((s) => ({ ...s, solvency: { ...s.solvency, weights: { ...s.solvency.weights, [k]: v } } }))} />
             </Field>
           ))}
         </div>
         <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Field label="Solvable à partir de" unit="/ 100">
-            <IntInput value={sales.solvency.okFrom} onChange={(v) => set((s) => ({ ...s, solvency: { ...s.solvency, okFrom: Math.min(Math.max(v, s.solvency.warnFrom), 100) } }))} />
+            <IntegerInput value={sales.solvency.okFrom} onChange={(v) => set((s) => ({ ...s, solvency: { ...s.solvency, okFrom: Math.min(Math.max(v, s.solvency.warnFrom), 100) } }))} />
           </Field>
           <Field label="À surveiller à partir de" unit="/ 100">
-            <IntInput value={sales.solvency.warnFrom} onChange={(v) => set((s) => ({ ...s, solvency: { ...s.solvency, warnFrom: Math.min(v, s.solvency.okFrom) } }))} />
+            <IntegerInput value={sales.solvency.warnFrom} onChange={(v) => set((s) => ({ ...s, solvency: { ...s.solvency, warnFrom: Math.min(v, s.solvency.okFrom) } }))} />
           </Field>
           <Field label="Historique analysé" unit="jours">
-            <IntInput value={sales.solvency.lookbackDays} min={7} onChange={(v) => set((s) => ({ ...s, solvency: { ...s.solvency, lookbackDays: v } }))} />
+            <IntegerInput value={sales.solvency.lookbackDays} min={7} onChange={(v) => set((s) => ({ ...s, solvency: { ...s.solvency, lookbackDays: v } }))} />
           </Field>
         </div>
         <div className="mt-5 flex h-3 overflow-hidden rounded-full" aria-hidden>
@@ -461,7 +457,7 @@ export function WorkflowPanel() {
                 {s.id === "approval" && wf.steps.approval && (
                   <div className="mt-3 max-w-xs">
                     <Field label="Seuil de validation" unit={sales.currency.label}>
-                      <IntInput value={wf.approvalThreshold} onChange={(v) => setWorkflow({ approvalThreshold: v })} />
+                      <IntegerInput value={wf.approvalThreshold} onChange={(v) => setWorkflow({ approvalThreshold: v })} />
                     </Field>
                   </div>
                 )}
@@ -514,10 +510,10 @@ export function WorkflowPanel() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Field label="Couverture de sécurité" unit="jours" hint="Plan de remplissage">
-                <IntInput value={sales.stock.safetyDays} onChange={(v) => set((s) => ({ ...s, stock: { ...s.stock, safetyDays: v } }))} />
+                <IntegerInput value={sales.stock.safetyDays} onChange={(v) => set((s) => ({ ...s, stock: { ...s.stock, safetyDays: v } }))} />
               </Field>
               <Field label="Production prise en compte" unit="jours" hint="Horizon du disponible à la vente">
-                <IntInput value={sales.stock.atpHorizonDays} onChange={(v) => set((s) => ({ ...s, stock: { ...s.stock, atpHorizonDays: v } }))} />
+                <IntegerInput value={sales.stock.atpHorizonDays} onChange={(v) => set((s) => ({ ...s, stock: { ...s.stock, atpHorizonDays: v } }))} />
               </Field>
             </div>
           </div>
@@ -592,7 +588,7 @@ export function BrandsCard() {
                   </td>
                   {config.bottleTypes.map((b) => (
                     <td key={b.id} className="py-2 pr-2">
-                      <IntInput ariaLabel={`Consigne ${b.label}, ${br.name}`} value={br.deposit[b.id] ?? 0} onChange={(v) => upd({ deposit: { ...br.deposit, [b.id]: v } })} />
+                      <IntegerInput ariaLabel={`Consigne ${b.label}, ${br.name}`} value={br.deposit[b.id] ?? 0} onChange={(v) => upd({ deposit: { ...br.deposit, [b.id]: v } })} />
                     </td>
                   ))}
                   <td className="py-2">
@@ -622,10 +618,10 @@ export function ConsignmentPanel() {
         <p className="mt-1 text-[13px] text-muted">Le stock chez le grossiste reste à vous : il est valorisé, pas facturé. Chaque passage règle ce qui a été vendu.</p>
         <div className="mt-4 grid grid-cols-2 gap-4">
           <Field label="Relance sans passage après" unit="jours" hint="Catégorie et contrat peuvent le remplacer">
-            <IntInput value={c.inactivityDays} min={1} onChange={(v) => setC({ inactivityDays: v })} />
+            <IntegerInput value={c.inactivityDays} min={1} onChange={(v) => setC({ inactivityDays: v })} />
           </Field>
           <Field label="Comptage physique tous les" unit="jours">
-            <IntInput value={c.countEveryDays} min={1} onChange={(v) => setC({ countEveryDays: v })} />
+            <IntegerInput value={c.countEveryDays} min={1} onChange={(v) => setC({ countEveryDays: v })} />
           </Field>
           <Field label="Tolérance d'écart au comptage" unit="%">
             <NumberInput value={c.varianceTolerancePct} onChange={(v) => setC({ varianceTolerancePct: Math.max(v, 0) })} />
@@ -667,7 +663,7 @@ export function ConsignmentPanel() {
           {c.ladder.map((s, i) => (
             <li key={i} className="grid grid-cols-[110px_1fr_auto] items-end gap-3 rounded-2xl bg-board p-3">
               <Field label="Jour">
-                <IntInput
+                <IntegerInput
                   value={s.day}
                   min={1}
                   onChange={(v) => setC({ ladder: c.ladder.map((x, j) => (j === i ? { ...x, day: v } : x)) })}

@@ -19,6 +19,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ArrowDown,
+  Users,
 } from "@/components/ui/icons";
 import { useStore } from "@/lib/store";
 import { useSalesMaybe } from "@/lib/sales/store";
@@ -44,18 +45,42 @@ export function Logo({ className }: { className?: string }) {
   );
 }
 
-const NAV = [
-  { href: "/", label: "Tableau de bord", icon: LayoutGrid },
-  { href: "/inventaires", label: "Inventaires", icon: ClipboardList, badge: true },
-  { href: "/analyses", label: "Analyses", icon: ChartColumn },
-  { href: "/parametres", label: "Paramètres", icon: Settings2 },
+type BadgeKey = "inventories";
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof LayoutGrid;
+  badge?: BadgeKey;
+}
+
+const SECTIONS: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Menu",
+    items: [
+      { href: "/", label: "Tableau de bord", icon: LayoutGrid },
+      { href: "/inventaires", label: "Inventaires", icon: ClipboardList, badge: "inventories" },
+      { href: "/analyses", label: "Analyses", icon: ChartColumn },
+      { href: "/parametres", label: "Paramètres", icon: Settings2 },
+    ],
+  },
+  {
+    label: "Commercial",
+    items: [{ href: "/ventes/clients", label: "Clients", icon: Users }],
+  },
 ];
 
 const COLLAPSED_KEY = "jauge:sidebar-collapsed";
 const isDesktop = () => window.matchMedia("(min-width: 1024px)").matches;
 
-function isActive(path: string, href: string) {
-  return href === "/" ? path === "/" : path.startsWith(href);
+/** The one link to highlight: the longest href the path falls under. */
+function activeHref(path: string) {
+  let best = "";
+  for (const { items } of SECTIONS)
+    for (const { href } of items) {
+      const hit = href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`);
+      if (hit && href.length > best.length) best = href;
+    }
+  return best;
 }
 
 /**
@@ -140,7 +165,8 @@ function SectionLabel({ collapsed, className, children }: { collapsed: boolean; 
 function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => void; collapsed: boolean }) {
   const path = usePathname();
   const { inventories, toast, config, startJob } = useStore();
-  const openCount = inventories.filter((i) => i.status === "EN_COURS").length;
+  const badges: Record<BadgeKey, number> = { inventories: inventories.filter((i) => i.status === "EN_COURS").length };
+  const current = activeHref(path);
   const navRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLSpanElement>(null);
   const { bind, tooltip, hide } = useRailTooltip(collapsed);
@@ -196,46 +222,54 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
           </button>
         </div>
 
-        <div ref={navRef} className="relative mt-8 flex-1">
-          <span ref={railRef} aria-hidden className="absolute -left-5 top-0 h-7 w-[3px] rounded-r-full bg-brand-800 opacity-0" />
-          <SectionLabel collapsed={collapsed}>Menu</SectionLabel>
-          <ul className="space-y-0.5">
-            {NAV.map(({ href, label, icon: Icon, badge }) => {
-              const active = isActive(path, href);
-              const count = badge && openCount > 0 ? openCount : 0;
-              return (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    onClick={onClose}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(itemCls, active ? "font-semibold text-ink" : "text-muted hover:bg-card/70 hover:text-ink")}
-                    {...bind(count ? `${label} · ${count} en cours` : label)}
-                  >
-                    <Icon className={cn("size-[19px] shrink-0", active && "text-brand-800")} strokeWidth={active ? 2.1 : 1.7} />
-                    <span className={fade}>{label}</span>
-                    {count > 0 && (
-                      <>
-                        <span
-                          className={cn("tnum ml-auto grid h-5 min-w-5 place-items-center rounded-md bg-brand-800 px-1 text-[11px] font-semibold text-white", fade)}
-                          aria-label={`${count} en cours`}
-                        >
-                          {count}
-                        </span>
-                        <span
-                          aria-hidden
-                          className={cn(
-                            "absolute top-2.5 left-[26px] hidden size-2 rounded-full bg-brand-800 ring-2 ring-board transition-[opacity,scale] duration-300 lg:block",
-                            collapsed ? "scale-100 opacity-100" : "scale-50 opacity-0",
-                          )}
-                        />
-                      </>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+        {/* Scrolls when the sections outgrow a short screen; it spans the
+            aside's padding so the rail on its left edge is not clipped. */}
+        <div ref={navRef} className="no-scrollbar relative -mx-5 mt-8 min-h-0 flex-1 overflow-y-auto px-5">
+          <span ref={railRef} aria-hidden className="absolute top-0 left-0 h-7 w-[3px] rounded-r-full bg-brand-800 opacity-0" />
+          {SECTIONS.map((section, si) => (
+            <div key={section.label}>
+              <SectionLabel collapsed={collapsed} className={si ? "mt-7" : undefined}>
+                {section.label}
+              </SectionLabel>
+              <ul className="space-y-0.5">
+                {section.items.map(({ href, label, icon: Icon, badge }) => {
+                  const active = href === current;
+                  const count = badge ? badges[badge] : 0;
+                  return (
+                    <li key={href}>
+                      <Link
+                        href={href}
+                        onClick={onClose}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(itemCls, active ? "font-semibold text-ink" : "text-muted hover:bg-card/70 hover:text-ink")}
+                        {...bind(count ? `${label} · ${count} en cours` : label)}
+                      >
+                        <Icon className={cn("size-[19px] shrink-0", active && "text-brand-800")} strokeWidth={active ? 2.1 : 1.7} />
+                        <span className={fade}>{label}</span>
+                        {count > 0 && (
+                          <>
+                            <span
+                              className={cn("tnum ml-auto grid h-5 min-w-5 place-items-center rounded-md bg-brand-800 px-1 text-[11px] font-semibold text-white", fade)}
+                              aria-label={`${count} en cours`}
+                            >
+                              {count}
+                            </span>
+                            <span
+                              aria-hidden
+                              className={cn(
+                                "absolute top-2.5 left-[26px] hidden size-2 rounded-full bg-brand-800 ring-2 ring-board transition-[opacity,scale] duration-300 lg:block",
+                                collapsed ? "scale-100 opacity-100" : "scale-50 opacity-0",
+                              )}
+                            />
+                          </>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
 
           <SectionLabel collapsed={collapsed} className="mt-7">
             Général

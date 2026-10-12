@@ -322,6 +322,58 @@ export function NumberInput({
   );
 }
 
+/**
+ * Whole numbers (money in F CFA, bottle counts): grouped by thousands at rest,
+ * raw digits while typing, selected on focus. Never below `min`.
+ */
+export function IntegerInput({
+  value,
+  onChange,
+  min = 0,
+  disabled,
+  ariaLabel,
+  className,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  disabled?: boolean;
+  ariaLabel?: string;
+  className?: string;
+}) {
+  const group = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
+  const [txt, setTxt] = useState(group(value));
+  const focused = useRef(false);
+  useEffect(() => {
+    if (!focused.current) setTxt(group(value));
+  }, [value]);
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      aria-label={ariaLabel}
+      disabled={disabled}
+      value={txt}
+      onFocus={(e) => {
+        focused.current = true;
+        setTxt(String(value));
+        const el = e.currentTarget;
+        requestAnimationFrame(() => el.select());
+      }}
+      onBlur={() => {
+        focused.current = false;
+        setTxt(group(value));
+      }}
+      onChange={(e) => {
+        const raw = e.target.value.replace(/\D/g, "");
+        setTxt(raw);
+        onChange(Math.max(Number(raw) || 0, min));
+      }}
+      className={cn(inputCls, className)}
+    />
+  );
+}
+
 /* ---------------- Dialog (native <dialog>) ---------------- */
 export function Dialog({
   open,

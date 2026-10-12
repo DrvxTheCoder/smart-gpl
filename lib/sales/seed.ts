@@ -90,7 +90,7 @@ const CUSTOMERS: SeedCustomer[] = [
     own: 0.75,
     formats: ["b27", "b6", "b9", "b125"],
     term: { kind: "DIFFERE", days: 15 },
-    limit: 90_000_000,
+    limit: 240_000_000,
     payDelay: 3,
     mode: "ENLEVEMENT",
     patch: { invoicing: "RELEVE_PERIODIQUE", paymentTrigger: "PERIODIQUE", inactivityDays: 4 },
