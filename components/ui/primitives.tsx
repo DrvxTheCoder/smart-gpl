@@ -379,7 +379,7 @@ export function IntegerInput({
 
 /** Count with − and + around the field: 44px targets, usable with a thumb at the gate. */
 export function Stepper({ value, onChange, step = 1, min = 0, disabled, ariaLabel }: { value: number; onChange: (v: number) => void; step?: number; min?: number; disabled?: boolean; ariaLabel: string }) {
-  const btn = "grid size-11 shrink-0 place-items-center rounded-xl bg-board text-ink transition-colors hover:bg-brand-100 disabled:opacity-40";
+  const btn = "grid size-11 shrink-0 place-items-center rounded-xl bg-card text-ink ring-1 ring-line transition-colors hover:bg-brand-50 disabled:opacity-40";
   return (
     <div className="flex w-full min-w-0 items-center gap-1.5" role="group" aria-label={ariaLabel}>
       <button type="button" className={btn} disabled={disabled || value <= min} aria-label={`Retirer ${step}`} onClick={() => onChange(Math.max(value - step, min))}>

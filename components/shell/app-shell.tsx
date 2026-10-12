@@ -22,7 +22,9 @@ import {
   ShoppingCart,
   Target,
   TrendingUp,
+  Truck,
   Users,
+  Warehouse,
 } from "@/components/ui/icons";
 import { useStore } from "@/lib/store";
 import { useSalesMaybe } from "@/lib/sales/store";
@@ -48,8 +50,8 @@ export function Logo({ className }: { className?: string }) {
   );
 }
 
-type BadgeKey = "inventories" | "approvals";
-const BADGE_TEXT: Record<BadgeKey, string> = { inventories: "en cours", approvals: "à valider" };
+type BadgeKey = "inventories" | "approvals" | "dispatches";
+const BADGE_TEXT: Record<BadgeKey, string> = { inventories: "en cours", approvals: "à valider", dispatches: "au chargement" };
 interface NavItem {
   href: string;
   label: string;
@@ -74,6 +76,13 @@ const SECTIONS: { label: string; items: NavItem[] }[] = [
       { href: "/ventes/commandes", label: "Commandes", icon: ShoppingCart, badge: "approvals" },
       { href: "/ventes/clients", label: "Clients", icon: Users },
       { href: "/ventes/previsions", label: "Prévisions", icon: Target },
+    ],
+  },
+  {
+    label: "Magasin",
+    items: [
+      { href: "/magasin", label: "Stock et bouteilles", icon: Warehouse },
+      { href: "/expeditions", label: "Expéditions", icon: Truck, badge: "dispatches" },
     ],
   },
 ];
@@ -173,11 +182,13 @@ function SectionLabel({ collapsed, className, children }: { collapsed: boolean; 
 
 function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => void; collapsed: boolean }) {
   const path = usePathname();
-  const { inventories, toast, config, startJob } = useStore();
+  const { inventories, toast, config, startJob, centreId } = useStore();
   const sales = useSalesMaybe(); // the shell renders before the sales data is built
+  const here = (id: string) => centreId === "all" || id === centreId;
   const badges: Record<BadgeKey, number> = {
     inventories: inventories.filter((i) => i.status === "EN_COURS").length,
-    approvals: sales?.data.orders.filter((o) => o.status === "CONFIRMEE" && o.approval.required && !o.approval.by).length ?? 0,
+    approvals: sales?.data.orders.filter((o) => here(o.centreId) && o.status === "CONFIRMEE" && o.approval.required && !o.approval.by).length ?? 0,
+    dispatches: sales?.data.dispatches.filter((d) => here(d.centreId) && (d.status === "EN_CHARGEMENT" || d.status === "CHARGE")).length ?? 0,
   };
   const current = activeHref(path);
   const navRef = useRef<HTMLDivElement>(null);
@@ -233,7 +244,7 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
     <>
       <aside
         className={cn(
-          "fixed inset-y-3 left-3 z-40 flex w-[248px] flex-col overflow-hidden rounded-[26px] bg-board p-5 transition-[translate,width,box-shadow] duration-[420ms] ease-[cubic-bezier(.2,.9,.25,1)] lg:sticky lg:top-3 lg:bottom-auto lg:z-auto lg:h-[calc(100dvh-1.5rem)] lg:shrink-0 lg:self-start lg:translate-x-0",
+          "fixed inset-y-3 left-3 z-40 flex w-[248px] print:hidden flex-col overflow-hidden rounded-[26px] bg-board p-5 transition-[translate,width,box-shadow] duration-[420ms] ease-[cubic-bezier(.2,.9,.25,1)] lg:sticky lg:top-3 lg:bottom-auto lg:z-auto lg:h-[calc(100dvh-1.5rem)] lg:shrink-0 lg:self-start lg:translate-x-0",
           collapsed && "lg:w-[84px]",
           open ? "translate-x-0 shadow-2xl" : "-translate-x-[110%]",
         )}
@@ -554,7 +565,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // Expanded fills the window, keeping the same 12px gutter on every side.
     <div
       className={cn(
-        "mx-auto flex min-h-dvh gap-3 p-3 transition-[max-width] duration-420 ease-[cubic-bezier(.2,.9,.25,1)]",
+        "mx-auto flex min-h-dvh gap-3 p-3 print:p-0 transition-[max-width] duration-420 ease-[cubic-bezier(.2,.9,.25,1)]",
         density === "expanded" ? "max-w-full" : "max-w-[1680px]",
       )}
     >
@@ -563,19 +574,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Sticky, backed by canvas down to its middle: the gutter above and
             the top corners read as page background, while content slides
             right under its lower edge. */}
-        <div className="sticky top-0 z-20 -mt-3 pt-3">
+        <div className="sticky top-0 z-20 -mt-3 pt-3 print:hidden">
           <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-11 bg-canvas" />
           <Topbar onMenu={() => setOpen(true)} collapsed={collapsed} onCollapse={toggleCollapsed} raised={scroll.y > 0} />
         </div>
-        <main ref={mainRef} id="main" className="flex-1 rounded-[26px] bg-board p-4 sm:p-5">
-          <div className="mb-4 md:hidden">
+        <main ref={mainRef} id="main" className="flex-1 rounded-[26px] bg-board p-4 sm:p-5 print:rounded-none print:bg-white print:p-0">
+          <div className="mb-4 md:hidden print:hidden">
             <CentreSwitcher />
           </div>
           {ready ? children : <div className="grid h-[60vh] place-items-center text-muted">Chargement…</div>}
         </main>
       </div>
-      <ScrollJump y={scroll.y} max={scroll.max} />
-      <Island />
+      <div className="print:hidden">
+        <ScrollJump y={scroll.y} max={scroll.max} />
+        <Island />
+      </div>
     </div>
   );
 }

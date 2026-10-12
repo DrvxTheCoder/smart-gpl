@@ -386,3 +386,11 @@ input[type="number"] {
       "fp fp dp dp";
   }
 }
+
+/* Printing a report: the page alone, on white. */
+@media print {
+  html,
+  body {
+    background: white;
+  }
+}

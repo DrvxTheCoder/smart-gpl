@@ -93,3 +93,11 @@ export function templateCsv<R, C>(rows: R[], t: ReportTemplate, columns: Record<
   // BOM so spreadsheet software reads the accents right.
   return `﻿${lines.join("\r\n")}\r\n`;
 }
+
+/** The authority daily report as a CSV file, through the tenant's template. */
+export function authorityCsv(o: { rows: ReportRow[]; template: ReportTemplate; centre: string; date: string; brand: (id: string) => string; format: (id: string) => string }): { blob: Blob; filename: string } {
+  // Until the official format is supplied, every file says it is provisional.
+  const template = o.template.placeholder ? { ...o.template, header: `MODÈLE PROVISOIRE. ${o.template.header}`.trim() } : o.template;
+  const text = templateCsv(o.rows, template, AUTHORITY_COLUMNS, { brand: o.brand, format: o.format });
+  return { blob: new Blob([text], { type: "text/csv;charset=utf-8" }), filename: fileName(o.template.filename, o.centre, o.date) };
+}
