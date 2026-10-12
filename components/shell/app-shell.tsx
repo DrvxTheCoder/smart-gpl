@@ -21,6 +21,7 @@ import {
   ArrowDown,
 } from "@/components/ui/icons";
 import { useStore } from "@/lib/store";
+import { useSalesMaybe } from "@/lib/sales/store";
 import { Select } from "@/components/ui/select";
 import { CommandMenu } from "./command-menu";
 import { Island } from "./island";
@@ -436,7 +437,9 @@ function Topbar({ onMenu, collapsed, onCollapse, raised }: { onMenu: () => void;
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const { ready, density } = useStore();
+  const { ready: storeReady, density } = useStore();
+  const sales = useSalesMaybe();
+  const ready = storeReady && !!sales;
   const path = usePathname();
   const mainRef = useRef<HTMLElement>(null);
 

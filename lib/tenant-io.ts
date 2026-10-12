@@ -1,53 +1,15 @@
+import { Checker, isObj, isStr, isStrList, type Obj } from "./checker";
 import { checkCorrection } from "./correction";
+import { checkSalesConfig } from "./sales/config";
 import { DEFAULT_CONFIG } from "./seed";
-import type { BottleType, Branding, CalcMode, Centre, FlowField, ProductionLine, Reservoir, Rules, TankType, TenantConfig } from "./types";
+import { BULK } from "./sales/types";
+import type { BottleType, Branding, CalcMode, Centre, FlowField, ProductionLine, Reservoir, Rules, SalesConfig, TankType, TenantConfig } from "./types";
 
 /* Tenant configuration as untrusted data: the JSON "template" files and what
    localStorage hands back. Everything is checked before it reaches the store. */
 
-export const STORAGE_VERSION = 2;
+export const STORAGE_VERSION = 3;
 export const TEMPLATE_FORMAT = "jauge-tenant-config";
-
-type Obj = Record<string, unknown>;
-const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
-const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
-const isStr = (v: unknown): v is string => typeof v === "string";
-const isStrList = (v: unknown): v is string[] => Array.isArray(v) && v.every(isStr);
-
-class Checker {
-  errors: string[] = [];
-  fail(at: string, msg: string) {
-    this.errors.push(`${at} : ${msg}`);
-  }
-  str(o: Obj, k: string, at: string): string {
-    if (isStr(o[k])) return o[k];
-    this.fail(at, `« ${k} » texte attendu.`);
-    return "";
-  }
-  num(o: Obj, k: string, at: string): number {
-    if (isNum(o[k])) return o[k];
-    this.fail(at, `« ${k} » nombre attendu.`);
-    return 0;
-  }
-  list<T>(v: unknown, at: string, each: (x: Obj, at: string) => T): T[] {
-    if (!Array.isArray(v)) {
-      this.fail(at, "liste attendue.");
-      return [];
-    }
-    return v.flatMap((x, i) => {
-      if (isObj(x)) return [each(x, `${at} ${i + 1}`)];
-      this.fail(`${at} ${i + 1}`, "objet attendu.");
-      return [];
-    });
-  }
-  oneOf<T extends string>(o: Obj, k: string, allowed: readonly T[], at: string): T {
-    const v = o[k];
-    const hit = allowed.find((a) => a === v);
-    if (hit) return hit;
-    this.fail(at, `« ${k} » doit valoir ${allowed.join(" ou ")}.`);
-    return allowed[0];
-  }
-}
 
 const TANK_TYPES: readonly TankType[] = ["SPHERE", "CIGARE", "AUTRE"];
 const CALC_MODES: readonly CalcMode[] = ["AUTOMATIC", "PERCENTAGE"];
@@ -108,8 +70,34 @@ export function checkTenantConfig(raw: unknown): { value: TenantConfig | null; e
   });
   if (!centres.length) c.fail("Centres", "au moins un centre est requis.");
 
-  if (c.errors.length || !correction.value) return { value: null, errors: c.errors };
-  return { value: { branding, rules, bottleTypes, centres, correction: correction.value }, errors: [] };
+  const sales = checkSalesConfig(raw.sales, c);
+  if (sales) crossCheckSales(c, sales, bottleTypes, centres);
+
+  if (c.errors.length || !correction.value || !sales) return { value: null, errors: c.errors };
+  return { value: { branding, rules, bottleTypes, centres, correction: correction.value, sales }, errors: [] };
+}
+
+/** Sales settings may only name formats and centres the tenant has. */
+function crossCheckSales(c: Checker, sales: SalesConfig, bottleTypes: BottleType[], centres: Centre[]) {
+  const formats = new Set([...bottleTypes.map((b) => b.id), BULK]);
+  for (const pl of sales.priceLists)
+    for (const l of pl.lines) if (!formats.has(l.formatId)) c.fail(`Tarif « ${pl.label} »`, `format « ${l.formatId} » inconnu.`);
+  for (const id of Object.keys(sales.openingStock)) if (!centres.some((x) => x.id === id)) c.fail("Stock d'ouverture", `centre « ${id} » inconnu.`);
+}
+
+/**
+ * Sales defaults fitted to a tenant that predates the sales module: only its
+ * own formats and centres are kept, so the result passes the cross-check.
+ */
+export function salesDefaultsFor(raw: Obj): SalesConfig {
+  const d = DEFAULT_CONFIG.sales;
+  const formats = new Set([...(Array.isArray(raw.bottleTypes) ? raw.bottleTypes.filter(isObj).map((b) => b.id) : []), BULK]);
+  const centreIds = new Set(Array.isArray(raw.centres) ? raw.centres.filter(isObj).map((x) => x.id) : []);
+  return {
+    ...d,
+    priceLists: d.priceLists.map((pl) => ({ ...pl, lines: pl.lines.filter((l) => formats.has(l.formatId)) })),
+    openingStock: Object.fromEntries(Object.entries(d.openingStock).filter(([id]) => centreIds.has(id))),
+  };
 }
 
 /* ---------------- template files ---------------- */
@@ -126,6 +114,8 @@ export function parseTenantJson(text: string): { value: TenantConfig | null; err
     return { value: null, errors: ["Le fichier n'est pas un JSON valide."] };
   }
   if (!isObj(raw) || raw.format !== TEMPLATE_FORMAT) return { value: null, errors: [`Format inconnu : un modèle exporté par l'application est attendu (« format »: « ${TEMPLATE_FORMAT} »).`] };
+  // A v2 template predates the sales module: it gets the default sales settings.
+  if (raw.version === 2 && isObj(raw.config)) return checkTenantConfig(fromV2(raw.config));
   if (raw.version !== STORAGE_VERSION) return { value: null, errors: [`Version de modèle ${String(raw.version)} non prise en charge (attendue : ${STORAGE_VERSION}).`] };
   return checkTenantConfig(raw.config);
 }
@@ -136,7 +126,12 @@ export function parseTenantJson(text: string): { value: TenantConfig | null; err
 function fromV1(raw: Obj): Obj {
   const rules: Obj = { ...DEFAULT_CONFIG.rules, ...(isObj(raw.rules) ? raw.rules : {}) };
   delete rules.correctionTable;
-  return { ...DEFAULT_CONFIG, ...raw, rules, correction: DEFAULT_CONFIG.correction };
+  return fromV2({ ...DEFAULT_CONFIG, ...raw, rules, correction: DEFAULT_CONFIG.correction });
+}
+
+/** v2 had no sales module: inject its defaults. */
+function fromV2(raw: Obj): Obj {
+  return { ...raw, sales: salesDefaultsFor(raw) };
 }
 
 export const storedConfig = (cfg: TenantConfig) => JSON.stringify({ version: STORAGE_VERSION, config: cfg });
@@ -156,14 +151,17 @@ export function migrateStoredConfig(text: string | null): { config: TenantConfig
   if (!isObj(raw)) return { config: DEFAULT_CONFIG, migrated: true, notice: "Configuration enregistrée illisible : configuration de démonstration restaurée." };
 
   const current = raw.version === STORAGE_VERSION;
-  const candidate = current ? raw.config : fromV1(raw);
+  const candidate = current ? raw.config : raw.version === 2 ? (isObj(raw.config) ? fromV2(raw.config) : raw.config) : fromV1(raw);
   const checked = checkTenantConfig(candidate);
   if (checked.value) return { config: checked.value, migrated: !current, notice: null };
 
-  // Keep the rest of the tenant's settings if only the correction part is broken.
+  // Keep the rest of the tenant's settings if only the sales or correction part is broken.
   if (isObj(candidate)) {
+    const withSales = { ...candidate, sales: salesDefaultsFor(candidate) };
+    const salesOnly = checkTenantConfig(withSales);
+    if (salesOnly.value) return { config: salesOnly.value, migrated: true, notice: "Paramètres de vente enregistrés invalides : valeurs par défaut restaurées." };
     const repaired = checkTenantConfig({
-      ...candidate,
+      ...withSales,
       correction: DEFAULT_CONFIG.correction,
       centres: Array.isArray(candidate.centres)
         ? candidate.centres.map((x) => (isObj(x) && Array.isArray(x.reservoirs) ? { ...x, reservoirs: x.reservoirs.map((t) => (isObj(t) ? { ...t, profileId: undefined } : t)) } : x))

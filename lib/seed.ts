@@ -1,5 +1,6 @@
 import { ambientDensity, bottleTonnes, buildClosing } from "./calc";
 import { BUILTIN_PROFILE_ID, builtinProfile, linearExampleProfile, profileFor } from "./correction";
+import { DEFAULT_SALES } from "./sales/defaults";
 import type { Centre, CorrectionConfig, CorrectionProfile, Inventory, TankReading, TenantConfig } from "./types";
 
 /* The demo ships the built-in standard table (default) and a linear example, so switching can be shown. */
@@ -85,6 +86,14 @@ export const DEFAULT_CONFIG: TenantConfig = {
     },
   ],
   correction: DEMO_CORRECTION,
+  sales: {
+    ...DEFAULT_SALES,
+    // About two days of production in stock when the sales ledger starts.
+    openingStock: {
+      ruf: { b27: 6400, b6: 12200, b9: 2600, b125: 14400, b38: 420 },
+      kao: { b27: 2800, b6: 5200, b9: 600, b125: 3000, b38: 80 },
+    },
+  },
 };
 
 export const OPERATORS: Record<string, string[]> = {
@@ -93,7 +102,7 @@ export const OPERATORS: Record<string, string[]> = {
 };
 
 /* ---------------- deterministic PRNG ---------------- */
-function mulberry32(seed: number) {
+export function mulberry32(seed: number) {
   return () => {
     seed |= 0;
     seed = (seed + 0x6d2b79f5) | 0;

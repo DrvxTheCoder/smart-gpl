@@ -4,6 +4,26 @@ import { HugeiconsIcon, type HugeiconsProps, type IconSvgElement } from "@hugeic
 import {
   Add01Icon,
   Activity01Icon,
+  Agreement01Icon,
+  Alert02Icon,
+  Call02Icon,
+  ChartLineData01Icon,
+  DeliveryTruck01Icon,
+  Exchange01Icon,
+  InformationCircleIcon,
+  Invoice01Icon,
+  MinusSignIcon,
+  PrinterIcon,
+  RepeatIcon,
+  ShoppingCart01Icon,
+  Store01Icon,
+  Target02Icon,
+  UserGroupIcon,
+  UserShield01Icon,
+  Wallet01Icon,
+  WarehouseIcon,
+  WeightScaleIcon,
+  WorkflowSquare03Icon,
   ArrowDataTransferHorizontalIcon,
   ArrowDown01Icon,
   ArrowDown02Icon,
@@ -69,8 +89,30 @@ export const X = make(Cancel01Icon);
 export const PanelLeftClose = make(LayoutRightIcon);
 export const PanelLeftOpen = make(LayoutLeftIcon);
 
+// Sales and warehouse
+export const TrendingUp = make(ChartLineData01Icon);
+export const ShoppingCart = make(ShoppingCart01Icon);
+export const Users = make(UserGroupIcon);
+export const Target = make(Target02Icon);
+export const Store = make(Store01Icon);
+export const Warehouse = make(WarehouseIcon);
+export const Truck = make(DeliveryTruck01Icon);
+export const FileText = make(Invoice01Icon);
+export const Contract = make(Agreement01Icon);
+export const Wallet = make(Wallet01Icon);
+export const Phone = make(Call02Icon);
+export const Scale = make(WeightScaleIcon);
+export const Exchange = make(Exchange01Icon);
+export const Workflow = make(WorkflowSquare03Icon);
+export const ShieldUser = make(UserShield01Icon);
+export const AlertCircle = make(Alert02Icon);
+export const Info = make(InformationCircleIcon);
+
 // Actions
 export const Plus = make(Add01Icon);
+export const Minus = make(MinusSignIcon);
+export const Printer = make(PrinterIcon);
+export const Repeat = make(RepeatIcon);
 export const Trash2 = make(Delete02Icon);
 export const Pencil = make(PencilEdit02Icon);
 export const Check = make(Tick02Icon);

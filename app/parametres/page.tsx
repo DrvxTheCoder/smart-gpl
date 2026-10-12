@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Cylinder, Factory, Palette, Plus, RotateCcw, SlidersHorizontal, Trash2, ArrowLeftRight, Container, Monitor, Download, FileUp } from "@/components/ui/icons";
+import { Cylinder, Factory, Palette, Plus, RotateCcw, SlidersHorizontal, Trash2, ArrowLeftRight, Container, Monitor, Download, FileUp, Users, Workflow, Store, FileText, ShieldUser } from "@/components/ui/icons";
 import { useStore, type Density } from "@/lib/store";
 import { cn, fmt } from "@/lib/format";
 import type { Centre, FlowField, TankType, TenantConfig } from "@/lib/types";
@@ -12,15 +12,22 @@ import { Logo, PRODUCT } from "@/components/shell/app-shell";
 import { CorrectionCard } from "@/components/settings/correction-card";
 import { downloadText, takeFile } from "@/components/settings/files";
 import { exportTenantJson, parseTenantJson } from "@/lib/tenant-io";
+import { useSales } from "@/lib/sales/store";
+import { BrandsCard, ConsignmentPanel, CustomersPanel, ReportsPanel, RolesPanel, WorkflowPanel } from "@/components/settings/sales-settings";
 
-type Tab = "marque" | "centres" | "reservoirs" | "flux" | "bouteilles" | "regles" | "affichage";
+type Tab = "marque" | "centres" | "reservoirs" | "flux" | "bouteilles" | "regles" | "clients" | "ventes" | "consignation" | "rapports" | "roles" | "affichage";
 const TABS: { id: Tab; label: string; icon: typeof Palette; sub: string }[] = [
   { id: "marque", label: "Entreprise et marque", icon: Palette, sub: "Nom, couleur, en-têtes de rapports" },
   { id: "centres", label: "Centres et lignes", icon: Factory, sub: "Sites, responsables, capacités" },
   { id: "reservoirs", label: "Réservoirs", icon: Container, sub: "Sphères, cigares, capacités" },
   { id: "flux", label: "Entrées et sorties", icon: ArrowLeftRight, sub: "Champs propres à chaque centre" },
-  { id: "bouteilles", label: "Bouteilles", icon: Cylinder, sub: "Formats et poids unitaires" },
+  { id: "bouteilles", label: "Marques et bouteilles", icon: Cylinder, sub: "Formats, poids, marques, consignes" },
   { id: "regles", label: "Règles de calcul", icon: SlidersHorizontal, sub: "Seuils, arrêts, correction" },
+  { id: "clients", label: "Clients et contrats", icon: Users, sub: "Catégories, tarifs, solvabilité" },
+  { id: "ventes", label: "Ventes et flux", icon: Workflow, sub: "Étapes, numérotation, motifs" },
+  { id: "consignation", label: "Consignation", icon: Store, sub: "Grossistes, relances, comptages" },
+  { id: "rapports", label: "Rapports", icon: FileText, sub: "État journalier, export Sage" },
+  { id: "roles", label: "Rôles", icon: ShieldUser, sub: "Permissions, rôle de démonstration" },
   { id: "affichage", label: "Affichage", icon: Monitor, sub: "Largeur de l'interface" },
 ];
 
@@ -43,6 +50,7 @@ const slug = (s: string) =>
 
 function Inner() {
   const { config, setConfig, resetConfig, toast, centre } = useStore();
+  const { resetSales } = useSales();
   const params = useSearchParams();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>((params.get("tab") as Tab) || "marque");
@@ -121,6 +129,7 @@ function Inner() {
             variant="ghost"
             onClick={() => {
               resetConfig();
+              resetSales();
               toast("Démo restaurée", "success");
             }}
           >
@@ -135,8 +144,8 @@ function Inner() {
           <>
             <p className="text-[14px] text-muted">
               <b className="text-ink">{template.name}</b> remplace toute la configuration : {template.config.branding.companyName}, {template.config.centres.length} centre
-              {template.config.centres.length > 1 ? "s" : ""}, {template.config.correction.profiles.length} profil{template.config.correction.profiles.length > 1 ? "s" : ""} de correction. Les inventaires
-              clôturés gardent leurs valeurs.
+              {template.config.centres.length > 1 ? "s" : ""}, {template.config.correction.profiles.length} profil{template.config.correction.profiles.length > 1 ? "s" : ""} de correction,{" "}
+              {template.config.sales.categories.length} catégorie{template.config.sales.categories.length > 1 ? "s" : ""} de clients. Les inventaires et les documents de vente validés gardent leurs valeurs.
             </p>
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setTemplate(null)}>
@@ -483,39 +492,48 @@ function Inner() {
           )}
 
           {tab === "bouteilles" && (
-            <Card>
-              <CardTitle>Formats de bouteilles</CardTitle>
-              <p className="mt-1 text-[13px] text-muted">Le tonnage conditionné est calculé à partir du poids unitaire. Communs à tous les centres.</p>
-              <ul className="mt-5 space-y-2">
-                {config.bottleTypes.map((b) => (
-                  <li key={b.id} className="grid grid-cols-[1fr_140px_auto] items-end gap-3 rounded-2xl bg-board p-3">
-                    <Field label="Libellé">
-                      <input className={inputCls} value={b.label} onChange={(e) => setConfig((cfg) => ({ ...cfg, bottleTypes: cfg.bottleTypes.map((x) => (x.id === b.id ? { ...x, label: e.target.value } : x)) }))} />
-                    </Field>
-                    <Field label="Poids" unit="kg">
-                      <NumberInput value={b.kg} onChange={(v) => setConfig((cfg) => ({ ...cfg, bottleTypes: cfg.bottleTypes.map((x) => (x.id === b.id ? { ...x, kg: v } : x)) }))} />
-                    </Field>
-                    <RemoveBtn
-                      label={`Supprimer ${b.label}`}
-                      disabled={config.bottleTypes.length <= 1}
-                      onClick={() => setConfig((cfg) => ({ ...cfg, bottleTypes: cfg.bottleTypes.filter((x) => x.id !== b.id) }))}
-                    />
-                  </li>
-                ))}
-              </ul>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="mt-3"
-                onClick={() => setConfig((cfg) => ({ ...cfg, bottleTypes: [...cfg.bottleTypes, { id: `b${Date.now().toString(36)}`, label: "Nouveau format", kg: 10 }] }))}
-              >
-                <Plus className="size-4" />
-                Ajouter un format
-              </Button>
-            </Card>
+            <div className="grid gap-4">
+              <Card>
+                <CardTitle>Formats de bouteilles</CardTitle>
+                <p className="mt-1 text-[13px] text-muted">Le tonnage conditionné est calculé à partir du poids unitaire. Communs à tous les centres.</p>
+                <ul className="mt-5 space-y-2">
+                  {config.bottleTypes.map((b) => (
+                    <li key={b.id} className="grid grid-cols-[1fr_140px_auto] items-end gap-3 rounded-2xl bg-board p-3">
+                      <Field label="Libellé">
+                        <input className={inputCls} value={b.label} onChange={(e) => setConfig((cfg) => ({ ...cfg, bottleTypes: cfg.bottleTypes.map((x) => (x.id === b.id ? { ...x, label: e.target.value } : x)) }))} />
+                      </Field>
+                      <Field label="Poids" unit="kg">
+                        <NumberInput value={b.kg} onChange={(v) => setConfig((cfg) => ({ ...cfg, bottleTypes: cfg.bottleTypes.map((x) => (x.id === b.id ? { ...x, kg: v } : x)) }))} />
+                      </Field>
+                      <RemoveBtn
+                        label={`Supprimer ${b.label}`}
+                        disabled={config.bottleTypes.length <= 1}
+                        onClick={() => setConfig((cfg) => ({ ...cfg, bottleTypes: cfg.bottleTypes.filter((x) => x.id !== b.id) }))}
+                      />
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="mt-3"
+                  onClick={() => setConfig((cfg) => ({ ...cfg, bottleTypes: [...cfg.bottleTypes, { id: `b${Date.now().toString(36)}`, label: "Nouveau format", kg: 10 }] }))}
+                >
+                  <Plus className="size-4" />
+                  Ajouter un format
+                </Button>
+              </Card>
+              <BrandsCard />
+            </div>
           )}
 
           {tab === "regles" && <RulesPanel config={config} setConfig={setConfig} />}
+
+          {tab === "clients" && <CustomersPanel />}
+          {tab === "ventes" && <WorkflowPanel />}
+          {tab === "consignation" && <ConsignmentPanel />}
+          {tab === "rapports" && <ReportsPanel />}
+          {tab === "roles" && <RolesPanel />}
 
           {tab === "affichage" && <DisplayPanel />}
         </div>

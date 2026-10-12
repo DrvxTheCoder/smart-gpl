@@ -18,6 +18,11 @@ import {
   Search,
   Settings2,
   SlidersHorizontal,
+  Users,
+  Workflow,
+  Store,
+  FileText,
+  ShieldUser,
   type Icon,
 } from "@/components/ui/icons";
 import {
@@ -46,8 +51,13 @@ const SETTINGS: { tab: string; label: string; icon: Icon }[] = [
   { tab: "centres", label: "Centres et lignes", icon: Factory },
   { tab: "reservoirs", label: "Réservoirs", icon: Container },
   { tab: "flux", label: "Entrées et sorties", icon: ArrowLeftRight },
-  { tab: "bouteilles", label: "Bouteilles", icon: Cylinder },
+  { tab: "bouteilles", label: "Marques et bouteilles", icon: Cylinder },
   { tab: "regles", label: "Règles de calcul", icon: SlidersHorizontal },
+  { tab: "clients", label: "Clients et contrats", icon: Users },
+  { tab: "ventes", label: "Ventes et flux", icon: Workflow },
+  { tab: "consignation", label: "Consignation", icon: Store },
+  { tab: "rapports", label: "Rapports", icon: FileText },
+  { tab: "roles", label: "Rôles", icon: ShieldUser },
   { tab: "affichage", label: "Affichage", icon: Monitor },
 ];
 
