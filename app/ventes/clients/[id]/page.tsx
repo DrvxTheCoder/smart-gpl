@@ -9,6 +9,8 @@ import { Select } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/calendar";
 import { TermsEditor } from "@/components/settings/sales-settings";
 import { CustomerDialog } from "@/components/sales/customer-dialog";
+import { PassageDialog } from "@/components/sales/passage-dialog";
+import { CallsPanel, CountsPanel, FloatPanel, PassagesPanel } from "@/components/sales/wholesaler-panels";
 import { Figure, Meter, Missing, OrderBadge, TabPanel, TabStrip, TonePill } from "@/components/sales/ui";
 import { useStore } from "@/lib/store";
 import { useSales } from "@/lib/sales/store";
@@ -24,16 +26,17 @@ import { BILLING, INVOICING, PAYMENT_METHOD, PAYMENT_TRIGGER, termLabel } from "
 import { cap, cn, fmt, fmtDate, fmtMoney, fmtMoneyShort } from "@/lib/format";
 import { BULK, UNKNOWN_BRAND, type ContractTerms, type IncidentKind, type PaymentMethod } from "@/lib/sales/types";
 
-type Tab = "contrat" | "compte" | "bouteilles" | "commandes";
+type Tab = "contrat" | "compte" | "bouteilles" | "commandes" | "depot" | "passages" | "comptages" | "appels";
 
 export default function ClientPage() {
   const { id } = useParams<{ id: string }>();
   const { config } = useStore();
   const { data, ledger, today, own, exec, can } = useSales();
   const customer = data.customers.find((c) => c.id === decodeURIComponent(id));
-  const [tab, setTab] = useState<Tab>("contrat");
+  const [picked, setTab] = useState<Tab | null>(null);
   const [editing, setEditing] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [passing, setPassing] = useState(false);
   const [explain, setExplain] = useState(false);
   const [incident, setIncident] = useState(false);
   const [reversing, setReversing] = useState<string | null>(null);
@@ -66,6 +69,9 @@ export default function ClientPage() {
     return { own: o, other };
   }, [customer, ledger, today, own]);
 
+  // Wholesalers open on their float; everyone else on the contract.
+  const tab: Tab = picked ?? (pos?.wholesaler ? "depot" : "contrat");
+
   if (!customer || !pos) return <Missing text="Ce client n'existe pas." href="/ventes/clients" back="Revenir à la liste des clients" />;
 
   const versions = contractVersions(data.contracts, customer.id);
@@ -78,6 +84,14 @@ export default function ClientPage() {
   const returnShare = returns.own + returns.other ? returns.other / (returns.own + returns.other) : 0;
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
+    ...(pos.wholesaler
+      ? [
+          { id: "depot" as Tab, label: "Stock chez le grossiste" },
+          { id: "passages" as Tab, label: "Passages" },
+          { id: "comptages" as Tab, label: "Comptages", count: data.counts.filter((k) => k.site === `client:${customer.id}` && k.status === "A_VALIDER").length },
+          { id: "appels" as Tab, label: "Appels" },
+        ]
+      : []),
     { id: "contrat", label: "Contrat" },
     { id: "compte", label: "Compte", count: pos.open.filter((o) => o.daysLate > 0).length },
     { id: "bouteilles", label: "Bouteilles" },
@@ -119,16 +133,47 @@ export default function ClientPage() {
             <Plus className="size-4" />
             Nouvelle commande
           </ButtonLink>
-          <Button onClick={() => setPaying(true)}>
-            <Wallet className="size-4" />
-            Enregistrer un règlement
-          </Button>
+          {pos.wholesaler ? (
+            <>
+              <Button variant="ghost" onClick={() => setPaying(true)}>
+                <Wallet className="size-4" />
+                Règlement
+              </Button>
+              <Button onClick={() => setPassing(true)}>Enregistrer un passage</Button>
+            </>
+          ) : (
+            <Button onClick={() => setPaying(true)}>
+              <Wallet className="size-4" />
+              Enregistrer un règlement
+            </Button>
+          )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="min-w-0 p-0">
           <TabStrip tabs={tabs} value={tab} onChange={setTab} label="Sections de la fiche client" />
+
+          {tab === "depot" && (
+            <TabPanel key="depot" id="depot">
+              <FloatPanel customerId={customer.id} />
+            </TabPanel>
+          )}
+          {tab === "passages" && (
+            <TabPanel key="passages" id="passages">
+              <PassagesPanel customerId={customer.id} />
+            </TabPanel>
+          )}
+          {tab === "comptages" && (
+            <TabPanel key="comptages" id="comptages">
+              <CountsPanel customerId={customer.id} />
+            </TabPanel>
+          )}
+          {tab === "appels" && (
+            <TabPanel key="appels" id="appels">
+              <CallsPanel customerId={customer.id} />
+            </TabPanel>
+          )}
 
           {tab === "contrat" && (
             <TabPanel key="contrat" id="contrat">
@@ -457,6 +502,7 @@ export default function ClientPage() {
       </div>
 
       <CustomerDialog open={editing} onClose={() => setEditing(false)} customer={customer} />
+      <PassageDialog open={passing} onClose={() => setPassing(false)} customerId={customer.id} />
       <PaymentDialog open={paying} onClose={() => setPaying(false)} customerId={customer.id} methods={pos.terms.methods} />
       <IncidentDialog open={incident} onClose={() => setIncident(false)} customerId={customer.id} />
       <ReverseDialog

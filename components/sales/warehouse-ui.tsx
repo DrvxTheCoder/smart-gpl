@@ -72,7 +72,8 @@ export function CountGrid({ brands, formats, value, onChange, disabled, withUnkn
   const set = (b: string, f: string, n: number) => onChange({ ...value, [b]: { ...value[b], [f]: n } });
   const total = (f: string) => rows.reduce((a, r) => a + (value[r.id]?.[f] ?? 0), 0);
   return (
-    <div className="space-y-3">
+    // Sized on its own width (container queries): it lives in pages and in narrow dialog columns.
+    <div className="@container space-y-3">
       {rows.map((r) => (
         <fieldset key={r.id} className={cn("rounded-2xl p-3", r.own ? "bg-brand-50 ring-1 ring-brand-200" : "bg-board")}>
           <legend className="sr-only">{r.name}</legend>
@@ -80,7 +81,7 @@ export function CountGrid({ brands, formats, value, onChange, disabled, withUnkn
             {r.name}
             {r.own && <span className="rounded-md bg-brand-800 px-1.5 py-0.5 text-[11px] font-medium text-white">Votre marque</span>}
           </p>
-          <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-x-4 gap-y-2 @lg:grid-cols-2 @4xl:grid-cols-3">
             {formats.map((f) => (
               <div key={f.id} className="grid grid-cols-[52px_minmax(0,1fr)] items-center gap-2">
                 <span className="text-[14px] font-semibold">{f.label}</span>

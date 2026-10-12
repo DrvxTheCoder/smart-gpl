@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import {
@@ -20,6 +20,7 @@ import {
   PanelLeftOpen,
   ArrowDown,
   ShoppingCart,
+  Store,
   Target,
   TrendingUp,
   Truck,
@@ -28,6 +29,7 @@ import {
 } from "@/components/ui/icons";
 import { useStore } from "@/lib/store";
 import { useSalesMaybe } from "@/lib/sales/store";
+import { wholesalerStatuses } from "@/lib/sales/alerts";
 import { Select } from "@/components/ui/select";
 import { CommandMenu } from "./command-menu";
 import { Island } from "./island";
@@ -50,8 +52,8 @@ export function Logo({ className }: { className?: string }) {
   );
 }
 
-type BadgeKey = "inventories" | "approvals" | "dispatches";
-const BADGE_TEXT: Record<BadgeKey, string> = { inventories: "en cours", approvals: "à valider", dispatches: "au chargement" };
+type BadgeKey = "inventories" | "approvals" | "dispatches" | "late";
+const BADGE_TEXT: Record<BadgeKey, string> = { inventories: "en cours", approvals: "à valider", dispatches: "au chargement", late: "en retard" };
 interface NavItem {
   href: string;
   label: string;
@@ -76,6 +78,7 @@ const SECTIONS: { label: string; items: NavItem[] }[] = [
       { href: "/ventes/commandes", label: "Commandes", icon: ShoppingCart, badge: "approvals" },
       { href: "/ventes/clients", label: "Clients", icon: Users },
       { href: "/ventes/previsions", label: "Prévisions", icon: Target },
+      { href: "/ventes/grossistes", label: "Grossistes", icon: Store, badge: "late" },
     ],
   },
   {
@@ -185,9 +188,14 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
   const { inventories, toast, config, startJob, centreId } = useStore();
   const sales = useSalesMaybe(); // the shell renders before the sales data is built
   const here = (id: string) => centreId === "all" || id === centreId;
+  const late = useMemo(
+    () => (sales ? wholesalerStatuses({ cfg: config, data: sales.data, ledger: sales.ledger, today: sales.today, own: sales.own, centreId }).filter((w) => w.step).length : 0),
+    [sales, config, centreId],
+  );
   const badges: Record<BadgeKey, number> = {
     inventories: inventories.filter((i) => i.status === "EN_COURS").length,
     approvals: sales?.data.orders.filter((o) => here(o.centreId) && o.status === "CONFIRMEE" && o.approval.required && !o.approval.by).length ?? 0,
+    late,
     dispatches: sales?.data.dispatches.filter((d) => here(d.centreId) && (d.status === "EN_CHARGEMENT" || d.status === "CHARGE")).length ?? 0,
   };
   const current = activeHref(path);
