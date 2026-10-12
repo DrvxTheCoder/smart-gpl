@@ -186,7 +186,7 @@ function Inner() {
       </Dialog>
 
       <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <Card className="h-fit p-2.5 lg:sticky lg:top-[108px]">
+        <Card className="h-fit min-w-0 p-2.5 lg:sticky lg:top-[108px]">
           <nav aria-label="Sections des paramètres">
             <ul ref={navRef} className="no-scrollbar relative flex gap-1 overflow-x-auto lg:flex-col">
               <li
@@ -492,7 +492,7 @@ function Inner() {
           )}
 
           {tab === "bouteilles" && (
-            <div className="grid gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <Card>
                 <CardTitle>Formats de bouteilles</CardTitle>
                 <p className="mt-1 text-[13px] text-muted">Le tonnage conditionné est calculé à partir du poids unitaire. Communs à tous les centres.</p>

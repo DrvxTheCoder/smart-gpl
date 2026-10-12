@@ -367,7 +367,7 @@ input[type="number"] {
 .sales-grid {
   display: grid;
   gap: 16px;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-areas: "s1" "s2" "s3" "s4" "fc" "wh" "dp" "ar" "fp";
 }
 @media (min-width: 640px) {

@@ -3,6 +3,7 @@
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/format";
+import { Minus, Plus } from "@/components/ui/icons";
 import type { Band } from "@/lib/calc";
 
 /* ---------------- Card ---------------- */
@@ -351,6 +352,8 @@ export function IntegerInput({
     <input
       type="text"
       inputMode="numeric"
+      // Styled full width; a tiny intrinsic size keeps it from widening narrow rows.
+      size={1}
       aria-label={ariaLabel}
       disabled={disabled}
       value={txt}
@@ -371,6 +374,22 @@ export function IntegerInput({
       }}
       className={cn(inputCls, className)}
     />
+  );
+}
+
+/** Count with − and + around the field: 44px targets, usable with a thumb at the gate. */
+export function Stepper({ value, onChange, step = 1, min = 0, disabled, ariaLabel }: { value: number; onChange: (v: number) => void; step?: number; min?: number; disabled?: boolean; ariaLabel: string }) {
+  const btn = "grid size-11 shrink-0 place-items-center rounded-xl bg-board text-ink transition-colors hover:bg-brand-100 disabled:opacity-40";
+  return (
+    <div className="flex w-full min-w-0 items-center gap-1.5" role="group" aria-label={ariaLabel}>
+      <button type="button" className={btn} disabled={disabled || value <= min} aria-label={`Retirer ${step}`} onClick={() => onChange(Math.max(value - step, min))}>
+        <Minus className="size-4" aria-hidden />
+      </button>
+      <IntegerInput value={value} min={min} disabled={disabled} ariaLabel={ariaLabel} onChange={onChange} className="h-11 min-w-0 text-center" />
+      <button type="button" className={btn} disabled={disabled} aria-label={`Ajouter ${step}`} onClick={() => onChange(value + step)}>
+        <Plus className="size-4" aria-hidden />
+      </button>
+    </div>
   );
 }
 

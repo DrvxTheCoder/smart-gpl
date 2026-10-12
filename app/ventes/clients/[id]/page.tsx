@@ -126,7 +126,7 @@ export default function ClientPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="min-w-0 p-0">
           <TabStrip tabs={tabs} value={tab} onChange={setTab} label="Sections de la fiche client" />
 
@@ -555,7 +555,7 @@ function PaymentDialog({ open, onClose, customerId, methods }: { open: boolean; 
   return (
     <Dialog open={open} onClose={onClose} title="Enregistrer un règlement">
       <form
-        className="grid gap-4"
+        className="grid grid-cols-1 gap-4"
         onSubmit={(e) => {
           e.preventDefault();
           const r = exec((env) => recordPayment(env, { customerId, amount, method, date, note }));
@@ -603,7 +603,7 @@ function IncidentDialog({ open, onClose, customerId }: { open: boolean; onClose:
   return (
     <Dialog open={open} onClose={onClose} title="Signaler un incident">
       <form
-        className="grid gap-4"
+        className="grid grid-cols-1 gap-4"
         onSubmit={(e) => {
           e.preventDefault();
           const r = exec((env) => recordIncident(env, { customerId, kind, note, amount }));

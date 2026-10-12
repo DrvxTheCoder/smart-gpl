@@ -19,6 +19,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ArrowDown,
+  ShoppingCart,
   Target,
   TrendingUp,
   Users,
@@ -47,7 +48,8 @@ export function Logo({ className }: { className?: string }) {
   );
 }
 
-type BadgeKey = "inventories";
+type BadgeKey = "inventories" | "approvals";
+const BADGE_TEXT: Record<BadgeKey, string> = { inventories: "en cours", approvals: "à valider" };
 interface NavItem {
   href: string;
   label: string;
@@ -69,6 +71,7 @@ const SECTIONS: { label: string; items: NavItem[] }[] = [
     label: "Commercial",
     items: [
       { href: "/ventes", label: "Ventes", icon: TrendingUp },
+      { href: "/ventes/commandes", label: "Commandes", icon: ShoppingCart, badge: "approvals" },
       { href: "/ventes/clients", label: "Clients", icon: Users },
       { href: "/ventes/previsions", label: "Prévisions", icon: Target },
     ],
@@ -171,7 +174,11 @@ function SectionLabel({ collapsed, className, children }: { collapsed: boolean; 
 function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => void; collapsed: boolean }) {
   const path = usePathname();
   const { inventories, toast, config, startJob } = useStore();
-  const badges: Record<BadgeKey, number> = { inventories: inventories.filter((i) => i.status === "EN_COURS").length };
+  const sales = useSalesMaybe(); // the shell renders before the sales data is built
+  const badges: Record<BadgeKey, number> = {
+    inventories: inventories.filter((i) => i.status === "EN_COURS").length,
+    approvals: sales?.data.orders.filter((o) => o.status === "CONFIRMEE" && o.approval.required && !o.approval.by).length ?? 0,
+  };
   const current = activeHref(path);
   const navRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLSpanElement>(null);
@@ -261,6 +268,7 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
                 {section.items.map(({ href, label, icon: Icon, badge }) => {
                   const active = href === current;
                   const count = badge ? badges[badge] : 0;
+                  const what = badge ? `${count} ${BADGE_TEXT[badge]}` : "";
                   return (
                     <li key={href}>
                       <Link
@@ -268,7 +276,7 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
                         onClick={onClose}
                         aria-current={active ? "page" : undefined}
                         className={cn(itemCls, active ? "font-semibold text-ink" : "text-muted hover:bg-card/70 hover:text-ink")}
-                        {...bind(count ? `${label} · ${count} en cours` : label)}
+                        {...bind(count ? `${label} · ${what}` : label)}
                       >
                         <Icon className={cn("size-[19px] shrink-0", active && "text-brand-800")} strokeWidth={active ? 2.1 : 1.7} />
                         <span className={fade}>{label}</span>
@@ -276,7 +284,7 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
                           <>
                             <span
                               className={cn("tnum ml-auto grid h-5 min-w-5 place-items-center rounded-md bg-brand-800 px-1 text-[11px] font-semibold text-white", fade)}
-                              aria-label={`${count} en cours`}
+                              aria-label={what}
                             >
                               {count}
                             </span>

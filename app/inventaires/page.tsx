@@ -133,7 +133,7 @@ function Inner() {
               </p>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-[14px]">
                 <thead>
                   <tr className="border-b border-line text-[12px] text-muted">

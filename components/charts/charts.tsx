@@ -146,7 +146,7 @@ export function ForecastBars({ data, unit = "bt" }: { data: ForecastDatum[]; uni
   const current = data.find((d) => d.actual == null)?.label;
   const row = (v: number | null) => (v == null ? "À venir" : `${fmt(v)} ${unit}`);
   return (
-    <div className="relative h-full">
+    <div className="relative h-full overflow-x-clip">
       <BarChart data={rows} xDataKey="label" aspectRatio="auto" className="h-full" margin={{ top: 8, right: 0, bottom: 34, left: 0 }} barGap={0.3} animationDuration={1100} animationEasing={EASE}>
         <Hatch id="fc-hatch" />
         <Grid horizontal numTicksRows={4} hideHorizontalEdgeLines />

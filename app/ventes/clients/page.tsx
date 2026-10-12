@@ -76,7 +76,7 @@ function Inner() {
         </Button>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <Card className="min-w-0">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex w-full max-w-xl flex-wrap gap-2 sm:flex-nowrap">
@@ -97,7 +97,7 @@ function Inner() {
             </p>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full min-w-[600px] text-left text-[14px]">
               <thead>
                 <tr className="border-b border-line text-[12px] text-muted">

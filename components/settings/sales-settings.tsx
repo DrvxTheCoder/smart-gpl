@@ -60,7 +60,7 @@ export function TermsEditor({ terms, onChange, wholesaler, disabled }: { terms: 
   const deferred = terms.payment.kind === "DIFFERE";
   const formats = config.bottleTypes;
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <Field label="Paiement">
         <Select
           ariaLabel="Délai de paiement"
@@ -165,7 +165,7 @@ export function CustomersPanel() {
   const wTotal = w.delay + w.overdue + w.utilization + w.incidents || 1;
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <Card>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -205,7 +205,7 @@ export function CustomersPanel() {
                 </div>
                 {expanded && (
                   <div className="panel-in space-y-5 border-t border-line p-4">
-                    <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto]">
                       <Field label="Libellé">
                         <input className={inputCls} value={cat.label} onChange={(e) => setCat(cat.id, (c) => ({ ...c, label: e.target.value }))} />
                       </Field>
@@ -257,7 +257,7 @@ export function CustomersPanel() {
             </span>
           )}
         </div>
-        <div className="mt-5 grid gap-4 2xl:grid-cols-2">
+        <div className="mt-5 grid grid-cols-1 gap-4 2xl:grid-cols-2">
           {sales.priceLists.map((pl) => (
             <div key={pl.id} className="rounded-2xl border border-line p-4">
               <input
@@ -410,7 +410,7 @@ export function WorkflowPanel() {
   const sample = (pattern: string) => formatNumber(pattern, { centre: "RUF", date: new Date().toISOString().slice(0, 10), seq: 42 });
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <Card>
         <CardTitle>Préréglages</CardTitle>
         <p className="mt-1 text-[13px] text-muted">Un clic règle toutes les étapes facultatives. Vous pouvez ensuite ajuster chaque étape.</p>
@@ -468,7 +468,7 @@ export function WorkflowPanel() {
         </ul>
       </Card>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Card>
           <CardTitle>Numérotation des documents</CardTitle>
           <p className="mt-1 text-[13px] text-muted">
@@ -649,7 +649,7 @@ export function ConsignmentPanel() {
   const c = sales.consignment;
   const setC = (patch: Partial<typeof c>) => set((s) => ({ ...s, consignment: { ...s.consignment, ...patch } }));
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <Card>
         <CardTitle>Suivi des grossistes</CardTitle>
         <p className="mt-1 text-[13px] text-muted">Le stock chez le grossiste reste à vous : il est valorisé, pas facturé. Chaque passage règle ce qui a été vendu.</p>
@@ -782,7 +782,7 @@ function TemplateCard({ title, t, columns, onChange }: { title: string; t: Repor
 export function ReportsPanel() {
   const { sales, set } = useSalesConfig();
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <TemplateCard title="État journalier des bouteilles (autorité)" t={sales.reports.authority} columns={AUTHORITY_COLUMNS} onChange={(t) => set((s) => ({ ...s, reports: { ...s.reports, authority: t } }))} />
       <TemplateCard title="Export des ventes vers Sage" t={sales.reports.sage} columns={SAGE_COLUMNS} onChange={(t) => set((s) => ({ ...s, reports: { ...s.reports, sage: t } }))} />
     </div>
@@ -796,7 +796,7 @@ export function RolesPanel() {
   const { role, setRole } = useSales();
   const { toast } = useStore();
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <Card>
         <CardTitle>Rôle de démonstration</CardTitle>
         <p className="mt-1 text-[13px] text-muted">Prototype seulement : changez de rôle pour montrer la vue de chaque équipe. Préférence propre à cet appareil.</p>

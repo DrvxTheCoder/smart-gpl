@@ -42,6 +42,8 @@ interface SalesStore {
   setRole: (id: string) => void;
   actor: string;
   can: (a: Action) => boolean;
+  /** The current state as a command sees it, for live checks in screens (read only). */
+  env: Env;
   /** Runs a pure command against the current state; commits and reports. */
   exec: (cmd: (env: Env) => CommandResult) => CommandResult;
   resetSales: () => void;
@@ -154,9 +156,14 @@ export function SalesProvider({ children }: { children: React.ReactNode }) {
     setOverlay({});
   }, []);
 
+  const env = useMemo<Env | null>(
+    () => (data ? { cfg: config, data, ledger, inventories, own, today, now: `${today}T12:00:00`, by: actor, can } : null),
+    [data, config, ledger, inventories, own, today, actor, can],
+  );
+
   const value = useMemo<SalesStore | null>(
-    () => (data ? { data, ledger, own, today, role, setRole, actor, can, exec, resetSales } : null),
-    [data, ledger, own, today, role, setRole, actor, can, exec, resetSales],
+    () => (data && env ? { data, ledger, own, today, role, setRole, actor, can, env, exec, resetSales } : null),
+    [data, ledger, own, today, role, setRole, actor, can, env, exec, resetSales],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
