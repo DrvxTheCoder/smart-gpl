@@ -18,6 +18,25 @@ npm run lint       # type check (tsc --noEmit); Next 16 removed `next lint` and 
 
 Node 20+ recommended. No database or environment variables needed.
 
+## Modules and sign-in
+
+The product is split into three modules, each with its own navigation: **Production** (`/`,
+`/inventaires`, `/remplissage`, `/analyses`), **Ventes** (`/ventes/*`) and **Stock** (`/magasin`,
+`/expeditions`). Paramètres is shared; each account sees the sections of its modules.
+
+Sign-in is mocked (`/connexion`, no server): one head per module and an administrator, password `demo`.
+
+| Account | Modules | Permission role |
+|---|---|---|
+| production@baobab-energie.sn, Awa Ndiaye | Production | Chef de production |
+| ventes@baobab-energie.sn, Cheikh Mbaye | Ventes | Responsable commercial |
+| stock@baobab-energie.sn, Ousmane Ba | Stock | Magasinier |
+| admin@baobab-energie.sn, Aliou Kane | all, every permission and setting | Direction |
+
+The module switcher (top bar, or the menu on a phone) appears for accounts with several modules.
+Opening a route outside one's modules goes back to one's own module; links into another module show as
+plain text. The palette, the alert bell and the badges only show what the account's modules cover.
+
 ## Screens
 
 ### Production
@@ -27,6 +46,7 @@ Node 20+ recommended. No database or environment variables needed.
 | `/` | Dashboard: period KPIs, 7-day production bars, today's inventory, live timer, tank gauge and levels, recent inventories; below, « Demande vs production (7 j) » |
 | `/inventaires` | Paginated, searchable list + month calendar coloured by écart band, monthly report card |
 | `/inventaires/[id]` | Daily sheet: production time, night shift, tabs (supply, bottles, bulk outflows with the bulk BL reconciliation panel, tanks, stoppages, vehicles), live stock balance, closing flow |
+| `/remplissage` | Production's queue of confirmed bons de commande: what is left to fill per format by due date, fill confirmation (running total per format), what must be filled by tomorrow vs fulls in stock |
 | `/analyses` | KPIs with sparklines, tonnage vs previous period, bottle mix, lost time, 20-week écart heatmap |
 
 ### Commercial and warehouse
@@ -44,11 +64,12 @@ Node 20+ recommended. No database or environment variables needed.
 | `/magasin/rapport` | Print view of the authority daily report (`?c=<centre>&jour=<date>`) |
 | `/expeditions` | Truck queue by stage |
 | `/expeditions/[id]` | Dispatch sheet: Camion → Vides reçues (brand × format, two-party confirmation) → Chargement (weighbridge, prepayment) → BL numérique (PDF) → proof of delivery |
-| `/parametres` | Tenant configuration, now with Marques et bouteilles, Clients et contrats, Ventes et flux, Consignation, Rapports, Rôles (and the prototype role switcher) |
+| `/parametres` | Tenant configuration: Marques et bouteilles, Clients et contrats, Ventes et flux, Consignation, Rapports, Rôles (demo accounts, permission matrix); sections filtered by account |
+| `/connexion` | Mock sign-in with the four demo accounts |
 
 Shell: sidebar sections Menu, Commercial, Magasin, Général with badges (in-progress inventory, orders to
 approve, trucks loading, late wholesalers); alert bell with a derived list; command palette
-(`Ctrl K`, `G` then `D I A P V C K R G S E`, actions `N M L C K F P`, search over customers and orders).
+(`Ctrl K`, `G` then `D I A B P V C K R G S E`, actions `N M L C K F P`, search over customers and orders), each filtered to the account's modules.
 
 ## How it's organised
 
@@ -65,8 +86,12 @@ lib/tenant-io.ts        config validation (v3), JSON template import/export, loc
 lib/checker.ts          shared structural checker for untrusted JSON
 lib/seed.ts             demo tenant + deterministic production generator
 lib/store.tsx           production store (config, inventories, centre, toasts, background jobs)
+lib/auth.tsx            mock sign-in (demo accounts, session)
+lib/modules.ts          module map: which module a route belongs to, who may open it
+lib/settings-access.ts  which Paramètres sections each account sees
+lib/keys.ts             every storage key
 lib/sales/              sales domain, pure (no React, no storage, no clock):
-  types.ts defaults.ts config.ts labels.ts keys.ts
+  types.ts defaults.ts config.ts labels.ts
   pricing.ts contracts.ts dates.ts exposure.ts solvency.ts stock.ts bottle-ledger.ts
   lifecycle.ts (states, guards, effects as data) consignment.ts forecast.ts fill-plan.ts
   day-close.ts sage.ts bl-pdf.ts alerts.ts selectors.ts
@@ -88,10 +113,10 @@ tables and server actions when Prisma/Postgres replaces the client store.
 | `jauge:config` | `{ version: 3, config }` tenant configuration, including `sales` |
 | `jauge:edits:v1` | inventories changed on this device |
 | `jauge:sales:v1` | `{ version: 1, overlay }` sales documents and ledger rows created on this device |
-| `jauge:role` | prototype role switcher (per device) |
+| `jauge:session` | mock sign-in: the signed-in demo account |
 | `jauge:density`, `jauge:sidebar-collapsed` | display preferences |
 
-New sales keys live in `lib/sales/keys.ts`. The sales demo is regenerated each day from the inventories;
+Every key lives in `lib/keys.ts`. The sales demo is regenerated each day from the inventories;
 only what the user created is stored, on top. « Restaurer la démo » clears configuration, inventories
 and sales.
 
@@ -104,8 +129,8 @@ A tenant picks **one** colour (`--brand`). Every shade is derived with `color-mi
 
 - **Data:** generated client-side from today's date; deterministic per day.
 - **Correction factors:** see `lib/correction`; the built-in table's `source` is a placeholder.
-- **Auth:** none. Paramètres, Rôles has a role switcher so each team's view can be shown; permissions
-  are checked with `can(action)` in commands and the UI.
+- **Auth:** mocked sign-in (`lib/auth.tsx`), no server and no real credentials. Module access is
+  checked in the shell; permissions with `can(action)` in commands and the UI (the admin may do all).
 - **Documents:** the BL PDF and the authority report are real files; Sage receives a CSV.
 
 ## Assumptions to confirm with the client
@@ -131,6 +156,10 @@ Implemented as defaults, configurable where noted:
 - Ownership of code vs the operator's processes is a contractual matter outside this repository; all
   operator-specific values live in tenant configuration and seed data.
 - Bulk orders are not checked against tank stock at confirmation (bottles only).
+- Fill confirmation: production confirms the bottles of each bon de commande as filled (from the lines
+  or from fulls in stock). With the « Confirmation du remplissage » step on (default « Usine complète »),
+  a truck loads only what was confirmed; bulk has nothing to fill. Filling has no ledger effect: fulls
+  still come from closed inventories.
 - Proposed, not done: pre-filling the inventory's Véhicules tab (Chargés COM / LIV) from the day's
   expedited dispatches by mode, instead of entering it twice.
 

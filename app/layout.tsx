@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/plus-jakarta-sans";
 import "./globals.css";
 import { StoreProvider } from "@/lib/store";
+import { AuthProvider } from "@/lib/auth";
 import { SalesProvider } from "@/lib/sales/store";
 import { AppShell } from "@/components/shell/app-shell";
 
@@ -16,11 +17,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr">
       <body>
-        <StoreProvider>
-          <SalesProvider>
-            <AppShell>{children}</AppShell>
-          </SalesProvider>
-        </StoreProvider>
+        <AuthProvider>
+          <StoreProvider>
+            <SalesProvider>
+              <AppShell>{children}</AppShell>
+            </SalesProvider>
+          </StoreProvider>
+        </AuthProvider>
       </body>
     </html>
   );

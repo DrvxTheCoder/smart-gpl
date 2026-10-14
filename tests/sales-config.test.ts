@@ -68,6 +68,16 @@ describe("sales configuration", () => {
     expect(m.notice).toMatch(/vente/);
   });
 
+  it("a configuration saved before a step or permission existed loads with their defaults", () => {
+    const old = structuredClone(DEFAULT_CONFIG) as unknown as { sales: { workflow: { steps: Record<string, boolean> }; permissions: Record<string, string[]> } };
+    delete old.sales.workflow.steps.fillConfirmation;
+    delete old.sales.permissions["order.fill"];
+    const m = migrateStoredConfig(JSON.stringify({ version: 3, config: old }));
+    expect(m.notice).toBeNull();
+    expect(m.config.sales.workflow.steps.fillConfirmation).toBe(true);
+    expect(m.config.sales.permissions["order.fill"]).toEqual(["production", "direction"]);
+  });
+
   it("presets switch the optional steps in one go", () => {
     const simple = PRESETS.find((p) => p.id === "simple")!.steps;
     expect(Object.entries(simple).filter(([, on]) => on).map(([k]) => k)).toEqual(["creditCheck"]);
@@ -103,6 +113,7 @@ describe("sales persistence", () => {
       status,
       approval: { required: false, reasons: [], by: null, at: null, note: null },
       reliquats: [],
+      filled: {},
       history: [],
       replaces: null,
       replacedBy: null,

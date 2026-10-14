@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { AccessLink } from "@/components/shell/access-link";
 import { useMemo, useState } from "react";
 import { Truck } from "@/components/ui/icons";
 import { Button, Dialog } from "@/components/ui/primitives";
@@ -34,9 +34,9 @@ export function BulkShipments({ centreId, date, field, entered, editable, onTake
         <p className="text-[12px] text-muted">
           {trucks.length ? `${trucks.length} camion${trucks.length > 1 ? "s" : ""} pesé${trucks.length > 1 ? "s" : ""}, BL émis. ` : "Aucun BL vrac émis ce jour-là. "}
           {differs ? `Écart avec « ${field.label} » : ${fmt(entered - t, 1)} T.` : `Concorde avec « ${field.label} ».`}{" "}
-          <Link href="/expeditions" className="text-brand-800 hover:underline">
+          <AccessLink href="/expeditions" className="text-brand-800 hover:underline">
             Voir les expéditions
-          </Link>
+          </AccessLink>
         </p>
       </div>
       {editable && differs && trucks.length > 0 && (

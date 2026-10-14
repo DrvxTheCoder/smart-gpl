@@ -6,10 +6,8 @@ import { migrateStoredConfig, storedConfig } from "./tenant-io";
 import type { Centre, Inventory, TenantConfig } from "./types";
 import type { OnProgress, ReportFile } from "./year-report";
 
-const CONFIG_KEY = "jauge:config"; // { version, config }, see STORAGE_VERSION
-const LEGACY_CONFIG_KEY = "jauge:config:v1"; // bare v1 config, migrated on boot
-const EDITS_KEY = "jauge:edits:v1"; // inventories changed on this device, by id
-const DENSITY_KEY = "jauge:density"; // a per-device display preference, not tenant config
+import { CONFIG_KEY, DENSITY_KEY, EDITS_KEY, LEGACY_CONFIG_KEY } from "./keys";
+import { useAuth } from "./auth";
 
 export type Density = "compact" | "expanded";
 
@@ -68,6 +66,7 @@ interface Store {
 const Ctx = createContext<Store | null>(null);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
+  const { account } = useAuth();
   const [ready, setReady] = useState(false);
   const [config, setConfigState] = useState<TenantConfig>(DEFAULT_CONFIG);
   const [inventories, setInventories] = useState<Inventory[]>([]);
@@ -212,7 +211,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       density,
       setDensity,
       centre,
-      user: { name: "Awa Ndiaye", email: "a.ndiaye@baobab-energie.sn", role: "Chef de production" },
+      user: account ? { name: account.name, email: account.email, role: account.title } : { name: "", email: "", role: "" },
       toast,
       notice,
       dismissNotice,
@@ -220,7 +219,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       startJob,
       dismissJob,
     }),
-    [ready, config, setConfig, resetConfig, inventories, updateInventory, centreId, density, setDensity, centre, toast, notice, dismissNotice, jobs, startJob, dismissJob],
+    [ready, config, setConfig, resetConfig, inventories, updateInventory, centreId, density, setDensity, centre, account, toast, notice, dismissNotice, jobs, startJob, dismissJob],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

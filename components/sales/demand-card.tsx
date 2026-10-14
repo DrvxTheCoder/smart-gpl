@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { Card, CardTitle, CornerLink } from "@/components/ui/primitives";
 import { ForecastBars } from "@/components/charts/charts";
+import { useCanOpen } from "@/components/shell/access-link";
 import { useScopedInventories, useStore } from "@/lib/store";
 import { useSalesMaybe } from "@/lib/sales/store";
 import { dayOf, shiftDate } from "@/lib/sales/dates";
@@ -14,6 +15,7 @@ import { BULK } from "@/lib/sales/types";
 export function DemandCard() {
   const { centreId } = useStore();
   const sales = useSalesMaybe();
+  const canOpenPath = useCanOpen();
   const invs = useScopedInventories();
   const data = useMemo(() => {
     if (!sales) return [];
@@ -46,7 +48,7 @@ export function DemandCard() {
             Bouteilles. Hachuré : demandé par les clients ({fmt(demand)}). Plein : rempli par les lignes ({fmt(produced)}).
           </p>
         </div>
-        <CornerLink href="/ventes" label="Voir les ventes" />
+        {canOpenPath("/ventes") && <CornerLink href="/ventes" label="Voir les ventes" />}
       </div>
       <div className="h-[200px]">
         <ForecastBars data={data} labels={{ plan: "Demande", done: "Production" }} barGap={0.7} />

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AccessLink, useCanOpen } from "@/components/shell/access-link";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Check, FileDown, Lock, Scale } from "@/components/ui/icons";
@@ -23,6 +24,7 @@ export default function ExpeditionPage() {
   const { id } = useParams<{ id: string }>();
   const { config, startJob } = useStore();
   const { data, env, exec } = useSales();
+  const canOpenPath = useCanOpen();
   const d = data.dispatches.find((x) => x.id === decodeURIComponent(id));
   const [damagedOpen, setDamagedOpen] = useState(false);
   const [shipping, setShipping] = useState(false);
@@ -81,14 +83,14 @@ export default function ExpeditionPage() {
           </div>
           <p className="mt-1 text-[15px] text-muted">
             {customer && (
-              <Link href={`/ventes/clients/${customer.id}`} className="text-brand-800 hover:underline">
+              <AccessLink href={`/ventes/clients/${customer.id}`} className="text-brand-800 hover:underline" plainClassName="text-ink">
                 {customer.name}
-              </Link>
+              </AccessLink>
             )}
             , commande{" "}
-            <Link href={`/ventes/commandes/${order.id}`} className="text-brand-800 hover:underline">
+            <AccessLink href={`/ventes/commandes/${order.id}`} className="text-brand-800 hover:underline" plainClassName="text-ink">
               {order.number}
-            </Link>
+            </AccessLink>
             , {MODE[order.mode].toLowerCase()}, {centre?.name}
           </p>
         </div>
@@ -231,15 +233,26 @@ export default function ExpeditionPage() {
                   </div>
                 )}
               </div>
+              {!bulk && !loadDone && (
+                <p className={cn("mt-3 rounded-2xl p-3 text-[13px]", Object.entries(d.loaded).every(([f, n]) => n <= (ctx.fillable[f] ?? 0)) ? "bg-ok/8 text-ok" : steps.fillConfirmation ? "bg-warn/12 text-[#7a5306]" : "bg-board text-muted")}>
+                  Rempli par la production :{" "}
+                  {formats.map((b) => `${b.label} ${fmt(ctx.fillable[b.id] ?? 0)}`).join(", ")}
+                  {Object.entries(d.loaded).some(([f, n]) => n > (ctx.fillable[f] ?? 0)) ? (steps.fillConfirmation ? ". Le chargement attend la confirmation du remplissage." : ". Confirmation indicative : elle ne bloque pas le chargement.") : "."}
+                </p>
+              )}
               {steps.prepayment && ctx.cash && !loadDone && (
                 <p className={cn("mt-3 rounded-2xl p-3 text-[13px]", ctx.prepaid ? "bg-ok/8 text-ok" : "bg-warn/12 text-[#7a5306]")}>
                   {ctx.prepaid ? "Client au comptant : règlement reçu, le chargement peut partir." : (
                     <>
                       Client au comptant : {fmtMoney(ctx.amount, cur)} à encaisser avant de charger.{" "}
                       {customer && (
-                        <Link href={`/ventes/clients/${customer.id}`} className="font-medium underline">
-                          Enregistrer le règlement
-                        </Link>
+                        canOpenPath(`/ventes/clients/${customer.id}`) ? (
+                          <Link href={`/ventes/clients/${customer.id}`} className="font-medium underline">
+                            Enregistrer le règlement
+                          </Link>
+                        ) : (
+                          <span className="font-medium">Le service commercial enregistre le règlement.</span>
+                        )
                       )}
                     </>
                   )}

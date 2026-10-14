@@ -13,6 +13,8 @@ import { CorrectionCard } from "@/components/settings/correction-card";
 import { downloadText, takeFile } from "@/components/settings/files";
 import { exportTenantJson, parseTenantJson } from "@/lib/tenant-io";
 import { useSales } from "@/lib/sales/store";
+import { useAuth } from "@/lib/auth";
+import { canSeeSetting } from "@/lib/settings-access";
 import { BrandsCard, ConsignmentPanel, CustomersPanel, ReportsPanel, RolesPanel, WorkflowPanel } from "@/components/settings/sales-settings";
 
 type Tab = "marque" | "centres" | "reservoirs" | "flux" | "bouteilles" | "regles" | "clients" | "ventes" | "consignation" | "rapports" | "roles" | "affichage";
@@ -27,9 +29,10 @@ const TABS: { id: Tab; label: string; icon: typeof Palette; sub: string }[] = [
   { id: "ventes", label: "Ventes et flux", icon: Workflow, sub: "Étapes, numérotation, motifs" },
   { id: "consignation", label: "Consignation", icon: Store, sub: "Grossistes, relances, comptages" },
   { id: "rapports", label: "Rapports", icon: FileText, sub: "État journalier, export Sage" },
-  { id: "roles", label: "Rôles", icon: ShieldUser, sub: "Permissions, rôle de démonstration" },
+  { id: "roles", label: "Rôles", icon: ShieldUser, sub: "Comptes et permissions" },
   { id: "affichage", label: "Affichage", icon: Monitor, sub: "Largeur de l'interface" },
 ];
+
 
 const PRESETS = [
   { name: "Forêt", hex: "#17603b" },
@@ -51,9 +54,12 @@ const slug = (s: string) =>
 function Inner() {
   const { config, setConfig, resetConfig, toast, centre } = useStore();
   const { resetSales } = useSales();
+  const { account } = useAuth();
+  const tabs = TABS.filter((t) => canSeeSetting(account, t.id));
   const params = useSearchParams();
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>((params.get("tab") as Tab) || "marque");
+  const [picked, setTab] = useState<Tab>((params.get("tab") as Tab) || tabs[0].id);
+  const tab = tabs.some((t) => t.id === picked) ? picked : tabs[0].id;
   const [cid, setCid] = useState(config.centres[0].id);
   const [template, setTemplate] = useState<{ name: string; config: TenantConfig | null; errors: string[] } | null>(null);
   const templateRef = useRef<HTMLInputElement>(null);
@@ -104,39 +110,41 @@ function Inner() {
           <h1 className="text-[34px] font-semibold tracking-[-0.03em] sm:text-[40px]">Paramètres</h1>
           <p className="mt-1 text-[15px] text-muted">Adaptez {PRODUCT} aux installations et aux habitudes de {config.branding.companyName}.</p>
         </div>
-        <div className="flex flex-wrap gap-2.5">
-          <Button variant="ghost" onClick={() => downloadText(`modele-${slug(config.branding.companyName)}.json`, exportTenantJson(config), "application/json")}>
-            <Download className="size-4" />
-            Exporter le modèle
-          </Button>
-          <Button variant="ghost" onClick={() => templateRef.current?.click()}>
-            <FileUp className="size-4" />
-            Importer un modèle
-          </Button>
-          <input
-            ref={templateRef}
-            type="file"
-            accept=".json,application/json"
-            className="hidden"
-            onChange={async (e) => {
-              const f = await takeFile(e);
-              if (!f) return;
-              const parsed = parseTenantJson(f.text);
-              setTemplate({ name: f.name, config: parsed.value, errors: parsed.errors });
-            }}
-          />
-          <Button
-            variant="ghost"
-            onClick={() => {
-              resetConfig();
-              resetSales();
-              toast("Démo restaurée", "success");
-            }}
-          >
-            <RotateCcw className="size-4" />
-            Restaurer la démo
-          </Button>
-        </div>
+        {account?.admin && (
+          <div className="flex flex-wrap gap-2.5">
+            <Button variant="ghost" onClick={() => downloadText(`modele-${slug(config.branding.companyName)}.json`, exportTenantJson(config), "application/json")}>
+              <Download className="size-4" />
+              Exporter le modèle
+            </Button>
+            <Button variant="ghost" onClick={() => templateRef.current?.click()}>
+              <FileUp className="size-4" />
+              Importer un modèle
+            </Button>
+            <input
+              ref={templateRef}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={async (e) => {
+                const f = await takeFile(e);
+                if (!f) return;
+                const parsed = parseTenantJson(f.text);
+                setTemplate({ name: f.name, config: parsed.value, errors: parsed.errors });
+              }}
+            />
+            <Button
+              variant="ghost"
+              onClick={() => {
+                resetConfig();
+                resetSales();
+                toast("Démo restaurée", "success");
+              }}
+            >
+              <RotateCcw className="size-4" />
+              Restaurer la démo
+            </Button>
+          </div>
+        )}
       </div>
 
       <Dialog open={template !== null} onClose={() => setTemplate(null)} title={template?.config ? "Appliquer ce modèle ?" : "Modèle refusé"} width="max-w-xl">
@@ -194,7 +202,7 @@ function Inner() {
                 className={cn("pointer-events-none absolute top-0 left-0 rounded-2xl bg-brand-800", navPill.ready && glide)}
                 style={{ transform: `translate(${navPill.x}px, ${navPill.y}px)`, width: navPill.w, height: navPill.h }}
               />
-              {TABS.map(({ id, label, sub, icon: Icon }) => (
+              {tabs.map(({ id, label, sub, icon: Icon }) => (
                 <li key={id} className="shrink-0">
                   <button
                     type="button"

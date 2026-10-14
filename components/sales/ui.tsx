@@ -7,6 +7,7 @@ import { glide, useIndicator } from "@/components/ui/primitives";
 import { DISPATCH_STATUS, ORDER_STATUS } from "@/lib/sales/lifecycle";
 import type { Tone } from "@/lib/sales/solvency";
 import type { DispatchStatus, OrderStatus } from "@/lib/sales/types";
+import type { FillStatus } from "@/lib/sales/stock";
 
 /* Building blocks shared by the sales and warehouse screens. They follow the
    production screens: ok / warn / alert pills, status badges, tab strips. */
@@ -146,4 +147,15 @@ export function Meter({ pct, tone, label }: { pct: number; tone?: Tone; label: s
       <div className={cn("h-full rounded-full transition-[width] duration-700", tone === "alert" ? "bg-alert" : tone === "warn" ? "bg-warn" : "bg-brand-600")} style={{ width: `${p}%` }} />
     </div>
   );
+}
+
+const FILL: Record<FillStatus, { label: string; cls: string }> = {
+  A_REMPLIR: { label: "À remplir", cls: "border border-warn/45 text-warn" },
+  PARTIELLE: { label: "Remplie en partie", cls: "hatch text-ink" },
+  REMPLIE: { label: "Remplie", cls: "bg-ok/10 text-ok" },
+};
+
+/** Production's fill status of an order's bottles. */
+export function FillBadge({ status }: { status: FillStatus }) {
+  return <span className={cn("inline-flex h-6 items-center rounded-md px-2 text-[12px] font-medium whitespace-nowrap", FILL[status].cls)}>{FILL[status].label}</span>;
 }

@@ -182,6 +182,7 @@ export function OrderEntry({ open, onClose, initialCustomer }: { open: boolean; 
       status: "BROUILLON",
       approval: { required: false, reasons: [], by: null, at: null, note: null },
       reliquats: [],
+      filled: {},
       history: [],
       replaces: null,
       replacedBy: null,

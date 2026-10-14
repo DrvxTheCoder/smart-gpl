@@ -2,11 +2,12 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useStore, type NoticeKind } from "../store";
+import { useAuth } from "../auth";
 import type { Inventory, TenantConfig } from "../types";
 import { ownBrand } from "./bottle-ledger";
 import { addToOverlay, applyPatch, loadOverlay, mergeOverlay, storedOverlay, type Overlay, type Patch } from "./data";
 import { ymd } from "./dates";
-import { ROLE_KEY, SALES_KEY } from "./keys";
+import { SALES_KEY } from "../keys";
 import { generateSales } from "./seed";
 import { ledgerStart, openingMovements, productionMovements } from "./stock";
 import type { Action, BottleMovement, Role, SalesData } from "./types";
@@ -38,8 +39,7 @@ interface SalesStore {
   ledger: BottleMovement[];
   own: string;
   today: string;
-  role: Role;
-  setRole: (id: string) => void;
+  role: Role; // the signed-in account's permission role
   actor: string;
   can: (a: Action) => boolean;
   /** The current state as a command sees it, for live checks in screens (read only). */
@@ -65,9 +65,9 @@ function productionSignature(inventories: Inventory[]) {
 }
 
 export function SalesProvider({ children }: { children: React.ReactNode }) {
-  const { ready, config, inventories, user, toast } = useStore();
+  const { ready, config, inventories, toast } = useStore();
+  const { account } = useAuth();
   const [overlay, setOverlay] = useState<Overlay>({});
-  const [roleId, setRoleId] = useState("production");
   const [today, setToday] = useState("");
   const overlayRef = useRef<Overlay>({});
 
@@ -79,8 +79,6 @@ export function SalesProvider({ children }: { children: React.ReactNode }) {
       overlayRef.current = r.overlay;
       setOverlay(r.overlay);
       if (r.notice) toast(r.notice, "warning");
-      const role = localStorage.getItem(ROLE_KEY);
-      if (role) setRoleId(role);
     } catch {}
   }, [ready, toast]);
 
@@ -108,16 +106,11 @@ export function SalesProvider({ children }: { children: React.ReactNode }) {
   );
   const ledger = useMemo(() => (data ? [...derived, ...data.movements] : derived), [derived, data]);
 
-  const role = config.sales.roles.find((r) => r.id === roleId) ?? config.sales.roles[0];
-  const actor = role.id === "production" ? user.name : role.person;
-  const can = useCallback((a: Action) => (config.sales.permissions[a] ?? []).includes(role.id), [config.sales.permissions, role.id]);
-
-  const setRole = useCallback((id: string) => {
-    setRoleId(id);
-    try {
-      localStorage.setItem(ROLE_KEY, id);
-    } catch {}
-  }, []);
+  const role = config.sales.roles.find((r) => r.id === account?.salesRole) ?? config.sales.roles[0];
+  const actor = account?.name ?? role.person;
+  // The administrator may do everything; others follow the tenant's permission matrix.
+  const admin = !!account?.admin;
+  const can = useCallback((a: Action) => admin || (config.sales.permissions[a] ?? []).includes(role.id), [admin, config.sales.permissions, role.id]);
 
   const commit = useCallback((patch: Patch) => {
     const next = addToOverlay(overlayRef.current, patch);
@@ -162,8 +155,8 @@ export function SalesProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo<SalesStore | null>(
-    () => (data && env ? { data, ledger, own, today, role, setRole, actor, can, env, exec, resetSales } : null),
-    [data, ledger, own, today, role, setRole, actor, can, env, exec, resetSales],
+    () => (data && env ? { data, ledger, own, today, role, actor, can, env, exec, resetSales } : null),
+    [data, ledger, own, today, role, actor, can, env, exec, resetSales],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

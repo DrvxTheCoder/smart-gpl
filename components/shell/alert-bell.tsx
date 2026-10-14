@@ -9,6 +9,10 @@ import { useStore } from "@/lib/store";
 import { useSalesMaybe } from "@/lib/sales/store";
 import { alerts, type Alert } from "@/lib/sales/alerts";
 import { cn } from "@/lib/format";
+import { useAuth } from "@/lib/auth";
+import { canOpen } from "@/lib/modules";
+import { fillState } from "@/lib/sales/stock";
+import { shiftDate } from "@/lib/sales/dates";
 
 const KIND_LABEL: Record<Alert["kind"], string> = { GROSSISTE: "Grossiste", VALIDATION: "Validation", ECART: "Écart", CLOTURE: "Clôture" };
 
@@ -16,17 +20,26 @@ const KIND_LABEL: Record<Alert["kind"], string> = { GROSSISTE: "Grossiste", VALI
 export function AlertBell() {
   const { config, centreId, inventories, centre } = useStore();
   const sales = useSalesMaybe();
+  const { account } = useAuth();
   const [open, setOpen] = useState(false);
   const anchor = useRef<HTMLButtonElement>(null);
 
   const list = useMemo(() => {
     const out: (Alert & { label: string })[] = [];
+    const mods = account?.modules ?? [];
     for (const inv of inventories)
       if (inv.status === "EN_COURS" && (centreId === "all" || inv.centreId === centreId))
         out.push({ id: `inv-${inv.id}`, kind: "CLOTURE", tone: "warn", title: "Inventaire du jour en cours", detail: centre(inv.centreId).name, href: `/inventaires/${inv.id}`, label: "Production" });
-    if (sales) for (const a of alerts({ cfg: config, data: sales.data, ledger: sales.ledger, today: sales.today, own: sales.own, centreId })) out.push({ ...a, label: KIND_LABEL[a.kind] });
-    return out;
-  }, [inventories, centreId, centre, sales, config]);
+    if (sales) {
+      // Production's queue: confirmed orders whose bottles are not all filled, due by tomorrow.
+      const due = shiftDate(sales.today, 1);
+      const toFill = sales.data.orders.filter((o) => (centreId === "all" || o.centreId === centreId) && (o.status === "CONFIRMEE" || o.status === "EXPEDIEE") && o.date <= due && fillState(o) != null && fillState(o)?.status !== "REMPLIE");
+      if (toFill.length) out.push({ id: "fill", kind: "VALIDATION", tone: "warn", title: `${toFill.length} bon${toFill.length > 1 ? "s" : ""} de commande à remplir`, detail: "Pour aujourd'hui et demain", href: "/remplissage", label: "Remplissage" });
+      for (const a of alerts({ cfg: config, data: sales.data, ledger: sales.ledger, today: sales.today, own: sales.own, centreId })) out.push({ ...a, label: KIND_LABEL[a.kind] });
+    }
+    // Each account sees the alerts of the modules it can open.
+    return out.filter((a) => canOpen(mods, a.href));
+  }, [inventories, centreId, centre, sales, config, account]);
   const urgent = list.filter((a) => a.tone === "alert").length;
 
   return (

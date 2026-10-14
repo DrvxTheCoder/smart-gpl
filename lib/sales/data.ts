@@ -115,7 +115,8 @@ export function loadOverlay(text: string | null): { overlay: Overlay; notice: st
     }
     const kept: Record<string, unknown> = {};
     for (const [id, x] of Object.entries(rec)) {
-      if (usable(x, SHAPE[k]) && x.id === id) kept[id] = x;
+      // Orders saved before fill confirmation existed start with nothing filled.
+      if (usable(x, SHAPE[k]) && x.id === id) kept[id] = k === "orders" && !isObj(x.filled) ? { ...x, filled: {} } : x;
       else dropped++;
     }
     (overlay[k] as Record<string, unknown>) = kept;

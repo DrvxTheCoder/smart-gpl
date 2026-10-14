@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AccessLink, useCanOpen } from "@/components/shell/access-link";
 import { useCallback, useMemo } from "react";
 import { Phone, Plus, Target } from "@/components/ui/icons";
 import { ButtonLink, Card, CardTitle, CornerLink } from "@/components/ui/primitives";
@@ -20,6 +21,7 @@ import { BULK } from "@/lib/sales/types";
 export default function VentesDashboard() {
   const { config, centreId, centre, inventories } = useStore();
   const { data, ledger, today, own } = useSales();
+  const canOpenPath = useCanOpen();
   const cur = config.sales.currency.label;
   const scope = useCallback((id: string) => centreId === "all" || id === centreId, [centreId]);
   const t = config.sales.targets;
@@ -259,12 +261,12 @@ export default function VentesDashboard() {
               <CardTitle>Expéditions du jour</CardTitle>
               <p className="mt-0.5 text-[13px] text-muted">{todays.length ? `${todays.filter((d) => d.status === "EXPEDIE" || d.status === "LIVRE").length} parties sur ${todays.length}` : "Aucun camion prévu aujourd'hui."}</p>
             </div>
-            <CornerLink href="/expeditions" label="Voir la file des camions" />
+            {canOpenPath("/expeditions") && <CornerLink href="/expeditions" label="Voir la file des camions" />}
           </div>
           <ul className="divide-y divide-line">
             {todays.map((d) => (
               <li key={d.id}>
-                <Link href={`/expeditions/${d.id}`} className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-board">
+                <AccessLink href={`/expeditions/${d.id}`} className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-board" plainClassName="-mx-2 flex items-center gap-3 px-2 py-2.5">
                   <span className="tnum w-12 shrink-0 text-[13px] text-muted">{new Date(d.slot).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[14px] font-medium">{customerName(d.customerId)}</span>
@@ -274,7 +276,7 @@ export default function VentesDashboard() {
                     </span>
                   </span>
                   <DispatchBadge status={d.status} />
-                </Link>
+                </AccessLink>
               </li>
             ))}
           </ul>

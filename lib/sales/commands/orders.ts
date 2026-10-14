@@ -7,7 +7,7 @@ import { ageing, decideCredit, openDebits, type CreditDecision } from "../exposu
 import { approvalReasons, formatNumber, ORDER_FLOW, run, syncOrder, type Failure } from "../lifecycle";
 import { linesAmount, priceFor } from "../pricing";
 import { customerPosition } from "../selectors";
-import { atp, dailyProduction, ownFulls, remainingQty, reservedQty, shortfalls, type Shortfall } from "../stock";
+import { atp, dailyProduction, dispatchedQty, fillState, ownFulls, remainingQty, reservedQty, shortfalls, type Shortfall } from "../stock";
 import type { CommandResult, Env } from "../store";
 import { BULK, type AccountEntry, type DeliveryMode, type Dispatch, type Order, type OrderLine } from "../types";
 
@@ -115,6 +115,7 @@ export function saveDraft(env: Env, input: DraftInput): CommandResult {
         status: "BROUILLON",
         approval: { required: false, reasons: [], by: null, at: null, note: null },
         reliquats: [],
+        filled: {},
         history: [{ at: env.now, by: env.by, label: "Commande créée" }],
         replaces: null,
         replacedBy: null,
@@ -184,6 +185,7 @@ export function cancelOrder(env: Env, orderId: string, reason: string, rectify: 
         status: "BROUILLON",
         approval: { required: false, reasons: [], by: null, at: null, note: null },
         reliquats: [],
+        filled: {},
         history: [{ at: env.now, by: env.by, label: `Rectifie ${order.number}`, note: reason.trim() }],
         replaces: order.id,
         replacedBy: null,
@@ -263,4 +265,31 @@ export function planDispatch(env: Env, orderId: string, o: { truck: string; driv
     history: [{ at: env.now, by: env.by, label: "Expédition planifiée" }],
   };
   return { ok: true, patch: { dispatches: [d] }, msg: `Expédition ${d.number} planifiée`, goTo: `/expeditions/${d.id}` };
+}
+
+/**
+ * Production confirms how many bottles of each format it filled for an
+ * order. The figure is a running total: it can grow as the lines work, never
+ * drop below what already left on a truck, never exceed what is needed.
+ */
+export function confirmFill(env: Env, orderId: string, qty: Record<string, number>): CommandResult {
+  if (!env.can("order.fill")) return { ok: false, error: "Action réservée : le remplissage est confirmé par la production." };
+  const order = env.data.orders.find((o) => o.id === orderId);
+  if (!order || (order.status !== "CONFIRMEE" && order.status !== "EXPEDIEE")) return { ok: false, error: "Commande non confirmée ou déjà livrée : rien à remplir." };
+  const st = fillState(order);
+  if (!st) return { ok: false, error: "Commande de vrac : pas de bouteilles à remplir." };
+  const sent = dispatchedQty(env.data.dispatches, order.id);
+  const label = (f: string) => env.cfg.bottleTypes.find((b) => b.id === f)?.label ?? f;
+  const filled: Record<string, number> = {};
+  for (const f of Object.keys(st.need)) {
+    const n = Math.round(qty[f] ?? st.filled[f]);
+    if (n > st.need[f]) return { ok: false, error: `Plus que commandé en ${label(f)} : ${st.need[f].toLocaleString("fr-FR")} au plus.` };
+    if (n < (sent[f] ?? 0)) return { ok: false, error: `Déjà expédié en ${label(f)} : ${(sent[f] ?? 0).toLocaleString("fr-FR")} au moins.` };
+    filled[f] = n;
+  }
+  if (Object.keys(filled).every((f) => filled[f] === st.filled[f])) return { ok: false, error: "Aucun changement : saisissez les quantités remplies." };
+  const note = Object.entries(filled).map(([f, n]) => `${label(f)} ${n.toLocaleString("fr-FR")}`).join(", ");
+  const done = Object.keys(filled).every((f) => filled[f] >= st.need[f]);
+  const next: Order = { ...order, filled, history: [...order.history, { at: env.now, by: env.by, label: done ? "Remplissage confirmé" : "Remplissage partiel confirmé", note }] };
+  return { ok: true, patch: { orders: [next] }, msg: done ? `${order.number} rempli` : `${order.number} rempli en partie` };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -25,8 +25,14 @@ import {
   Truck,
   Users,
   Warehouse,
+  Factory,
 } from "@/components/ui/icons";
+import { Segmented } from "@/components/ui/primitives";
+import { useAuth } from "@/lib/auth";
+import { canOpen, moduleDef, moduleOf, MODULES, type ModuleId } from "@/lib/modules";
+import { fillState } from "@/lib/sales/stock";
 import { useStore } from "@/lib/store";
+import { COLLAPSED_KEY } from "@/lib/keys";
 import { useSalesMaybe } from "@/lib/sales/store";
 import { wholesalerStatuses } from "@/lib/sales/alerts";
 import { Select } from "@/components/ui/select";
@@ -52,8 +58,8 @@ export function Logo({ className }: { className?: string }) {
   );
 }
 
-type BadgeKey = "inventories" | "approvals" | "dispatches" | "late";
-const BADGE_TEXT: Record<BadgeKey, string> = { inventories: "en cours", approvals: "à valider", dispatches: "au chargement", late: "en retard" };
+type BadgeKey = "inventories" | "approvals" | "dispatches" | "late" | "fills";
+const BADGE_TEXT: Record<BadgeKey, string> = { inventories: "en cours", approvals: "à valider", dispatches: "au chargement", late: "en retard", fills: "à remplir" };
 interface NavItem {
   href: string;
   label: string;
@@ -61,46 +67,67 @@ interface NavItem {
   badge?: BadgeKey;
 }
 
-const SECTIONS: { label: string; items: NavItem[] }[] = [
-  {
-    label: "Menu",
-    items: [
-      { href: "/", label: "Tableau de bord", icon: LayoutGrid },
-      { href: "/inventaires", label: "Inventaires", icon: ClipboardList, badge: "inventories" },
-      { href: "/analyses", label: "Analyses", icon: ChartColumn },
-      { href: "/parametres", label: "Paramètres", icon: Settings2 },
-    ],
-  },
-  {
-    label: "Commercial",
-    items: [
-      { href: "/ventes", label: "Ventes", icon: TrendingUp },
-      { href: "/ventes/commandes", label: "Commandes", icon: ShoppingCart, badge: "approvals" },
-      { href: "/ventes/clients", label: "Clients", icon: Users },
-      { href: "/ventes/previsions", label: "Prévisions", icon: Target },
-      { href: "/ventes/grossistes", label: "Grossistes", icon: Store, badge: "late" },
-    ],
-  },
-  {
-    label: "Magasin",
-    items: [
-      { href: "/magasin", label: "Stock et bouteilles", icon: Warehouse },
-      { href: "/expeditions", label: "Expéditions", icon: Truck, badge: "dispatches" },
-    ],
-  },
-];
+/* Each module has its own navigation; Paramètres, help and sign-out are shared. */
+const NAV: Record<ModuleId, NavItem[]> = {
+  production: [
+    { href: "/", label: "Tableau de bord", icon: LayoutGrid },
+    { href: "/inventaires", label: "Inventaires", icon: ClipboardList, badge: "inventories" },
+    { href: "/remplissage", label: "Remplissage", icon: Factory, badge: "fills" },
+    { href: "/analyses", label: "Analyses", icon: ChartColumn },
+  ],
+  ventes: [
+    { href: "/ventes", label: "Tableau de bord", icon: TrendingUp },
+    { href: "/ventes/commandes", label: "Commandes", icon: ShoppingCart, badge: "approvals" },
+    { href: "/ventes/clients", label: "Clients", icon: Users },
+    { href: "/ventes/previsions", label: "Prévisions", icon: Target },
+    { href: "/ventes/grossistes", label: "Grossistes", icon: Store, badge: "late" },
+  ],
+  stock: [
+    { href: "/magasin", label: "Stock et bouteilles", icon: Warehouse },
+    { href: "/expeditions", label: "Expéditions", icon: Truck, badge: "dispatches" },
+  ],
+};
 
-const COLLAPSED_KEY = "jauge:sidebar-collapsed";
+/* Where each module was last left, so switching back returns there. */
+const lastPath: Partial<Record<ModuleId, string>> = {};
+let lastModule: ModuleId | null = null;
+
+/** The module on screen: the page's own, or for shared pages the last one visited. */
+function useCurrentModule(): ModuleId {
+  const path = usePathname();
+  const { account } = useAuth();
+  return moduleOf(path) ?? (lastModule && account?.modules.includes(lastModule) ? lastModule : account?.modules[0] ?? "production");
+}
+
+/** Switch between the modules the account may open; hidden for a single-module account. */
+function ModuleSwitcher({ onSwitch }: { onSwitch?: () => void }) {
+  const { account } = useAuth();
+  const router = useRouter();
+  const current = useCurrentModule();
+  const mods = MODULES.filter((m) => account?.modules.includes(m.id));
+  if (mods.length < 2) return null;
+  return (
+    <Segmented
+      label="Module"
+      value={current}
+      onChange={(m) => {
+        onSwitch?.();
+        router.push(lastPath[m] ?? moduleDef(m).home);
+      }}
+      options={mods.map((m) => ({ value: m.id, label: m.label }))}
+    />
+  );
+}
+
 const isDesktop = () => window.matchMedia("(min-width: 1024px)").matches;
 
 /** The one link to highlight: the longest href the path falls under. */
-function activeHref(path: string) {
+function activeHref(path: string, items: NavItem[]) {
   let best = "";
-  for (const { items } of SECTIONS)
-    for (const { href } of items) {
-      const hit = href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`);
-      if (hit && href.length > best.length) best = href;
-    }
+  for (const href of [...items.map((i) => i.href), "/parametres"]) {
+    const hit = href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`);
+    if (hit && href.length > best.length) best = href;
+  }
   return best;
 }
 
@@ -186,6 +213,10 @@ function SectionLabel({ collapsed, className, children }: { collapsed: boolean; 
 function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => void; collapsed: boolean }) {
   const path = usePathname();
   const { inventories, toast, config, startJob, centreId } = useStore();
+  const { logout } = useAuth();
+  const router = useRouter();
+  const mod = useCurrentModule();
+  const items = NAV[mod];
   const sales = useSalesMaybe(); // the shell renders before the sales data is built
   const here = (id: string) => centreId === "all" || id === centreId;
   const late = useMemo(
@@ -197,8 +228,9 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
     approvals: sales?.data.orders.filter((o) => here(o.centreId) && o.status === "CONFIRMEE" && o.approval.required && !o.approval.by).length ?? 0,
     late,
     dispatches: sales?.data.dispatches.filter((d) => here(d.centreId) && (d.status === "EN_CHARGEMENT" || d.status === "CHARGE")).length ?? 0,
+    fills: sales?.data.orders.filter((o) => here(o.centreId) && (o.status === "CONFIRMEE" || o.status === "EXPEDIEE") && fillState(o) != null && fillState(o)?.status !== "REMPLIE").length ?? 0,
   };
-  const current = activeHref(path);
+  const current = activeHref(path, items);
   const navRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLSpanElement>(null);
   const { bind, tooltip, hide } = useRailTooltip(collapsed);
@@ -211,7 +243,7 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
       const y = link.offsetTop + link.offsetHeight / 2 - 14;
       gsap.to(railRef.current, { y, opacity: 1, duration: 0.5, ease: "power3.out" });
     },
-    { dependencies: [path], scope: navRef },
+    { dependencies: [path, mod], scope: navRef },
   );
 
   useEffect(() => hide(true), [path, hide]);
@@ -259,7 +291,7 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
         aria-label="Navigation principale"
       >
         <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 rounded-xl" onClick={onClose} {...bind(PRODUCT)}>
+          <Link href={moduleDef(mod).home} className="flex items-center gap-2.5 rounded-xl" onClick={onClose} {...bind(PRODUCT)}>
             <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-800 text-white">
               <Logo className="size-7" />
             </span>
@@ -270,6 +302,10 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
           </button>
         </div>
 
+        <div className="mt-5 lg:hidden">
+          <ModuleSwitcher onSwitch={onClose} />
+        </div>
+
         {/* Scrolls when the sections outgrow a short screen; it spans the
             aside's padding so the rail on its left edge is not clipped. */}
         <div
@@ -278,56 +314,64 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
           style={more ? { maskImage: "linear-gradient(to bottom, black calc(100% - 40px), transparent)", WebkitMaskImage: "linear-gradient(to bottom, black calc(100% - 40px), transparent)" } : undefined}
         >
           <span ref={railRef} aria-hidden className="absolute top-0 left-0 h-7 w-[3px] rounded-r-full bg-brand-800 opacity-0" />
-          {SECTIONS.map((section, si) => (
-            <div key={section.label}>
-              <SectionLabel collapsed={collapsed} className={si ? "mt-7" : undefined}>
-                {section.label}
-              </SectionLabel>
-              <ul className="space-y-0.5">
-                {section.items.map(({ href, label, icon: Icon, badge }) => {
-                  const active = href === current;
-                  const count = badge ? badges[badge] : 0;
-                  const what = badge ? `${count} ${BADGE_TEXT[badge]}` : "";
-                  return (
-                    <li key={href}>
-                      <Link
-                        href={href}
-                        onClick={onClose}
-                        aria-current={active ? "page" : undefined}
-                        className={cn(itemCls, active ? "font-semibold text-ink" : "text-muted hover:bg-card/70 hover:text-ink")}
-                        {...bind(count ? `${label} · ${what}` : label)}
-                      >
-                        <Icon className={cn("size-[19px] shrink-0", active && "text-brand-800")} strokeWidth={active ? 2.1 : 1.7} />
-                        <span className={fade}>{label}</span>
-                        {count > 0 && (
-                          <>
-                            <span
-                              className={cn("tnum ml-auto grid h-5 min-w-5 place-items-center rounded-md bg-brand-800 px-1 text-[11px] font-semibold text-white", fade)}
-                              aria-label={what}
-                            >
-                              {count}
-                            </span>
-                            <span
-                              aria-hidden
-                              className={cn(
-                                "absolute top-2.5 left-[26px] hidden size-2 rounded-full bg-brand-800 ring-2 ring-board transition-[opacity,scale] duration-300 lg:block",
-                                collapsed ? "scale-100 opacity-100" : "scale-50 opacity-0",
-                              )}
-                            />
-                          </>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
+          <div>
+            <SectionLabel collapsed={collapsed}>{moduleDef(mod).label}</SectionLabel>
+            <ul className="space-y-0.5">
+              {items.map(({ href, label, icon: Icon, badge }) => {
+                const active = href === current;
+                const count = badge ? badges[badge] : 0;
+                const what = badge ? `${count} ${BADGE_TEXT[badge]}` : "";
+                return (
+                  <li key={href}>
+                    <Link
+                      href={href}
+                      onClick={onClose}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(itemCls, active ? "font-semibold text-ink" : "text-muted hover:bg-card/70 hover:text-ink")}
+                      {...bind(count ? `${label} · ${what}` : label)}
+                    >
+                      <Icon className={cn("size-[19px] shrink-0", active && "text-brand-800")} strokeWidth={active ? 2.1 : 1.7} />
+                      <span className={fade}>{label}</span>
+                      {count > 0 && (
+                        <>
+                          <span
+                            className={cn("tnum ml-auto grid h-5 min-w-5 place-items-center rounded-md bg-brand-800 px-1 text-[11px] font-semibold text-white", fade)}
+                            aria-label={what}
+                          >
+                            {count}
+                          </span>
+                          <span
+                            aria-hidden
+                            className={cn(
+                              "absolute top-2.5 left-[26px] hidden size-2 rounded-full bg-brand-800 ring-2 ring-board transition-[opacity,scale] duration-300 lg:block",
+                              collapsed ? "scale-100 opacity-100" : "scale-50 opacity-0",
+                            )}
+                          />
+                        </>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
 
           <SectionLabel collapsed={collapsed} className="mt-7">
             Général
           </SectionLabel>
           <ul className="space-y-0.5">
+            <li>
+              <Link
+                href="/parametres"
+                onClick={onClose}
+                aria-current={current === "/parametres" ? "page" : undefined}
+                className={cn(itemCls, current === "/parametres" ? "font-semibold text-ink" : "text-muted hover:bg-card/70 hover:text-ink")}
+                {...bind("Paramètres")}
+              >
+                <Settings2 className={cn("size-[19px] shrink-0", current === "/parametres" && "text-brand-800")} strokeWidth={current === "/parametres" ? 2.1 : 1.7} />
+                <span className={fade}>Paramètres</span>
+              </Link>
+            </li>
             <li>
               <button
                 onClick={() => toast("Centre d'aide à venir")}
@@ -340,7 +384,10 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
             </li>
             <li>
               <button
-                onClick={() => toast("Déconnexion désactivée")}
+                onClick={() => {
+                  logout();
+                  router.replace("/connexion");
+                }}
                 className={cn(itemCls, "text-muted hover:bg-card/70 hover:text-ink")}
                 {...bind("Déconnexion")}
               >
@@ -351,6 +398,7 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
           </ul>
         </div>
 
+        {mod === "production" && (
         <div className="relative">
           <div
             className={cn(
@@ -383,6 +431,7 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
             <FileDown className="size-[18px]" />
           </button>
         </div>
+        )}
       </aside>
       {tooltip}
       {open && <div className="fixed inset-0 z-30 bg-brand-950/25 lg:hidden" onClick={onClose} aria-hidden />}
@@ -472,10 +521,10 @@ function ScrollJump({ y, max }: { y: number; max: number }) {
 
 function Topbar({ onMenu, collapsed, onCollapse, raised }: { onMenu: () => void; collapsed: boolean; onCollapse: () => void; raised: boolean }) {
   const { user } = useStore();
-  const sales = useSalesMaybe();
-  // The prototype role switcher shows whose view this is.
-  const name = sales?.actor ?? user.name;
-  const role = sales?.role.label ?? user.role;
+  const { account } = useAuth();
+  const multi = (account?.modules.length ?? 0) > 1; // the module switcher takes room in the bar
+  const name = user.name;
+  const role = user.role;
   const initials = name.split(" ").map((p) => p[0]).join("");
   const Toggle = collapsed ? PanelLeftOpen : PanelLeftClose;
 
@@ -497,6 +546,9 @@ function Topbar({ onMenu, collapsed, onCollapse, raised }: { onMenu: () => void;
       >
         <Toggle className="size-4" strokeWidth={1.8} />
       </button>
+      <div className="hidden shrink-0 lg:block">
+        <ModuleSwitcher />
+      </div>
       <CommandMenu collapsed={collapsed} onCollapse={onCollapse} />
       <div className="ml-auto flex items-center gap-2.5">
         <div className="hidden md:block">
@@ -505,7 +557,7 @@ function Topbar({ onMenu, collapsed, onCollapse, raised }: { onMenu: () => void;
         <AlertBell />
         <Link href="/parametres" className="flex items-center gap-2.5 rounded-full pr-2" aria-label={`Paramètres du compte de ${name}`}>
           <span className="grid size-11 place-items-center rounded-full bg-[#f2cdb8] text-[14px] font-semibold text-[#5b2f19]">{initials}</span>
-          <span className="hidden flex-col leading-tight xl:flex">
+          <span className={cn("hidden flex-col leading-tight", multi ? "2xl:flex" : "xl:flex")}>
             <span className="text-[15px] font-medium">{name}</span>
             <span className="text-[12px] text-muted">{role}</span>
           </span>
@@ -518,11 +570,32 @@ function Topbar({ onMenu, collapsed, onCollapse, raised }: { onMenu: () => void;
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const { ready: storeReady, density } = useStore();
+  const { ready: storeReady, density, toast } = useStore();
+  const { ready: authReady, account } = useAuth();
   const sales = useSalesMaybe();
-  const ready = storeReady && !!sales;
   const path = usePathname();
+  const router = useRouter();
+  const allowed = !!account && canOpen(account.modules, path);
+  const ready = storeReady && !!sales && allowed;
   const mainRef = useRef<HTMLElement>(null);
+
+  // Signed out: to the login page. Outside one's modules: back to one's own.
+  useEffect(() => {
+    if (!authReady || path === "/connexion") return;
+    if (!account) router.replace(`/connexion?suite=${encodeURIComponent(path)}`);
+    else if (!canOpen(account.modules, path)) {
+      toast(`Module ${moduleDef(moduleOf(path) ?? account.modules[0]).label.toLowerCase()} réservé à ses responsables`, "warning");
+      router.replace(lastPath[account.modules[0]] ?? moduleDef(account.modules[0]).home);
+    }
+  }, [authReady, account, path, router, toast]);
+
+  useEffect(() => {
+    const m = moduleOf(path);
+    if (m) {
+      lastModule = m;
+      lastPath[m] = path;
+    }
+  }, [path]);
 
   useEffect(() => {
     try {
@@ -562,6 +635,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
     { dependencies: [path, ready], scope: mainRef },
   );
+
+  if (path === "/connexion") return <>{children}</>;
 
   return (
     // Expanded fills the window, keeping the same 12px gutter on every side.

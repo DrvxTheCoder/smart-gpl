@@ -7,6 +7,8 @@ import { Select } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/calendar";
 import { useStore } from "@/lib/store";
 import { useSales } from "@/lib/sales/store";
+import { ACCOUNTS, DEMO_PASSWORD, useAuth } from "@/lib/auth";
+import { moduleDef } from "@/lib/modules";
 import { cn, fmt, fmtMoney } from "@/lib/format";
 import { ACTIONS, PRESETS, WORKFLOW_STEPS } from "@/lib/sales/defaults";
 import { PAYMENT_METHODS } from "@/lib/sales/config";
@@ -793,42 +795,36 @@ export function ReportsPanel() {
 
 export function RolesPanel() {
   const { sales, set } = useSalesConfig();
-  const { role, setRole } = useSales();
-  const { toast } = useStore();
+  const { account } = useAuth();
   return (
     <div className="grid grid-cols-1 gap-4">
       <Card>
-        <CardTitle>Rôle de démonstration</CardTitle>
-        <p className="mt-1 text-[13px] text-muted">Prototype seulement : changez de rôle pour montrer la vue de chaque équipe. Préférence propre à cet appareil.</p>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3" role="radiogroup" aria-label="Rôle de démonstration">
-          {sales.roles.map((r) => {
-            const on = r.id === role.id;
-            return (
-              <button
-                key={r.id}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                onClick={() => {
-                  setRole(r.id);
-                  toast(`Vue ${r.label.toLowerCase()}`, "info");
-                }}
-                className={cn("flex items-center gap-3 rounded-2xl border p-3 text-left transition-colors", on ? "border-brand-800 bg-brand-50" : "border-line hover:border-faint")}
-              >
-                <span className={cn("grid size-10 shrink-0 place-items-center rounded-full text-[13px] font-semibold", on ? "bg-brand-800 text-white" : "bg-board text-ink")}>
-                  {r.person
-                    .split(" ")
-                    .map((p) => p[0])
-                    .join("")}
+        <CardTitle>Comptes de démonstration</CardTitle>
+        <p className="mt-1 text-[13px] text-muted">
+          Prototype : connexion simulée, sans serveur. Chaque responsable ne voit que son module ; l&apos;administrateur voit tout. Mot de passe commun&nbsp;: «&nbsp;{DEMO_PASSWORD}&nbsp;».
+        </p>
+        <ul className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {ACCOUNTS.map((a) => (
+            <li key={a.id} className={cn("flex items-center gap-3 rounded-2xl border p-3", a.id === account?.id ? "border-brand-800 bg-brand-50" : "border-line")}>
+              <span className={cn("grid size-10 shrink-0 place-items-center rounded-full text-[13px] font-semibold", a.id === account?.id ? "bg-brand-800 text-white" : "bg-board text-ink")}>
+                {a.name
+                  .split(" ")
+                  .map((p) => p[0])
+                  .join("")}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px] font-medium">
+                  {a.name}, {a.title.toLowerCase()}
                 </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-[14px] font-medium">{r.label}</span>
-                  <span className="block truncate text-[12px] text-muted">{r.person}</span>
+                <span className="block truncate text-[12px] text-muted">
+                  {a.email} · {a.admin ? "tous les modules" : a.modules.map((m) => moduleDef(m).label).join(", ")} · permissions : {sales.roles.find((r) => r.id === a.salesRole)?.label ?? a.salesRole}
+                  {a.admin ? " (toutes)" : ""}
                 </span>
-              </button>
-            );
-          })}
-        </div>
+              </span>
+              {a.id === account?.id && <span className="text-[12px] font-medium text-brand-800">Connecté</span>}
+            </li>
+          ))}
+        </ul>
       </Card>
 
       <Card>

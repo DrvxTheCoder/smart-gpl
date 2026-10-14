@@ -43,6 +43,9 @@ import {
 } from "@/components/ui/command";
 import { useStore } from "@/lib/store";
 import { useSalesMaybe } from "@/lib/sales/store";
+import { useAuth } from "@/lib/auth";
+import { canOpen } from "@/lib/modules";
+import { canSeeSetting } from "@/lib/settings-access";
 import { ORDER_STATUS } from "@/lib/sales/lifecycle";
 import { cap, cn, fmtDate, invCode } from "@/lib/format";
 
@@ -50,6 +53,7 @@ const PAGES: { href: string; label: string; icon: Icon; key: string }[] = [
   { href: "/", label: "Tableau de bord", icon: LayoutGrid, key: "D" },
   { href: "/inventaires", label: "Inventaires", icon: ClipboardList, key: "I" },
   { href: "/analyses", label: "Analyses", icon: ChartColumn, key: "A" },
+  { href: "/remplissage", label: "Remplissage", icon: Factory, key: "B" },
   { href: "/parametres", label: "Paramètres", icon: Settings2, key: "P" },
   { href: "/ventes", label: "Ventes", icon: TrendingUp, key: "V" },
   { href: "/ventes/commandes", label: "Commandes", icon: ShoppingCart, key: "C" },
@@ -108,6 +112,15 @@ function popupOpen() {
 export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onCollapse: () => void }) {
   const router = useRouter();
   const { inventories, config, centreId, setCentreId, density, setDensity, toast } = useStore();
+  const { account } = useAuth();
+  // Only what the signed-in account's modules can open is offered.
+  const mods = useMemo(() => account?.modules ?? [], [account]);
+  const pages = useMemo(() => PAGES.filter((p) => canOpen(mods, p.href)), [mods]);
+  const salesActions = useMemo(() => SALES_ACTIONS.filter((a) => canOpen(mods, a.href)), [mods]);
+  const production = mods.includes("production");
+  const ventes = mods.includes("ventes");
+  const allowed = useRef({ pages, salesActions, production });
+  allowed.current = { pages, salesActions, production };
   const sales = useSalesMaybe();
   const customers = useMemo(() => sales?.data.customers ?? [], [sales]);
   const orders = useMemo(() => [...(sales?.data.orders ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [sales]);
@@ -155,7 +168,7 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
       const k = e.key.toLowerCase();
       if (pendingG.current && Date.now() - pendingG.current < SEQUENCE_MS) {
         pendingG.current = 0;
-        const page = PAGES.find((p) => p.key.toLowerCase() === k);
+        const page = allowed.current.pages.find((p) => p.key.toLowerCase() === k);
         if (page) {
           e.preventDefault();
           router.push(page.href);
@@ -166,11 +179,11 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
       else if (k === "/") {
         e.preventDefault();
         setOpen(true);
-      } else if (k === "n") actions.current.openToday();
+      } else if (k === "n" && allowed.current.production) actions.current.openToday();
       else if (k === "m") actions.current.collapse();
       else if (k === "l") actions.current.toggleWidth();
       else {
-        const a = SALES_ACTIONS.find((x) => x.key.toLowerCase() === k);
+        const a = allowed.current.salesActions.find((x) => x.key.toLowerCase() === k);
         if (a) {
           e.preventDefault();
           router.push(a.href);
@@ -192,10 +205,10 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
         type="button"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
-        className="hidden h-11 flex-1 items-center rounded-full bg-card px-4 text-left text-[14px] text-muted transition-colors hover:text-ink sm:flex sm:max-w-[360px]"
+        className="hidden h-11 min-w-0 flex-1 items-center rounded-full bg-card px-4 text-left text-[14px] text-muted transition-colors hover:text-ink sm:flex sm:max-w-[360px]"
       >
         <Search className="size-[18px]" />
-        <span className="ml-2.5 flex-1 truncate">Chercher un client, une commande, une date</span>
+        <span className="ml-2.5 flex-1 truncate">{ventes ? "Chercher un client, une commande" : "Chercher une page, un inventaire"}</span>
         <Kbd className="bg-board ring-0">{mac ? "⌘ K" : "Ctrl K"}</Kbd>
       </button>
       <button type="button" onClick={() => setOpen(true)} className="grid size-11 place-items-center rounded-full bg-card sm:hidden" aria-label="Rechercher">
@@ -214,11 +227,13 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
           <CommandEmpty>Aucun résultat pour « {query} »</CommandEmpty>
 
           <CommandGroup heading="Actions">
-            <CommandItem value="saisir inventaire du jour nouveau" onSelect={() => run(actions.current.openToday)} disabled={!today}>
-              <Plus />
-              Saisir l&apos;inventaire du jour
-              <CommandShortcut keys={["N"]} />
-            </CommandItem>
+            {production && (
+              <CommandItem value="saisir inventaire du jour nouveau" onSelect={() => run(actions.current.openToday)} disabled={!today}>
+                <Plus />
+                Saisir l&apos;inventaire du jour
+                <CommandShortcut keys={["N"]} />
+              </CommandItem>
+            )}
             <CommandItem value="replier deplier menu barre laterale sidebar" onSelect={() => run(onCollapse)}>
               {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
               {collapsed ? "Déplier le menu" : "Replier le menu"}
@@ -231,18 +246,20 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
             </CommandItem>
           </CommandGroup>
 
-          <CommandGroup heading="Ventes">
-            {SALES_ACTIONS.map((a) => (
-              <CommandItem key={a.id} value={a.words} onSelect={() => run(() => router.push(a.href))}>
-                <a.icon />
-                {a.label}
-                <CommandShortcut keys={[a.key]} />
-              </CommandItem>
-            ))}
-          </CommandGroup>
+          {salesActions.length > 0 && (
+            <CommandGroup heading="Ventes">
+              {salesActions.map((a) => (
+                <CommandItem key={a.id} value={a.words} onSelect={() => run(() => router.push(a.href))}>
+                  <a.icon />
+                  {a.label}
+                  <CommandShortcut keys={[a.key]} />
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
 
           <CommandGroup heading="Aller à">
-            {PAGES.map((p) => (
+            {pages.map((p) => (
               <CommandItem key={p.href} value={`page ${p.label}`} onSelect={() => run(() => router.push(p.href))}>
                 <p.icon />
                 {p.label}
@@ -251,32 +268,34 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
             ))}
           </CommandGroup>
 
-          <CommandGroup heading={query ? "Inventaires" : "Inventaires récents"}>
-            {shownInvs.map((i) => (
-              <CommandItem
-                key={i.id}
-                value={`${invCode(i.date)} ${fmtDate(i.date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} ${i.date} ${centreName(i.centreId)}`}
-                onSelect={() => run(() => router.push(`/inventaires/${i.id}`))}
-              >
-                <ClipboardList />
-                <span className="min-w-0 flex-1 truncate">
-                  {cap(fmtDate(i.date, { weekday: "short", day: "numeric", month: "short" }))}
-                  <span className="text-muted"> · {centreName(i.centreId)}</span>
-                </span>
-                <span className={cn("tnum text-[12px]", i.status === "EN_COURS" ? "font-medium text-warn" : "text-faint")}>
-                  {i.status === "EN_COURS" ? "En cours" : invCode(i.date)}
-                </span>
-              </CommandItem>
-            ))}
-            {query && (
-              <CommandItem value={`__all ${query}`} onSelect={() => run(() => router.push(`/inventaires?q=${encodeURIComponent(query)}`))}>
-                <Search />
-                Voir tous les résultats pour « {query} »
-              </CommandItem>
-            )}
-          </CommandGroup>
+          {production && (
+            <CommandGroup heading={query ? "Inventaires" : "Inventaires récents"}>
+              {shownInvs.map((i) => (
+                <CommandItem
+                  key={i.id}
+                  value={`${invCode(i.date)} ${fmtDate(i.date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} ${i.date} ${centreName(i.centreId)}`}
+                  onSelect={() => run(() => router.push(`/inventaires/${i.id}`))}
+                >
+                  <ClipboardList />
+                  <span className="min-w-0 flex-1 truncate">
+                    {cap(fmtDate(i.date, { weekday: "short", day: "numeric", month: "short" }))}
+                    <span className="text-muted"> · {centreName(i.centreId)}</span>
+                  </span>
+                  <span className={cn("tnum text-[12px]", i.status === "EN_COURS" ? "font-medium text-warn" : "text-faint")}>
+                    {i.status === "EN_COURS" ? "En cours" : invCode(i.date)}
+                  </span>
+                </CommandItem>
+              ))}
+              {query && (
+                <CommandItem value={`__all ${query}`} onSelect={() => run(() => router.push(`/inventaires?q=${encodeURIComponent(query)}`))}>
+                  <Search />
+                  Voir tous les résultats pour « {query} »
+                </CommandItem>
+              )}
+            </CommandGroup>
+          )}
 
-          {query && (
+          {query && ventes && (
             <>
               <CommandGroup heading="Clients">
                 {customers.map((c) => (
@@ -326,7 +345,7 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
             <>
               <CommandSeparator />
               <CommandGroup heading="Paramètres">
-                {SETTINGS.map((s) => (
+                {SETTINGS.filter((s) => canSeeSetting(account, s.tab)).map((s) => (
                   <CommandItem key={s.tab} value={`parametres ${s.label}`} onSelect={() => run(() => router.push(`/parametres?tab=${s.tab}`))}>
                     <s.icon />
                     {s.label}

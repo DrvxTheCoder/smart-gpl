@@ -75,7 +75,7 @@ export interface PriceList {
   lines: PriceLine[];
 }
 
-export type WorkflowStep = "creditCheck" | "prepayment" | "approval" | "reserveOnConfirm" | "gateInspection" | "weighbridge" | "proofOfDelivery" | "accountingExport";
+export type WorkflowStep = "creditCheck" | "prepayment" | "approval" | "reserveOnConfirm" | "fillConfirmation" | "gateInspection" | "weighbridge" | "proofOfDelivery" | "accountingExport";
 
 export interface WorkflowConfig {
   version: number; // bumped on every change, stored on each order
@@ -140,7 +140,7 @@ export interface ReportTemplate {
   separator: string;
 }
 
-export type Action = "credit.override" | "order.approve" | "order.cancel" | "day.close" | "settlement.validate" | "variance.approve" | "forecast.edit" | "price.edit";
+export type Action = "credit.override" | "order.approve" | "order.cancel" | "order.fill" | "day.close" | "settlement.validate" | "variance.approve" | "forecast.edit" | "price.edit";
 
 export interface Role {
   id: string;
@@ -260,6 +260,7 @@ export interface Order {
   status: OrderStatus;
   approval: Approval;
   reliquats: Reliquat[];
+  filled: Record<string, number>; // bottles production confirmed filled for this order, per format
   history: DocEvent[];
   replaces: string | null; // id of the cancelled order this one rectifies
   replacedBy: string | null;

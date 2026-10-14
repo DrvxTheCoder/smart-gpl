@@ -1,5 +1,5 @@
 import { Checker, isNum, isObj, type Obj } from "../checker";
-import { ACTIONS, WORKFLOW_STEPS } from "./defaults";
+import { ACTIONS, DEFAULT_SALES, WORKFLOW_STEPS } from "./defaults";
 import type {
   Action,
   BillingTrigger,
@@ -115,7 +115,8 @@ export function checkSalesConfig(raw: unknown, c: Checker): SalesConfig | null {
 
   const w = c.obj(raw, "workflow", "Flux");
   const st = c.obj(w, "steps", "Flux");
-  const steps = Object.fromEntries(WORKFLOW_STEPS.map((s) => [s.id, c.bool(st, s.id, "Flux, étapes")])) as Record<WorkflowStep, boolean>;
+  // A step added after the configuration was saved takes its default instead of failing.
+  const steps = Object.fromEntries(WORKFLOW_STEPS.map((s) => [s.id, st[s.id] === undefined ? DEFAULT_SALES.workflow.steps[s.id] : c.bool(st, s.id, "Flux, étapes")])) as Record<WorkflowStep, boolean>;
   const num = c.obj(w, "numbering", "Flux, numérotation");
   const numbering = { order: c.str(num, "order", "Numérotation"), dispatch: c.str(num, "dispatch", "Numérotation"), settlement: c.str(num, "settlement", "Numérotation") };
   for (const [k, v] of Object.entries(numbering)) if (v && !v.includes("{N")) c.fail("Numérotation", `« ${k} » doit contenir un compteur {N} ou {N:5}.`);
@@ -163,7 +164,7 @@ export function checkSalesConfig(raw: unknown, c: Checker): SalesConfig | null {
   const roleIds = roles.map((r) => r.id);
   const permissions = Object.fromEntries(
     ACTIONS.map((a) => {
-      const list = c.strList(pm, a.id, "Permissions");
+      const list = pm[a.id] === undefined ? DEFAULT_SALES.permissions[a.id].filter((r) => roleIds.includes(r)) : c.strList(pm, a.id, "Permissions");
       for (const r of list) if (!roleIds.includes(r)) c.fail("Permissions", `rôle « ${r} » inconnu pour « ${a.label} ».`);
       return [a.id, list];
     }),

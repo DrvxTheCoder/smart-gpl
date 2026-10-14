@@ -23,6 +23,7 @@ const order = (id: string, date: string, lines: [string, number][], patch: Parti
   status: "LIVREE",
   approval: { required: false, reasons: [], by: null, at: null, note: null },
   reliquats: [],
+  filled: {},
   history: [],
   replaces: null,
   replacedBy: null,

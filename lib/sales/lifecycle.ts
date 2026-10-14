@@ -248,6 +248,7 @@ export interface DispatchCtx {
   bulk: boolean;
   consignment: boolean;
   remaining: Qty; // what the order still needs, this truck excluded
+  fillable: Qty; // confirmed filled by production and not yet gone, per format
   prepaid: boolean; // cash customer: payment covering the load is recorded
   cash: boolean;
   amount: Money; // value of the load at the order's prices
@@ -327,6 +328,15 @@ export const DISPATCH_FLOW: Transition<DispatchStatus, DispatchCtx>[] = [
           const w = c.dispatch.weighing;
           if (!w || w.tareKg <= 0 || w.grossKg <= w.tareKg) return "Pesées manquantes : saisissez la tare et le poids en charge du camion.";
           return w.grossKg - w.tareKg === (c.dispatch.loaded[BULK] ?? 0) ? null : "Pesées incohérentes : le net (charge − tare) doit égaler la quantité chargée.";
+        },
+      },
+      {
+        id: "filled",
+        step: "fillConfirmation",
+        check: (c) => {
+          if (c.bulk) return null;
+          const short = Object.entries(c.dispatch.loaded).filter(([f, n]) => n > (c.fillable[f] ?? 0));
+          return short.length ? "Remplissage non confirmé : la production doit confirmer que les bouteilles de ce bon de commande sont remplies avant le chargement." : null;
         },
       },
       {

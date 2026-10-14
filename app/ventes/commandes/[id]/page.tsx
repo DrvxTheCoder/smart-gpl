@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AccessLink, useCanOpen } from "@/components/shell/access-link";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Check, Lock, Truck } from "@/components/ui/icons";
@@ -9,11 +10,11 @@ import { Select } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/calendar";
 import { TimePicker } from "@/components/ui/time-picker";
 import { CheckPanel, QtyGrid } from "@/components/sales/order-entry";
-import { DispatchBadge, Missing, OrderBadge, TabPanel, TabStrip } from "@/components/sales/ui";
+import { DispatchBadge, FillBadge, Missing, OrderBadge, TabPanel, TabStrip } from "@/components/sales/ui";
 import { useStore } from "@/lib/store";
 import { useSales } from "@/lib/sales/store";
 import { approveOrder, cancelOrder, checkOrder, closeOrder, confirmOrder, declareReliquat, planDispatch, saveDraft } from "@/lib/sales/commands/orders";
-import { dispatchedQty, plannedQty, remainingQty } from "@/lib/sales/stock";
+import { dispatchedQty, fillState, plannedQty, remainingQty } from "@/lib/sales/stock";
 import { DISPATCH_STATUS, isPartial } from "@/lib/sales/lifecycle";
 import { linesAmount } from "@/lib/sales/pricing";
 import { customerPosition } from "@/lib/sales/selectors";
@@ -30,6 +31,7 @@ export default function CommandePage() {
   const router = useRouter();
   const { config } = useStore();
   const { data, env, exec, can, today } = useSales();
+  const canOpenPath = useCanOpen();
   const order = data.orders.find((o) => o.id === decodeURIComponent(id));
   const [tab, setTab] = useState<Tab>("lignes");
   const [modal, setModal] = useState<Modal>(null);
@@ -55,6 +57,7 @@ export default function CommandePage() {
   const rem = remainingQty(order, data.dispatches);
   const amount = linesAmount(order.lines);
   const partial = isPartial(order, sent, rem);
+  const fill = order.status === "BROUILLON" || order.status === "ANNULEE" ? null : fillState(order);
   const trucks = data.dispatches.filter((d) => d.orderId === order.id).sort((a, b) => a.slot.localeCompare(b.slot));
   const draft = order.status === "BROUILLON";
   const waiting = order.status === "CONFIRMEE" && order.approval.required && !order.approval.by;
@@ -71,8 +74,9 @@ export default function CommandePage() {
   const next = (() => {
     if (draft) return check?.failures.length ? "Corriger ce qui bloque, puis confirmer." : "Confirmer la commande.";
     if (waiting) return "Validation d'un responsable avant le chargement.";
+    if (fill && fill.status !== "REMPLIE" && steps.fillConfirmation && open) return "Remplissage des bouteilles à confirmer par la production.";
     const active = trucks.find((d) => d.status !== "EXPEDIE" && d.status !== "LIVRE");
-    if (active) return `Camion ${active.number} : ${DISPATCH_STATUS[active.status].label.toLowerCase()}. Suite aux Expéditions.`;
+    if (active) return `Camion ${active.number} : ${DISPATCH_STATUS[active.status].label.toLowerCase()}. Suite au magasin.`;
     if (open && toPlan) return "Planifier un camion pour le reste à livrer.";
     if (order.status === "EXPEDIEE") return "Livraison à confirmer sur le BL.";
     if (order.status === "LIVREE") return steps.accountingExport && !order.exported ? "Exporter vers Sage, puis clôturer." : "Clôturer la commande.";
@@ -113,6 +117,7 @@ export default function CommandePage() {
             <h1 className="text-[30px] font-semibold tracking-[-0.03em] sm:text-[36px]">{order.number}</h1>
             <OrderBadge status={order.status} partial={partial} />
             {waiting && <span className="inline-flex h-6 items-center rounded-md border border-warn/45 px-2 text-[12px] font-medium text-warn">À valider</span>}
+            {fill && <FillBadge status={fill.status} />}
           </div>
           <p className="mt-1 text-[15px] text-muted">
             {customer ? (
@@ -209,13 +214,13 @@ export default function CommandePage() {
                 </>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[500px] text-[14px]">
+                  <table className="w-full min-w-[480px] text-[14px]">
                     <thead>
                       <tr className="text-left text-[12px] text-muted">
                         <th className="pb-2 font-medium">Format</th>
                         <th className="pb-2 pl-3 text-right font-medium">Commandé</th>
+                        <th className="pb-2 pl-3 text-right font-medium">Rempli</th>
                         <th className="pb-2 pl-3 text-right font-medium">Expédié</th>
-                        <th className="pb-2 pl-3 text-right font-medium">Reliquat</th>
                         <th className="pb-2 pl-3 text-right font-medium">Reste</th>
                         <th className="pb-2 pl-3 text-right font-medium">Montant</th>
                       </tr>
@@ -225,11 +230,14 @@ export default function CommandePage() {
                         <tr key={l.formatId} className="border-t border-line">
                           <td className="py-2.5 pr-3 font-medium">{label(l.formatId)}</td>
                           <td className="tnum py-2.5 text-right">{fmt(l.qty)}</td>
-                          <td className="tnum py-2.5 text-right">{fmt(sent[l.formatId] ?? 0)}</td>
-                          <td className={cn("tnum py-2.5 text-right", reliquatOf(l.formatId) > 0 && "text-warn")}>{reliquatOf(l.formatId) ? fmt(reliquatOf(l.formatId)) : "—"}</td>
+                          <td className="tnum py-2.5 text-right">{l.formatId === BULK ? "—" : fmt(order.filled?.[l.formatId] ?? 0)}</td>
+                          <td className="tnum py-2.5 text-right">
+                            {fmt(sent[l.formatId] ?? 0)}
+                            {reliquatOf(l.formatId) > 0 && <span className="block text-[12px] text-warn">reliquat {fmt(reliquatOf(l.formatId))}</span>}
+                          </td>
                           <td className="tnum py-2.5 text-right">
                             {fmt(rem[l.formatId] ?? 0)}
-                            {(planned[l.formatId] ?? 0) > 0 && <span className="block text-[12px] text-muted">{fmt(planned[l.formatId])} sur un camion prévu</span>}
+                            {(planned[l.formatId] ?? 0) > 0 && <span className="block text-[12px] text-muted">dont {fmt(planned[l.formatId])} prévus</span>}
                           </td>
                           <td className="tnum py-2.5 text-right">
                             {fmt(l.qty * l.price)}
@@ -269,7 +277,7 @@ export default function CommandePage() {
                 <ul className="divide-y divide-line">
                   {trucks.map((d) => (
                     <li key={d.id}>
-                      <Link href={`/expeditions/${d.id}`} className="-mx-2 flex flex-wrap items-center gap-3 rounded-xl px-2 py-3 hover:bg-board">
+                      <AccessLink href={`/expeditions/${d.id}`} className="-mx-2 flex flex-wrap items-center gap-3 rounded-xl px-2 py-3 hover:bg-board" plainClassName="-mx-2 flex flex-wrap items-center gap-3 px-2 py-3">
                         <span className="grid size-10 place-items-center rounded-xl bg-brand-100 text-brand-800">
                           <Truck className="size-[18px]" />
                         </span>
@@ -287,7 +295,7 @@ export default function CommandePage() {
                             .join(", ")}
                         </span>
                         <DispatchBadge status={d.status} />
-                      </Link>
+                      </AccessLink>
                     </li>
                   ))}
                 </ul>
@@ -466,7 +474,7 @@ export default function CommandePage() {
               const r = exec((e) => planDispatch(e, order.id, truck));
               if (r.ok) {
                 close();
-                if (r.goTo) router.push(r.goTo);
+                if (r.goTo && canOpenPath(r.goTo)) router.push(r.goTo);
               }
             }}
           >

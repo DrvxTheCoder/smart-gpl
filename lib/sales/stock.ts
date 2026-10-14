@@ -131,3 +131,26 @@ export function shortfalls(lines: OrderLine[], available: Qty): Shortfall[] {
 /** The ledger window: the sales history starts this many days back. */
 export const LEDGER_DAYS = 60;
 export const ledgerStart = (today: string) => shiftDate(today, -LEDGER_DAYS);
+
+export type FillStatus = "A_REMPLIR" | "PARTIELLE" | "REMPLIE";
+
+/**
+ * Where production stands on an order's bottles: what it needs (ordered −
+ * declared reliquats), what it confirmed filled, what is left to fill.
+ * Bulk has nothing to fill: null for a bulk-only order.
+ */
+export function fillState(order: Order): { need: Qty; filled: Qty; toFill: Qty; status: FillStatus } | null {
+  const need: Qty = {};
+  for (const l of order.lines) if (l.formatId !== BULK) add(need, l.formatId, l.qty);
+  if (!Object.keys(need).length) return null;
+  for (const r of order.reliquats) if (need[r.formatId] != null) need[r.formatId] = Math.max(need[r.formatId] - r.qty, 0);
+  const filled: Qty = {};
+  const toFill: Qty = {};
+  for (const f of Object.keys(need)) {
+    filled[f] = Math.min(order.filled?.[f] ?? 0, need[f]);
+    toFill[f] = need[f] - filled[f];
+  }
+  const left = Object.values(toFill).reduce((a, b) => a + b, 0);
+  const done = Object.values(filled).reduce((a, b) => a + b, 0);
+  return { need, filled, toFill, status: left === 0 ? "REMPLIE" : done > 0 ? "PARTIELLE" : "A_REMPLIR" };
+}

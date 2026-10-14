@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { advanceDispatch, confirmParty, updateDispatch } from "../lib/sales/commands/dispatch";
-import { confirmOrder, planDispatch, saveDraft } from "../lib/sales/commands/orders";
+import { confirmFill, confirmOrder, planDispatch, saveDraft } from "../lib/sales/commands/orders";
 import { recordPayment } from "../lib/sales/commands/customers";
 import { adjust, closeDay, decideCount, exchange, recordCount } from "../lib/sales/commands/warehouse";
 import { accountBalance } from "../lib/sales/exposure";
@@ -17,6 +17,7 @@ const empties = (e: typeof base, brand: string, f: string) => siteBalance(e.ledg
 function planned(e = base) {
   let x = after(e, saveDraft(e, { id: "t1", customerId: "c05", centreId: "ruf", mode: "LIVRAISON", date: e.today, qty: { b6: 200, b125: 100 } }));
   x = after(x, confirmOrder(x, "t1"));
+  x = after(x, confirmFill(x, "t1", { b6: 200, b125: 100 }));
   x = after(x, planDispatch(x, "t1", { truck: "DK-1", driver: "Samba", date: x.today, time: "10:00" }));
   return { env: x, id: x.data.dispatches.at(-1)!.id };
 }
@@ -65,6 +66,7 @@ describe("dispatch flow, end to end", () => {
   it("a cash customer cannot load before paying, and a pick-up is delivered at expedition", () => {
     let x = after(base, saveDraft(base, { id: "t2", customerId: "c04", centreId: "ruf", mode: "ENLEVEMENT", date: base.today, qty: { b6: 100 } }));
     x = after(x, confirmOrder(x, "t2"));
+    x = after(x, confirmFill(x, "t2", { b6: 100 }));
     x = after(x, planDispatch(x, "t2", { truck: "DK-2", driver: "", date: x.today, time: "11:00" }));
     const id = x.data.dispatches.at(-1)!.id;
     for (const role of ["Magasinier", "Client"]) x = after(x, confirmParty(x, id, "gateIn", { role, name: role, code: "1" }));
@@ -168,3 +170,46 @@ describe("day close and authority report", () => {
     expect(lines).toHaveLength(rows.length + 2);
   });
 });
+
+describe("fill confirmation by production", () => {
+  function confirmed(e = base) {
+    let x = after(e, saveDraft(e, { id: "f1", customerId: "c05", centreId: "ruf", mode: "LIVRAISON", date: e.today, qty: { b6: 200, b125: 100 } }));
+    x = after(x, confirmOrder(x, "f1"));
+    x = after(x, planDispatch(x, "f1", { truck: "DK-9", driver: "A", date: x.today, time: "10:00" }));
+    const id = x.data.dispatches.at(-1)!.id;
+    for (const role of ["Magasinier", "Chauffeur"]) x = after(x, confirmParty(x, id, "gateIn", { role, name: role, code: "1" }));
+    return { x: after(x, advanceDispatch(x, id, "gateIn")), id };
+  }
+
+  it("loading waits for the fill when the step is on, and only for what was filled", () => {
+    const { x, id } = confirmed();
+    const r = advanceDispatch(x, id, "load");
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/Remplissage non confirmé/);
+    const partly = after(x, confirmFill(x, "f1", { b6: 200, b125: 40 }));
+    expect(advanceDispatch(partly, id, "load").ok).toBe(false);
+    const loadPart = after(partly, updateDispatch(partly, id, { loaded: { b6: 200, b125: 40 } }));
+    expect(advanceDispatch(loadPart, id, "load").ok).toBe(true);
+    const off = { ...x, cfg: { ...x.cfg, sales: { ...x.cfg.sales, workflow: { ...x.cfg.sales.workflow, steps: { ...x.cfg.sales.workflow.steps, fillConfirmation: false } } } } };
+    expect(advanceDispatch(off, id, "load").ok).toBe(true);
+  });
+
+  it("is a running total, bounded by the need and by what already left, and needs the permission", () => {
+    const { x } = confirmed();
+    expect(confirmFill({ ...x, can: (a) => a !== "order.fill" }, "f1", { b6: 10 }).ok).toBe(false);
+    expect(confirmFill(x, "f1", { b6: 201 }).ok).toBe(false);
+    const e = after(x, confirmFill(x, "f1", { b6: 120 }));
+    expect(e.data.orders.find((o) => o.id === "f1")?.filled).toEqual({ b6: 120, b125: 0 });
+    expect(e.data.orders.find((o) => o.id === "f1")?.history.at(-1)?.label).toBe("Remplissage partiel confirmé");
+    expect(confirmFill(e, "f1", { b6: 120 }).ok).toBe(false);
+    const bulk = base.data.orders.find((o) => o.lines.every((l) => l.formatId === "vrac") && o.status === "CONFIRMEE")!;
+    expect(confirmFill(base, bulk.id, {}).ok).toBe(false);
+  });
+
+  it("the demo leaves today's queue partly filled", () => {
+    const today = base.data.orders.filter((o) => o.date === base.today && o.status === "CONFIRMEE" && o.lines.some((l) => l.formatId !== "vrac"));
+    expect(today.some((o) => Object.values(o.filled).some((n) => n > 0))).toBe(true);
+    expect(today.some((o) => !Object.values(o.filled).some((n) => n > 0))).toBe(true);
+  });
+});
+

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion, useAnimate, useReducedMotion, type Transition } from "motion/react";
 import { useNow, useStore, type Job, type Notice, type NoticeKind } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { liveSeconds, RollingClock, RollingPercent, useStopToggle } from "@/components/production/production";
 import {
   BellGlyph,
@@ -106,6 +107,7 @@ const SURFACE =
  */
 export function Island() {
   const { notice, dismissNotice, inventories, centreId, jobs, dismissJob } = useStore();
+  const { account } = useAuth();
   const path = usePathname();
   const reduce = !!useReducedMotion();
   const [scope, animate] = useAnimate<HTMLDivElement>();
@@ -117,7 +119,8 @@ export function Island() {
   const live =
     inventories.find((i) => i.status === "EN_COURS" && (centreId === "all" || i.centreId === centreId)) ?? null;
   // The dashboard and the inventory itself already show the timer card.
-  const showLive = !!live && path !== "/" && path !== `/inventaires/${live.id}`;
+  // The live inventory belongs to production: other modules never see it.
+  const showLive = !!live && !!account?.modules.includes("production") && path !== "/" && path !== `/inventaires/${live.id}`;
 
   // The inventory comes first, so it's the main pill unless the user swapped.
   // Past the limit, activities wait their turn; jobs keep running meanwhile.

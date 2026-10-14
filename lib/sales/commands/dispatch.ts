@@ -4,7 +4,7 @@ import { isClosed } from "../day-close";
 import { dueDate, prepaid } from "../exposure";
 import { applyEvents, DISPATCH_FLOW, dispatchLocked, run, syncOrder, type DispatchCtx } from "../lifecycle";
 import { linesAmount } from "../pricing";
-import { remainingQty } from "../stock";
+import { dispatchedQty, remainingQty } from "../stock";
 import type { CommandResult, Env } from "../store";
 import { BULK, type Confirmation, type Dispatch, type DispatchStatus } from "../types";
 
@@ -26,6 +26,8 @@ export function dispatchContext(env: Env, d: Dispatch): DispatchCtx | null {
   // The terms the order was made under, not today's.
   const terms = contractVersions(env.data.contracts, customer.id).find((k) => k.version === order.contractVersion)?.terms ?? categoryOf(env.cfg.sales, customer)?.defaults ?? env.cfg.sales.categories[0].defaults;
   const amount = linesAmount(order.lines.map((l) => ({ qty: d.loaded[l.formatId] ?? 0, price: l.price })));
+  const sent = dispatchedQty(env.data.dispatches, order.id);
+  const fillable = Object.fromEntries(Object.entries(order.filled ?? {}).map(([f, n]) => [f, Math.max(n - (sent[f] ?? 0), 0)]));
   return {
     dispatch: d,
     order,
@@ -33,6 +35,7 @@ export function dispatchContext(env: Env, d: Dispatch): DispatchCtx | null {
     bulk: (d.loaded[BULK] ?? 0) > 0,
     consignment: categoryOf(env.cfg.sales, customer)?.kind === "GROSSISTE",
     remaining: remainingQty(order, env.data.dispatches),
+    fillable,
     prepaid: prepaid(env.data.entries, customer.id, amount),
     cash: terms.payment.kind === "COMPTANT",
     amount,

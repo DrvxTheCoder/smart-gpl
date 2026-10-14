@@ -101,6 +101,7 @@ const CUSTOMERS: SeedCustomer[] = [
 const COMPETITOR_SPLIT = [0.5, 0.3, 0.2];
 const DRIVERS = ["Lamine Diatta", "Samba Ndiaye", "Moustapha Cissé", "Daouda Faye", "Abdou Sarr", "Youssou Gaye"];
 const STOREKEEPER: Record<string, string> = { ruf: "Ousmane Ba", kao: "Malick Diouf" };
+const OPERATORS_BY_CENTRE: Record<string, string> = { ruf: "Awa Ndiaye", kao: "Ibrahima Sarr" };
 
 const r10 = (n: number) => Math.max(Math.round(n / 10) * 10, 0);
 const hash = (s: string) => s.split("").reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7);
@@ -239,13 +240,14 @@ export function generateSales(cfg: TenantConfig, inventories: Inventory[], today
     }
   };
 
-  const addOrder = (o: Omit<Order, "number" | "workflowVersion" | "contractVersion" | "approval" | "reliquats" | "history" | "replaces" | "replacedBy" | "exported"> & Partial<Order>): Order => {
+  const addOrder = (o: Omit<Order, "number" | "workflowVersion" | "contractVersion" | "approval" | "reliquats" | "filled" | "history" | "replaces" | "replacedBy" | "exported"> & Partial<Order>): Order => {
     const order: Order = {
       number: "",
       workflowVersion: sc.workflow.version,
       contractVersion: versionAt(o.customerId, o.date),
       approval: { required: false, reasons: [], by: null, at: null, note: null },
       reliquats: [],
+      filled: {},
       history: [{ at: o.createdAt, by: o.createdBy, label: "Commande créée" }],
       replaces: null,
       replacedBy: null,
@@ -506,6 +508,21 @@ export function generateSales(cfg: TenantConfig, inventories: Inventory[], today
 
     // The evening's production joins the fulls on hand.
     for (const c of cfg.centres) for (const [f, n] of Object.entries(prod.get(`${c.id}|${d}`) ?? {})) avail[c.id][f] = (avail[c.id][f] ?? 0) + n;
+  }
+
+  /* ---------- fill confirmations by production ---------- */
+  // Past orders were filled for what actually left; today, the trucks at the
+  // gate were filled, the rest waits in the production's queue.
+  const filledToday = new Set(["c01", "c03", "c04"]);
+  for (const o of orders) {
+    if (o.status === "BROUILLON" || o.status === "ANNULEE") continue;
+    const bottles = o.lines.filter((l) => l.formatId !== BULK);
+    if (!bottles.length) continue;
+    const sent: Qty = {};
+    for (const d of dispatches) if (d.orderId === o.id && d.status === "LIVRE") for (const [f, n] of Object.entries(d.loaded)) sent[f] = (sent[f] ?? 0) + n;
+    if (o.date < T) o.filled = Object.fromEntries(bottles.map((l) => [l.formatId, sent[l.formatId] ?? 0]));
+    else if (filledToday.has(o.customerId)) o.filled = Object.fromEntries(bottles.map((l) => [l.formatId, l.qty]));
+    if (Object.values(o.filled).some((n) => n > 0)) o.history.push({ at: at(o.date < T ? o.date : T, 6, 30), by: OPERATORS_BY_CENTRE[o.centreId] ?? "Production", label: "Remplissage confirmé" });
   }
 
   // Ledger rows from every event, then competitor stock follows the gate.
