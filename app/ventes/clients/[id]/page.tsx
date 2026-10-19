@@ -530,22 +530,24 @@ export default function ClientPage() {
                 )}
               </dl>
             </div>
-            <div className={cn("border-t border-line p-5", pos.solvency.tone === "ok" ? "bg-ok/6" : pos.solvency.tone === "warn" ? "bg-warn/8" : "bg-alert/8")}>
-              <p className="text-[13px] text-muted">Solvabilité</p>
+            <div className={cn("rounded-xl p-5", pos.solvency.tone === "ok" ? "bg-ok/6" : pos.solvency.tone === "warn" ? "bg-warn/8" : "bg-alert/8")}>
+              <div className="w-full flex flex-row justify-between items-center">
+                <p className="text-[13px] text-muted">Solvabilité</p>
+                <TonePill tone={pos.solvency.tone}>{pos.solvency.label}</TonePill>
+              </div>
               <div className="mt-1 flex items-baseline gap-3">
                 <p className={cn("tnum text-[40px] leading-none font-semibold tracking-[-0.04em]", pos.solvency.tone === "ok" ? "text-ok" : pos.solvency.tone === "warn" ? "text-warn" : "text-alert")}>
                   {pos.solvency.score}
                   <span className="text-[16px] font-medium text-muted"> / 100</span>
                 </p>
-                <TonePill tone={pos.solvency.tone}>{pos.solvency.label}</TonePill>
               </div>
-              <button type="button" onClick={() => setExplain(true)} className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-800 hover:underline">
+              <button type="button" onClick={() => setExplain(true)} className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-brand-800 hover:underline">
                 <Info className="size-4" />
                 Comment c&apos;est calculé
               </button>
             </div>
             {pos.wholesaler && (
-              <dl className="tnum grid grid-cols-2 gap-3 border-t border-line p-5">
+              <dl className="tnum grid grid-cols-2 gap-3 p-5">
                 <Figure label="Pleins chez le grossiste" value={fmt(Object.values(pos.floatQty).reduce((a, b) => a + b, 0))} />
                 <Figure label="Valeur du dépôt" value={fmtMoneyShort(pos.floatValue, "")} unit={cur} />
               </dl>

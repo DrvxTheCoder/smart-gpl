@@ -306,7 +306,7 @@ export function CallsPanel({ customerId }: { customerId: string }) {
       </section>
 
       <section className="min-w-0" aria-labelledby="decl-title">
-        <PanelHead id="decl-title" title="Déclarations du grossiste" sub="Ce qu'il annonce avoir vendu. Simple recoupement : seul le comptage des vides au passage est facturé." action="Noter une déclaration" onAction={() => setModal("declaration")} />
+        <PanelHead id="decl-title" title="Déclarations du grossiste" sub="" action="Noter une déclaration" onAction={() => setModal("declaration")} />
         {decls.length === 0 ? (
           <EmptyNote>Aucune déclaration. Quand le grossiste annonce ses ventes au téléphone, notez-les pour les comparer au prochain comptage.</EmptyNote>
         ) : (

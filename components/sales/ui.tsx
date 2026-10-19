@@ -22,7 +22,7 @@ const toneStyle: Record<Tone, string> = {
 export function TonePill({ tone, children, className, title }: { tone: Tone; children: React.ReactNode; className?: string; title?: string }) {
   return (
     <span title={title} className={cn("tnum inline-flex h-6 shrink-0 items-center gap-1.5 rounded-md border px-2 text-[12px] font-medium whitespace-nowrap", toneStyle[tone], className)}>
-      <span className={cn("size-1.5 rounded-full", tone === "ok" ? "bg-ok" : tone === "warn" ? "bg-warn" : "bg-alert")} aria-hidden />
+      {/* <span className={cn("size-1.5 rounded-full", tone === "ok" ? "bg-ok" : tone === "warn" ? "bg-warn" : "bg-alert")} aria-hidden /> */}
       {children}
     </span>
   );
