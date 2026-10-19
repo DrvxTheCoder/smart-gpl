@@ -308,7 +308,7 @@ export function DispatchBoard({ list, day }: { list: Dispatch[]; day: string }) 
         })}
       </nav>
 
-      <div ref={scroller} className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:-mx-5 sm:px-5 xl:snap-none" role="list" aria-label="Tableau des camions par étape">
+      <div ref={scroller} className="no-scrollbar -mx-4 -mt-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pt-1 pb-2sm:-mx-5 sm:px-5 xl:snap-none" role="list" aria-label="Tableau des camions par étape">
         {BOARD_COLUMNS.map((col) => {
           const items = list.filter((d) => d.status === col.status);
           const move = dragged && drag ? moveFor(dragged.status, col.status, modeOf(dragged)) : null;
@@ -362,7 +362,7 @@ export function DispatchBoard({ list, day }: { list: Dispatch[]; day: string }) 
                 </p>
               )}
 
-              <ul className="scroll-area scroll-slim -mr-2 -ml-1 flex max-h-[540px] min-h-24 flex-col gap-2 overflow-y-auto overscroll-contain py-0.5 pr-1 pl-1" aria-label={`Camions, ${col.title}`}>
+              <ul className="scroll-area scroll-slim -mx-1 flex max-h-135 min-h-24 flex-col gap-2 overflow-y-auto overscroll-contain px-1 py-0.5" aria-label={`Camions, ${col.title}`}>
                 {items.map((d) => (
                   <motion.li key={d.id} layout="position" initial={recent === d.id ? { opacity: 0, scale: 0.96 } : false} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 520, damping: 38 }} data-card={d.id}>
                     <Card
@@ -503,8 +503,8 @@ function Card({
           <>
             <span className="flex min-w-0 flex-1 overflow-hidden">
               <TonePill tone={left.length ? "warn" : "ok"} title={left.map((f) => f.message).join("\n") || undefined} className="max-w-full">
-                {next.todo}
-                {left.length ? ` · ${left.length}` : ""}
+                <span className="truncate">{next.todo}</span>
+                {left.length > 0 && <span className="shrink-0">· {left.length}</span>}
               </TonePill>
             </span>
             {!ghost && (
