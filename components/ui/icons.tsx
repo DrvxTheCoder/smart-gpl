@@ -61,6 +61,8 @@ import {
   TaskDaily01Icon,
   Tick02Icon,
   Xls02Icon,
+  Location01Icon,
+  UserIcon,
 } from "@hugeicons/core-free-icons";
 
 export type IconProps = Omit<HugeiconsProps, "icon" | "ref">;
@@ -101,6 +103,8 @@ export const FileText = make(Invoice01Icon);
 export const Contract = make(Agreement01Icon);
 export const Wallet = make(Wallet01Icon);
 export const Phone = make(Call02Icon);
+export const MapPin = make(Location01Icon);
+export const User = make(UserIcon);
 export const Scale = make(WeightScaleIcon);
 export const Exchange = make(Exchange01Icon);
 export const Workflow = make(WorkflowSquare03Icon);

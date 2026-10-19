@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { AlertCircle, ArrowLeft, Contract, Info, Lock, Pencil, Phone, Plus, RotateCcw, Wallet } from "@/components/ui/icons";
+import { AlertCircle, ArrowLeft, Contract, Info, Lock, MapPin, Pencil, Phone, Plus, RotateCcw, User, Wallet } from "@/components/ui/icons";
 import { Button, ButtonLink, Card, CardTitle, Dialog, Field, IntegerInput, Segmented, inputCls } from "@/components/ui/primitives";
 import { Select } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/calendar";
@@ -27,6 +27,9 @@ import { cap, cn, fmt, fmtDate, fmtMoney, fmtMoneyShort } from "@/lib/format";
 import { BULK, UNKNOWN_BRAND, type ContractTerms, type IncidentKind, type PaymentMethod } from "@/lib/sales/types";
 
 type Tab = "contrat" | "compte" | "bouteilles" | "commandes" | "depot" | "passages" | "comptages" | "appels";
+
+/** A fact about the customer under the name: code, zone, sales rep. */
+const chip = "inline-flex h-8 items-center gap-1.5 rounded-full bg-card px-3 text-ink ring-1 ring-line";
 
 export default function ClientPage() {
   const { id } = useParams<{ id: string }>();
@@ -114,17 +117,36 @@ export default function ClientPage() {
               {!customer.active && <Badge tone="muted">Inactif</Badge>}
             </BadgeRow>
           </div>
-          <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[15px] text-muted">
-            <span>
-              {customer.code}, {customer.zone}, suivi par {customer.rep}
-            </span>
-            {customer.contact.phone && (
-              <a href={`tel:${customer.contact.phone.replace(/\s/g, "")}`} className="inline-flex items-center gap-1 text-brand-800 hover:underline">
-                <Phone className="size-4" />
-                {customer.contact.name}, {customer.contact.phone}
-              </a>
+          <ul className="mt-2.5 flex flex-wrap items-center gap-2 text-[13px]" aria-label="Fiche client">
+            <li className={chip} title="Code client">
+              <span className="sr-only">Code client : </span>
+              <span className="tnum font-medium">{customer.code}</span>
+            </li>
+            {customer.zone && (
+              <li className={chip} title="Zone">
+                <MapPin className="size-3.5 text-muted" />
+                <span className="sr-only">Zone : </span>
+                {customer.zone}
+              </li>
             )}
-          </p>
+            {customer.rep && (
+              <li className={chip} title="Commercial qui suit le client">
+                <User className="size-3.5 text-muted" />
+                <span className="sr-only">Suivi par </span>
+                {customer.rep}
+              </li>
+            )}
+            {customer.contact.phone && (
+              <li>
+                <a href={`tel:${customer.contact.phone.replace(/\s/g, "")}`} className="inline-flex h-8 items-center gap-1.5 rounded-full bg-brand-100 px-3 text-brand-800 transition-colors hover:bg-brand-200" title="Appeler le contact">
+                  <Phone className="size-3.5" />
+                  <span className="sr-only">Appeler </span>
+                  {customer.contact.name && <span className="font-medium">{customer.contact.name}</span>}
+                  <span className="tnum">{customer.contact.phone}</span>
+                </a>
+              </li>
+            )}
+          </ul>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <Button variant="ghost" onClick={() => setEditing(true)}>
