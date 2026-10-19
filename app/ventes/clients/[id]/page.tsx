@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useTooltip } from "@/components/ui/tooltip";
 import { AlertCircle, ArrowLeft, Contract, Info, Lock, MapPin, Pencil, Phone, Plus, RotateCcw, User, Wallet } from "@/components/ui/icons";
 import { Button, ButtonLink, Card, CardTitle, Dialog, Field, IntegerInput, Segmented, inputCls } from "@/components/ui/primitives";
 import { Select } from "@/components/ui/select";
@@ -45,6 +46,7 @@ export default function ClientPage() {
   const [reversing, setReversing] = useState<string | null>(null);
   const [draft, setDraft] = useState<{ terms: ContractTerms; from: string } | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const hint = useTooltip();
   const cur = config.sales.currency.label;
 
   const pos = useMemo(() => (customer ? customerPosition({ cfg: config, data, ledger, today, own }, customer) : null), [customer, config, data, ledger, today, own]);
@@ -118,19 +120,19 @@ export default function ClientPage() {
             </BadgeRow>
           </div>
           <ul className="mt-2.5 flex flex-wrap items-center gap-2 text-[13px]" aria-label="Fiche client">
-            <li className={chip} title="Code client">
+            <li className={chip} {...hint.bind("Code client")}>
               <span className="sr-only">Code client : </span>
               <span className="tnum font-medium">{customer.code}</span>
             </li>
             {customer.zone && (
-              <li className={chip} title="Zone">
+              <li className={chip} {...hint.bind("Zone")}>
                 <MapPin className="size-3.5 text-muted" />
                 <span className="sr-only">Zone : </span>
                 {customer.zone}
               </li>
             )}
             {customer.rep && (
-              <li className={chip} title="Commercial qui suit le client">
+              <li className={chip} {...hint.bind("Commercial qui suit le client")}>
                 <User className="size-3.5 text-muted" />
                 <span className="sr-only">Suivi par </span>
                 {customer.rep}
@@ -138,7 +140,7 @@ export default function ClientPage() {
             )}
             {customer.contact.phone && (
               <li>
-                <a href={`tel:${customer.contact.phone.replace(/\s/g, "")}`} className="inline-flex h-8 items-center gap-1.5 rounded-full bg-brand-100 px-3 text-brand-800 transition-colors hover:bg-brand-200" title="Appeler le contact">
+                <a href={`tel:${customer.contact.phone.replace(/\s/g, "")}`} className="inline-flex h-8 items-center gap-1.5 rounded-full bg-brand-100 px-3 text-brand-800 transition-colors hover:bg-brand-200" {...hint.bind("Appeler le contact")}>
                   <Phone className="size-3.5" />
                   <span className="sr-only">Appeler </span>
                   {customer.contact.name && <span className="font-medium">{customer.contact.name}</span>}
@@ -147,6 +149,7 @@ export default function ClientPage() {
               </li>
             )}
           </ul>
+          {hint.tip}
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <Button variant="ghost" onClick={() => setEditing(true)}>
