@@ -46,7 +46,7 @@ export default function ClientPage() {
   const [reversing, setReversing] = useState<string | null>(null);
   const [draft, setDraft] = useState<{ terms: ContractTerms; from: string } | null>(null);
   const [showAll, setShowAll] = useState(false);
-  const hint = useTooltip();
+  const hint = useTooltip({ side: "bottom" });
   const cur = config.sales.currency.label;
 
   const pos = useMemo(() => (customer ? customerPosition({ cfg: config, data, ledger, today, own }, customer) : null), [customer, config, data, ledger, today, own]);
@@ -132,7 +132,7 @@ export default function ClientPage() {
               </li>
             )}
             {customer.rep && (
-              <li className={chip} {...hint.bind("Commercial qui suit le client")}>
+              <li className={chip} {...hint.bind("Commercial")}>
                 <User className="size-3.5 text-muted" />
                 <span className="sr-only">Suivi par </span>
                 {customer.rep}

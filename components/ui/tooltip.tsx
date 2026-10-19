@@ -5,13 +5,13 @@ import { createPortal } from "react-dom";
 import gsap from "gsap";
 
 /**
- * One tooltip shared by a group of triggers, above the hovered one. It fades
- * up on the first hover, then glides from trigger to trigger instead of
+ * One tooltip shared by a group of triggers, above or below the hovered one.
+ * It fades in on the first hover, then glides from trigger to trigger instead of
  * blinking out and back (like the collapsed sidebar's). Mouse hover and
  * keyboard focus only; Escape or scrolling dismisses it. The text is a visual
  * aid: give each trigger its own accessible label too.
  */
-export function useTooltip() {
+export function useTooltip({ side = "top" }: { side?: "top" | "bottom" } = {}) {
   const tipRef = useRef<HTMLDivElement>(null);
   const [text, setText] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -32,11 +32,11 @@ export function useTooltip() {
     const go = () => {
       if (!shown.current || !tipRef.current) return;
       shown.current = false;
-      gsap.to(tipRef.current, { opacity: 0, y: "+=4", scale: 0.97, duration: 0.14, ease: "power2.in", overwrite: true });
+      gsap.to(tipRef.current, { opacity: 0, y: side === "top" ? "+=4" : "-=4", scale: 0.97, duration: 0.14, ease: "power2.in", overwrite: true });
     };
     if (now) go();
     else hideTimer.current = setTimeout(go, 90);
-  }, []);
+  }, [side]);
 
   useEffect(() => {
     const off = () => hide(true);
@@ -55,14 +55,14 @@ export function useTooltip() {
     if (!tip) return;
     const r = el.getBoundingClientRect();
     const x = r.left + r.width / 2;
-    const y = r.top - 8;
+    const y = side === "top" ? r.top - 8 : r.bottom + 8;
     setText(label);
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (shown.current) {
       gsap.to(tip, { x, y, opacity: 1, scale: 1, duration: reduce ? 0 : 0.3, ease: "power3.out", overwrite: true });
     } else {
-      gsap.set(tip, { xPercent: -50, yPercent: -100, transformOrigin: "50% 100%" });
-      gsap.fromTo(tip, { x, y: y + 6, opacity: 0, scale: 0.96 }, { y, opacity: 1, scale: 1, duration: reduce ? 0 : 0.22, ease: "power3.out", overwrite: true });
+      gsap.set(tip, { xPercent: -50, yPercent: side === "top" ? -100 : 0, transformOrigin: side === "top" ? "50% 100%" : "50% 0%" });
+      gsap.fromTo(tip, { x, y: side === "top" ? y + 6 : y - 6, opacity: 0, scale: 0.96 }, { y, opacity: 1, scale: 1, duration: reduce ? 0 : 0.22, ease: "power3.out", overwrite: true });
     }
     shown.current = true;
   };
@@ -92,7 +92,7 @@ export function useTooltip() {
           aria-hidden
           className="pointer-events-none fixed top-0 left-0 z-50 flex h-8 items-center rounded-lg bg-brand-950 px-2.5 text-[13px] font-medium whitespace-nowrap text-white opacity-0 shadow-[0_10px_24px_-10px_rgba(4,17,10,0.55)]"
         >
-          <span className="absolute -bottom-1 left-1/2 size-2.5 -translate-x-1/2 rotate-45 rounded-[2px] bg-brand-950" />
+          <span className={`absolute left-1/2 size-2.5 -translate-x-1/2 rotate-45 rounded-[2px] bg-brand-950 ${side === "top" ? "-bottom-1" : "-top-1"}`} />
           <span className="relative">{text}</span>
         </div>,
         document.body,
