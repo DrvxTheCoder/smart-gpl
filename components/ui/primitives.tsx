@@ -189,7 +189,7 @@ export function Segmented<T extends string>({
   const pill = useIndicator(wrap, `[data-v="${value}"]`, [options.length]);
 
   return (
-    <div ref={wrap} role="group" aria-label={label} className={cn("no-scrollbar relative inline-flex max-w-full overflow-x-auto rounded-full bg-board p-1 ring-1 ring-line", className)}>
+    <div ref={wrap} role="group" aria-label={label} className={cn("no-scrollbar relative inline-flex w-fit max-w-full overflow-x-auto rounded-full bg-board p-1 ring-1 ring-line", className)}>
       <span
         aria-hidden
         className={cn("absolute top-0 left-0 rounded-full bg-brand-800", pill.ready && glide)}
