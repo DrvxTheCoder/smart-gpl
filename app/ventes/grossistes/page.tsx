@@ -92,13 +92,14 @@ function Inner() {
             <CardTitle>Suivi des passages</CardTitle>
             <p className="mt-0.5 text-[13px] text-muted">Chacun comparé à son seuil et à son propre rythme : un grossiste qui passe tous les 3 jours est en retard bien avant le seuil.</p>
             <div className="relative mt-4 overflow-x-auto">
-              <table className="w-full min-w-[600px] text-[14px]">
+              <table className="w-full min-w-170 text-[14px]">
                 <thead>
                   <tr className="text-left text-[12px] text-muted">
                     <th className="pb-2 font-medium">Grossiste</th>
                     <th className="pb-2 pl-3 font-medium">Dernier passage</th>
                     <th className="pb-2 pl-3 font-medium">Stock / plafond</th>
-                    <th className="pb-2 pl-3 font-medium">Statut et actions</th>
+                    <th className="pb-2 pl-3 font-medium">Statut</th>
+                    <th className="pb-2 pl-3 text-right font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -139,14 +140,17 @@ function Inner() {
                               {w.lastCall.promised ? `Passage promis le ${fmtDate(w.lastCall.promised, { day: "numeric", month: "short" })}` : `Appel : ${CALL_OUTCOME[w.lastCall.outcome].toLowerCase()}`}
                             </p>
                           )}
-                          <div className="mt-2 flex gap-2">
+                        </td>
+                        <td className="py-3 pl-3">
+                          <div className="flex justify-end gap-2">
                             {w.customer.contact.phone && (
-                              <a href={`tel:${w.customer.contact.phone.replace(/\s/g, "")}`} aria-label={`Appeler ${w.customer.name}`} className="grid size-11 place-items-center rounded-full bg-brand-100 text-brand-800 hover:bg-brand-200">
+                              <a href={`tel:${w.customer.contact.phone.replace(/\s/g, "")}`} aria-label={`Appeler ${w.customer.name}`} className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-100 text-brand-800 hover:bg-brand-200">
                                 <Phone className="size-4" />
                               </a>
                             )}
                             <Button size="sm" variant="ghost" className="h-11" onClick={() => setPassing(w.customer.id)}>
                               Passage
+                              <span className="sr-only"> de {w.customer.name}</span>
                             </Button>
                           </div>
                         </td>
