@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useTooltip } from "@/components/ui/tooltip";
-import { AlertCircle, ArrowLeft, Contract, Info, Lock, MapPin, Pencil, Phone, Plus, RotateCcw, User, Wallet } from "@/components/ui/icons";
+import { AlertCircle, ArrowLeft, Contract, Info, Lock, MapPin, Pencil, Phone, Plus, RotateCcw, Undo02Icon, User, Wallet } from "@/components/ui/icons";
 import { Button, ButtonLink, Card, CardTitle, Dialog, Field, IntegerInput, Segmented, inputCls } from "@/components/ui/primitives";
 import { Select } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/calendar";
@@ -285,9 +285,9 @@ export default function ClientPage() {
                 {(
                   [
                     ["Non échu", pos.ageing.notDue],
-                    ["1 à 30 j", pos.ageing.d1_30],
-                    ["31 à 60 j", pos.ageing.d31_60],
-                    ["61 à 90 j", pos.ageing.d61_90],
+                    ["1 - 30 j", pos.ageing.d1_30],
+                    ["31 - 60 j", pos.ageing.d31_60],
+                    ["61 - 90 j", pos.ageing.d61_90],
                     ["Plus de 90 j", pos.ageing.d90],
                   ] as const
                 ).map(([k, v], i) => (
@@ -302,7 +302,7 @@ export default function ClientPage() {
               {pos.balance < 0 && (
                 <p className="mt-3 rounded-2xl bg-ok/8 p-3 text-[13px] text-ok">Avance client : {fmtMoney(-pos.balance, cur)} payés d&apos;avance, imputés sur les prochaines factures.</p>
               )}
-              <div className="mt-5 overflow-x-auto">
+              <div className="mt-5 px-2 overflow-x-auto">
                 <table className="w-full min-w-[680px] text-[14px]">
                   <thead>
                     <tr className="text-left text-[12px] text-muted">
@@ -340,7 +340,7 @@ export default function ClientPage() {
                           <td className="py-2.5 text-right">
                             {!e.reverses && !reversed.has(e.id) && can("order.cancel") && (
                               <button type="button" onClick={() => setReversing(e.id)} aria-label={`Annuler l'écriture ${entryLabel(e.label)}`} className="grid size-8 place-items-center rounded-full text-muted hover:bg-board hover:text-ink">
-                                <RotateCcw className="size-4" />
+                                <Undo02Icon className="size-4" />
                               </button>
                             )}
                           </td>

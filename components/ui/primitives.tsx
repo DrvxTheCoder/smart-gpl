@@ -420,13 +420,14 @@ export function Dialog({
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
       className={cn(
-        "m-auto w-[calc(100%-2rem)] rounded-[24px] bg-card p-0 text-ink backdrop:bg-brand-950/30 backdrop:backdrop-blur-[2px]",
+        // The card never scrolls (no native bar on its rounded edge): the content under the title does.
+        "m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-hidden rounded-3xl bg-card p-0 text-ink backdrop:bg-brand-950/30 backdrop:backdrop-blur-[2px]",
         width,
       )}
     >
-      <div className="p-6">
-        <h2 className="mb-4 text-[19px] font-semibold tracking-[-0.01em]">{title}</h2>
-        {children}
+      <div className="flex max-h-[calc(100dvh-2rem)] flex-col">
+        <h2 className="shrink-0 px-6 pt-6 pb-3 text-[19px] font-semibold tracking-[-0.01em]">{title}</h2>
+        <div className="scroll-area scroll-slim mr-1.5 min-h-0 flex-1 overflow-y-auto overscroll-contain pt-1 pr-4.5 pb-6 pl-6">{children}</div>
       </div>
     </dialog>
   );

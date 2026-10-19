@@ -63,6 +63,7 @@ import {
   Xls02Icon,
   Location01Icon,
   UserIcon,
+  Undo02Icon as Undo02Svg
 } from "@hugeicons/core-free-icons";
 
 export type IconProps = Omit<HugeiconsProps, "icon" | "ref">;
@@ -150,3 +151,4 @@ export const ArrowLeftRight = make(ArrowDataTransferHorizontalIcon);
 export const Cylinder = make(CylinderIcon);
 export const SlidersHorizontal = make(PreferenceHorizontalIcon);
 export const Monitor = make(ComputerIcon);
+export const Undo02Icon = make(Undo02Svg);
