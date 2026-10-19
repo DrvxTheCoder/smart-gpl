@@ -6,7 +6,7 @@ import { passage } from "./consignment";
 import { at, daysBetween, isoWeek, shiftDate, weekRange, ymd } from "./dates";
 import { closeId, reportRows } from "./day-close";
 import { dueDate } from "./exposure";
-import { applyEvents, formatNumber, type SalesEvent } from "./lifecycle";
+import { applyEvents, docLabel, formatNumber, type SalesEvent } from "./lifecycle";
 import { linesAmount, priceFor } from "./pricing";
 import { openingMovements, producedBottles, productionMovements, LEDGER_DAYS } from "./stock";
 import {
@@ -639,7 +639,7 @@ export function generateSales(cfg: TenantConfig, inventories: Inventory[], today
   const dispNo = new Map(dispatches.map((d) => [d.id, d.number]));
   const setNo = new Map(settlements.map((s) => [s.id, s.number]));
   for (const e of entries) {
-    if (e.refs.dispatchId && e.kind === "DEBIT") e.label = `BL ${dispNo.get(e.refs.dispatchId)}`;
+    if (e.refs.dispatchId && e.kind === "DEBIT") e.label = docLabel("BL", dispNo.get(e.refs.dispatchId) ?? "");
     if (e.refs.settlementId) e.label = `${e.kind === "DEBIT" ? "Passage" : "Règlement"} ${setNo.get(e.refs.settlementId)}`;
   }
 

@@ -364,7 +364,7 @@ export const DISPATCH_FLOW: Transition<DispatchStatus, DispatchCtx>[] = [
         protected: true,
         emit: (c) =>
           c.billing === "A_L_EXPEDITION"
-            ? [{ type: "BILL", docId: c.dispatch.id, customerId: c.order.customerId, ts: c.now, by: c.by, refs: refs(c), amount: c.amount, dueDate: c.dueDate, label: `BL ${c.dispatch.number}` }]
+            ? [{ type: "BILL", docId: c.dispatch.id, customerId: c.order.customerId, ts: c.now, by: c.by, refs: refs(c), amount: c.amount, dueDate: c.dueDate, label: docLabel("BL", c.dispatch.number) }]
             : [],
       },
     ],
@@ -390,6 +390,12 @@ export const DISPATCH_FLOW: Transition<DispatchStatus, DispatchCtx>[] = [
 export const dispatchLocked = (d: Dispatch) => d.status === "EXPEDIE" || d.status === "LIVRE";
 
 /* ---------------- numbering ---------------- */
+
+/** « BL » + number, without repeating a prefix the number already carries. */
+export const docLabel = (kind: string, number: string) => (number.toUpperCase().startsWith(kind.toUpperCase()) ? number : `${kind} ${number}`);
+
+/** Entries written before docLabel read « BL BL-… »: shown without the repeat. */
+export const entryLabel = (label: string) => label.replace(/^([A-Z]{2}) (?=\1)/, "");
 
 /**
  * Document number from a tenant pattern: {CENTRE}, {AAAA}, {MM}, {JJ} and a

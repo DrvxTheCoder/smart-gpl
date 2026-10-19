@@ -21,7 +21,7 @@ import { newContract, nextContractDate, recordIncident, recordPayment, reverseEn
 import { ANY_BRAND } from "@/lib/sales/bottle-ledger";
 import { dayOf, shiftDate } from "@/lib/sales/dates";
 import { dispatchedQty, remainingQty } from "@/lib/sales/stock";
-import { isPartial } from "@/lib/sales/lifecycle";
+import { entryLabel, isPartial } from "@/lib/sales/lifecycle";
 import { linesAmount } from "@/lib/sales/pricing";
 import { BILLING, INVOICING, PAYMENT_METHOD, PAYMENT_TRIGGER, termLabel } from "@/lib/sales/labels";
 import { cap, cn, fmt, fmtDate, fmtMoney, fmtMoneyShort } from "@/lib/format";
@@ -321,7 +321,7 @@ export default function ClientPage() {
                         <tr key={e.id} className={cn("border-t border-line", (e.reverses || reversed.has(e.id)) && "text-muted")}>
                           <td className="tnum py-2.5 pr-3 whitespace-nowrap">{fmtDate(dayOf(e.ts), { day: "numeric", month: "short" })}</td>
                           <td className="py-2.5 pr-3">
-                            <p className={cn(reversed.has(e.id) && "line-through")}>{e.label}</p>
+                            <p className={cn(reversed.has(e.id) && "line-through")}>{entryLabel(e.label)}</p>
                             <p className="text-[12px] text-muted">
                               {e.kind === "CREDIT" ? (e.method ? PAYMENT_METHOD[e.method] : "") : e.dueDate ? `Échéance ${fmtDate(e.dueDate, { day: "numeric", month: "short" })}` : ""}
                               {e.reason ? ` · Motif : ${e.reason}` : ""}
@@ -339,7 +339,7 @@ export default function ClientPage() {
                           </td>
                           <td className="py-2.5 text-right">
                             {!e.reverses && !reversed.has(e.id) && can("order.cancel") && (
-                              <button type="button" onClick={() => setReversing(e.id)} aria-label={`Annuler l'écriture ${e.label}`} className="grid size-8 place-items-center rounded-full text-muted hover:bg-board hover:text-ink">
+                              <button type="button" onClick={() => setReversing(e.id)} aria-label={`Annuler l'écriture ${entryLabel(e.label)}`} className="grid size-8 place-items-center rounded-full text-muted hover:bg-board hover:text-ink">
                                 <RotateCcw className="size-4" />
                               </button>
                             )}

@@ -14,7 +14,7 @@ import { useSales } from "@/lib/sales/store";
 import { advanceDispatch, confirmParty, dispatchContext, updateDispatch } from "@/lib/sales/commands/dispatch";
 import { BL_MARK, buildBl } from "@/lib/sales/bl-pdf";
 import { byFormat, gridTotal } from "@/lib/sales/bottle-ledger";
-import { blockers, DISPATCH_FLOW } from "@/lib/sales/lifecycle";
+import { blockers, DISPATCH_FLOW, docLabel } from "@/lib/sales/lifecycle";
 import { dayOf } from "@/lib/sales/dates";
 import { MODE } from "@/lib/sales/labels";
 import { cap, cn, fmt, fmtDate, fmtMoney, fmtT } from "@/lib/format";
@@ -66,7 +66,7 @@ export default function ExpeditionPage() {
   const current = flow.find((s) => !s.done)?.id;
 
   const pdf = () =>
-    startJob({ kind: "bl", busyMsg: "Un BL est déjà en préparation", doneMsg: `BL ${d.number} téléchargé`, run: (onProgress) => buildBl({ cfg: config, dispatch: d, order, customer, product: PRODUCT, onProgress }) });
+    startJob({ kind: "bl", busyMsg: "Un BL est déjà en préparation", doneMsg: `${docLabel("BL", d.number)} téléchargé`, run: (onProgress) => buildBl({ cfg: config, dispatch: d, order, customer, product: PRODUCT, onProgress }) });
 
   return (
     <div>

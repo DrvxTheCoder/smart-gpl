@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG, generateInventories } from "../lib/seed";
 import { addToOverlay, emptyData, loadOverlay, mergeOverlay, storedOverlay } from "../lib/sales/data";
 import { PRESETS } from "../lib/sales/defaults";
+import { docLabel, entryLabel } from "../lib/sales/lifecycle";
 import { centreSite, ownBrand, siteBalance } from "../lib/sales/bottle-ledger";
 import { ymd } from "../lib/sales/dates";
 import { reportRows } from "../lib/sales/day-close";
@@ -89,6 +90,19 @@ describe("sales configuration", () => {
     const custom = structuredClone(DEFAULT_CONFIG);
     custom.sales.workflow.numbering.order = "CMD-{CENTRE}-{N:4}";
     expect(migrateStoredConfig(JSON.stringify({ version: 3, config: custom })).config.sales.workflow.numbering.order).toBe("CMD-{CENTRE}-{N:4}");
+  });
+
+  it("delivery note and settlement numbering move to the new default style too", () => {
+    const old = structuredClone(DEFAULT_CONFIG);
+    old.sales.workflow.numbering = { order: "BC-{CENTRE}-{AAAA}-{N:5}", dispatch: "BL-{CENTRE}-{AAAA}-{N:5}", settlement: "RG-{CENTRE}-{AAAA}-{N:5}" };
+    expect(migrateStoredConfig(JSON.stringify({ version: 3, config: old })).config.sales.workflow.numbering).toEqual({ order: "BC-{AAAA}{N:5}{CENTRE}", dispatch: "BL-{AAAA}{N:5}{CENTRE}", settlement: "RG-{AAAA}{N:5}{CENTRE}" });
+  });
+
+  it("document labels never repeat the prefix", () => {
+    expect(docLabel("BL", "BL-202600185RUF")).toBe("BL-202600185RUF");
+    expect(docLabel("BL", "LIV-0042")).toBe("BL LIV-0042");
+    expect(entryLabel("BL BL-RUF-2026-00178")).toBe("BL-RUF-2026-00178");
+    expect(entryLabel("Règlement")).toBe("Règlement");
   });
 
   it("presets switch the optional steps in one go", () => {

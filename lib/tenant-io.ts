@@ -135,12 +135,18 @@ function fromV2(raw: Obj): Obj {
 }
 
 /** Default values that changed: a stored config still holding the old default gets the new one. */
-const RETIRED_ORDER_NUMBERING = ["BC-{CENTRE}-{AAAA}-{N:5}", "BC{AAAA}-{N:5}-{CENTRE}"];
+const RETIRED_NUMBERING: Record<"order" | "dispatch" | "settlement", string[]> = {
+  order: ["BC-{CENTRE}-{AAAA}-{N:5}", "BC{AAAA}-{N:5}-{CENTRE}"],
+  dispatch: ["BL-{CENTRE}-{AAAA}-{N:5}"],
+  settlement: ["RG-{CENTRE}-{AAAA}-{N:5}"],
+};
 
 function retireOldDefaults(cfg: TenantConfig): TenantConfig {
   const n = cfg.sales.workflow.numbering;
-  if (!RETIRED_ORDER_NUMBERING.includes(n.order)) return cfg;
-  return { ...cfg, sales: { ...cfg.sales, workflow: { ...cfg.sales.workflow, numbering: { ...n, order: DEFAULT_CONFIG.sales.workflow.numbering.order } } } };
+  const keys = (Object.keys(RETIRED_NUMBERING) as (keyof typeof RETIRED_NUMBERING)[]).filter((k) => RETIRED_NUMBERING[k].includes(n[k]));
+  if (!keys.length) return cfg;
+  const next = { ...n, ...Object.fromEntries(keys.map((k) => [k, DEFAULT_CONFIG.sales.workflow.numbering[k]])) };
+  return { ...cfg, sales: { ...cfg.sales, workflow: { ...cfg.sales.workflow, numbering: next } } };
 }
 
 export const storedConfig = (cfg: TenantConfig) => JSON.stringify({ version: STORAGE_VERSION, config: cfg });
