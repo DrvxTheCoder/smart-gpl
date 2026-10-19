@@ -134,6 +134,15 @@ function fromV2(raw: Obj): Obj {
   return { ...raw, sales: salesDefaultsFor(raw) };
 }
 
+/** Default values that changed: a stored config still holding the old default gets the new one. */
+const RETIRED_ORDER_NUMBERING = "BC-{CENTRE}-{AAAA}-{N:5}";
+
+function retireOldDefaults(cfg: TenantConfig): TenantConfig {
+  const n = cfg.sales.workflow.numbering;
+  if (n.order !== RETIRED_ORDER_NUMBERING) return cfg;
+  return { ...cfg, sales: { ...cfg.sales, workflow: { ...cfg.sales.workflow, numbering: { ...n, order: DEFAULT_CONFIG.sales.workflow.numbering.order } } } };
+}
+
 export const storedConfig = (cfg: TenantConfig) => JSON.stringify({ version: STORAGE_VERSION, config: cfg });
 
 /**
@@ -153,7 +162,10 @@ export function migrateStoredConfig(text: string | null): { config: TenantConfig
   const current = raw.version === STORAGE_VERSION;
   const candidate = current ? raw.config : raw.version === 2 ? (isObj(raw.config) ? fromV2(raw.config) : raw.config) : fromV1(raw);
   const checked = checkTenantConfig(candidate);
-  if (checked.value) return { config: checked.value, migrated: !current, notice: null };
+  if (checked.value) {
+    const updated = retireOldDefaults(checked.value);
+    return { config: updated, migrated: !current || updated !== checked.value, notice: null };
+  }
 
   // Keep the rest of the tenant's settings if only the sales or correction part is broken.
   if (isObj(candidate)) {

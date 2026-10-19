@@ -78,6 +78,17 @@ describe("sales configuration", () => {
     expect(m.config.sales.permissions["order.fill"]).toEqual(["production", "direction"]);
   });
 
+  it("a stored config holding the old default order numbering gets the new one, a custom one is kept", () => {
+    const old = structuredClone(DEFAULT_CONFIG);
+    old.sales.workflow.numbering.order = "BC-{CENTRE}-{AAAA}-{N:5}";
+    const m = migrateStoredConfig(JSON.stringify({ version: 3, config: old }));
+    expect(m.config.sales.workflow.numbering.order).toBe("BC{AAAA}-{N:5}-{CENTRE}");
+    expect(m.migrated).toBe(true);
+    const custom = structuredClone(DEFAULT_CONFIG);
+    custom.sales.workflow.numbering.order = "CMD-{CENTRE}-{N:4}";
+    expect(migrateStoredConfig(JSON.stringify({ version: 3, config: custom })).config.sales.workflow.numbering.order).toBe("CMD-{CENTRE}-{N:4}");
+  });
+
   it("presets switch the optional steps in one go", () => {
     const simple = PRESETS.find((p) => p.id === "simple")!.steps;
     expect(Object.entries(simple).filter(([, on]) => on).map(([k]) => k)).toEqual(["creditCheck"]);

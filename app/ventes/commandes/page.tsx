@@ -177,7 +177,7 @@ function Inner() {
             </table>
             {slice.length === 0 && (
               <p className="py-10 text-center text-muted">
-                {rows.length ? "Aucune commande ne correspond. Essayez un numéro comme « BC-RUF » ou un nom de client." : "Aucune commande pour ce centre. Créez la première avec « Nouvelle commande »."}
+                {rows.length ? "Aucune commande ne correspond. Essayez un numéro comme « BC2026-00181 » ou un nom de client." : "Aucune commande pour ce centre. Créez la première avec « Nouvelle commande »."}
               </p>
             )}
           </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
-import { Check, Lock } from "@/components/ui/icons";
+import { Check, ChevronDown, Lock } from "@/components/ui/icons";
 import { Button, Card, CardTitle, Dialog, Segmented, Stepper } from "@/components/ui/primitives";
 import { ApprovalBadge, BadgeRow, FillBadge, Meter } from "@/components/sales/ui";
 import { useQuery } from "@/components/sales/use-query";
@@ -28,6 +28,13 @@ function Inner() {
   const view = (["todo", "done", "all"].includes(q.vue) ? q.vue : "todo") as View;
   const [editing, setEditing] = useState<Order | null>(null);
   const [qty, setQty] = useState<Record<string, number>>({});
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const toggle = (id: string) =>
+    setExpanded((s) => {
+      const next = new Set(s);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
   const tomorrow = shiftDate(today, 1);
   const names = useMemo(() => new Map(data.customers.map((c) => [c.id, c.name])), [data.customers]);
   const label = (f: string) => config.bottleTypes.find((b) => b.id === f)?.label ?? f;
@@ -130,38 +137,85 @@ function Inner() {
                 <ul className="mt-3 divide-y divide-line">
                   {items.map(({ o, st }) => {
                     const waiting = o.approval.required && !o.approval.by;
+                    const formats = Object.keys(st.need);
+                    const need = formats.reduce((a, f) => a + st.need[f], 0);
+                    const filled = formats.reduce((a, f) => a + Math.min(st.filled[f] ?? 0, st.need[f]), 0);
+                    const pct = need ? (filled / need) * 100 : 100;
+                    const isOpen = expanded.has(o.id);
+                    const panel = `detail-${o.id}`;
                     return (
-                      <li key={o.id} className="flex flex-wrap items-center gap-x-4 gap-y-3 py-3.5">
-                        <div className="min-w-0 flex-1 basis-80">
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span className="text-[15px] font-medium whitespace-nowrap">{o.number}</span>
-                            <BadgeRow>
-                              <FillBadge status={st.status} />
-                              {waiting && <ApprovalBadge short />}
-                            </BadgeRow>
+                      <li key={o.id} className="py-3">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                          <div className="min-w-0 flex-1 basis-56">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <span className="text-[15px] font-medium whitespace-nowrap">{o.number}</span>
+                              <BadgeRow>
+                                <FillBadge status={st.status} />
+                                {waiting && <ApprovalBadge short />}
+                              </BadgeRow>
+                            </div>
+                            <p className="text-[13px] text-muted">
+                              {names.get(o.customerId)}, {MODE[o.mode].toLowerCase()} {cap(fmtDate(o.date, { weekday: "short", day: "numeric", month: "short" }))}
+                            </p>
                           </div>
-                          <p className="text-[13px] text-muted">
-                            {names.get(o.customerId)}, {MODE[o.mode].toLowerCase()} {cap(fmtDate(o.date, { weekday: "short", day: "numeric", month: "short" }))}
-                          </p>
+                          <div className="flex w-full items-center gap-2 sm:w-auto">
+                            <button
+                              type="button"
+                              aria-expanded={isOpen}
+                              aria-controls={panel}
+                              aria-label={`Détail par format, ${fmt(filled)} bouteilles remplies sur ${fmt(need)}`}
+                              onClick={() => toggle(o.id)}
+                              className="flex min-h-11 flex-1 items-center gap-3 rounded-xl px-2.5 py-1.5 text-left transition-colors hover:bg-board focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:outline-none sm:w-48 sm:flex-none"
+                            >
+                              <span className="min-w-0 flex-1" aria-hidden>
+                                <span className="tnum flex items-baseline justify-between gap-2 text-[13px] whitespace-nowrap">
+                                  <span>
+                                    <b className="font-semibold">{fmt(filled)}</b>
+                                    <span className="text-muted"> / {fmt(need)}</span>
+                                  </span>
+                                  <span className="text-[12px] text-muted">
+                                    {formats.length} format{formats.length > 1 ? "s" : ""}
+                                  </span>
+                                </span>
+                                <span className="mt-1 block">
+                                  <Meter pct={pct} label="" />
+                                </span>
+                              </span>
+                              <ChevronDown className={cn("size-4 shrink-0 text-muted transition-transform duration-200 motion-reduce:transition-none", isOpen && "rotate-180")} />
+                            </button>
+                            {allowed && (
+                              <Button size="sm" variant={st.status === "REMPLIE" ? "ghost" : "soft"} className="h-11 shrink-0" onClick={() => open(o)}>
+                                {st.status === "REMPLIE" ? "Corriger" : "Confirmer"}
+                                <span className="sr-only"> le remplissage de {o.number}</span>
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                        <ul className="flex flex-1 basis-72 flex-wrap gap-x-5 gap-y-2">
-                          {Object.keys(st.need).map((f) => (
-                            <li key={f} className="w-28">
-                              <p className="tnum text-[13px]">
-                                <b className="font-semibold">{label(f)}</b> {fmt(st.filled[f])}
-                                <span className="text-muted"> / {fmt(st.need[f])}</span>
-                              </p>
-                              <div className="mt-1">
-                                <Meter pct={st.need[f] ? (st.filled[f] / st.need[f]) * 100 : 100} label={`${label(f)} rempli à ${fmt(st.need[f] ? (st.filled[f] / st.need[f]) * 100 : 100)} %`} />
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                        {allowed && (
-                          <Button size="sm" variant={st.status === "REMPLIE" ? "ghost" : "primary"} className="h-11" onClick={() => open(o)}>
-                            {st.status === "REMPLIE" ? "Corriger" : "Confirmer le remplissage"}
-                          </Button>
-                        )}
+                        <div
+                          id={panel}
+                          inert={!isOpen}
+                          aria-hidden={!isOpen}
+                          className={cn("grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none", isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}
+                        >
+                          <div className="min-h-0 overflow-hidden">
+                            <ul className="mt-2 grid grid-cols-2 gap-x-5 gap-y-3 rounded-2xl bg-board p-3 sm:grid-cols-3 lg:grid-cols-5">
+                              {formats.map((f) => {
+                                const p = st.need[f] ? (st.filled[f] / st.need[f]) * 100 : 100;
+                                return (
+                                  <li key={f} className="min-w-0">
+                                    <p className="tnum text-[13px]">
+                                      <b className="font-semibold">{label(f)}</b> {fmt(st.filled[f])}
+                                      <span className="text-muted"> / {fmt(st.need[f])}</span>
+                                    </p>
+                                    <div className="mt-1">
+                                      <Meter pct={p} label={`${label(f)} rempli à ${fmt(p)} %`} />
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        </div>
                       </li>
                     );
                   })}

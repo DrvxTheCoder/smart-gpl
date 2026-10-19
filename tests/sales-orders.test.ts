@@ -14,7 +14,7 @@ describe("drafts", () => {
     const e = draft(env, "c01", { b125: 100, b6: 50 });
     const o = find(e, "t-c01");
     expect(o.status).toBe("BROUILLON");
-    expect(o.number).toMatch(/^BC-RUF-2026-\d{5}$/);
+    expect(o.number).toMatch(/^BC2026-\d{5}-RUF$/);
     expect(o.lines.find((l) => l.formatId === "b125")?.price).toBe(6_050);
     expect(o.contractVersion).toBe(2);
   });
