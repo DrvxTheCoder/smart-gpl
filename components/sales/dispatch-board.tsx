@@ -41,7 +41,6 @@ export function DispatchBoard({ list, day }: { list: Dispatch[]; day: string }) 
   const steps = config.sales.workflow.steps;
   const orders = useMemo(() => new Map(data.orders.map((o) => [o.id, o])), [data.orders]);
   const names = useMemo(() => new Map(data.customers.map((c) => [c.id, c.name])), [data.customers]);
-  const label = useCallback((f: string) => (f === BULK ? "vrac" : config.bottleTypes.find((b) => b.id === f)?.label ?? f), [config.bottleTypes]);
 
   // What still blocks each truck's next step, for the card pill and the drop hint.
   const pending = useMemo(() => {
@@ -363,14 +362,13 @@ export function DispatchBoard({ list, day }: { list: Dispatch[]; day: string }) 
                 </p>
               )}
 
-              <ul className="flex min-h-24 flex-1 flex-col gap-2">
+              <ul className="scroll-area scroll-slim -mr-2 -ml-1 flex max-h-[540px] min-h-24 flex-col gap-2 overflow-y-auto overscroll-contain py-0.5 pr-1 pl-1" aria-label={`Camions, ${col.title}`}>
                 {items.map((d) => (
                   <motion.li key={d.id} layout="position" initial={recent === d.id ? { opacity: 0, scale: 0.96 } : false} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 520, damping: 38 }} data-card={d.id}>
                     <Card
                       d={d}
                       order={orders.get(d.orderId)}
                       customer={names.get(d.customerId) ?? ""}
-                      label={label}
                       day={day}
                       left={pending.get(d.id) ?? []}
                       lifted={drag?.id === d.id}
@@ -406,7 +404,7 @@ export function DispatchBoard({ list, day }: { list: Dispatch[]; day: string }) 
       {drag?.via === "pointer" && dragged && (
         <div ref={ghost} className="pointer-events-none fixed top-0 left-0 z-50" style={{ width: ghostWidth }} aria-hidden>
           <div className="rotate-[1.5deg] rounded-2xl shadow-[0_24px_48px_-16px_rgba(4,17,10,0.35),0_4px_10px_-4px_rgba(4,17,10,0.12)] motion-reduce:rotate-0">
-            <Card d={dragged} order={orders.get(dragged.orderId)} customer={names.get(dragged.customerId) ?? ""} label={label} day={day} left={pending.get(dragged.id) ?? []} ghost />
+            <Card d={dragged} order={orders.get(dragged.orderId)} customer={names.get(dragged.customerId) ?? ""} day={day} left={pending.get(dragged.id) ?? []} ghost />
           </div>
         </div>
       )}
@@ -433,7 +431,6 @@ function Card({
   d,
   order,
   customer,
-  label,
   day,
   left,
   lifted,
@@ -449,7 +446,6 @@ function Card({
   d: Dispatch;
   order?: Order;
   customer: string;
-  label: (f: string) => string;
   day: string;
   left: Failure[];
   lifted?: boolean;
@@ -464,10 +460,6 @@ function Card({
 }) {
   const next = NEXT_ACTION[d.status];
   const late = dayOf(d.slot) < day && d.status !== "EXPEDIE" && d.status !== "LIVRE";
-  const load = Object.entries(d.loaded)
-    .filter(([, n]) => n)
-    .map(([f, n]) => (f === BULK ? `vrac ${fmt(n / 1000, 1)} T` : `${label(f)} ${fmt(n)}`))
-    .join(", ");
   return (
     <div
       onPointerDown={onPointerDown}
@@ -505,7 +497,6 @@ function Card({
         <span className="block truncate text-[12px] text-muted">
           {d.truck} · {d.number}
         </span>
-        {load && <span className="tnum mt-0.5 block truncate text-[12px] text-muted">{load}</span>}
       </Link>
       <div className="flex min-h-10 items-center gap-2 px-3 pb-2">
         {next ? (

@@ -181,6 +181,26 @@ textarea:focus-visible {
   }
 }
 
+/* Slimmer still, for lists inside a card (board columns): the thumb is
+   faint until the pointer is over the list. */
+.scroll-area.scroll-slim {
+  --thumb: color-mix(in oklab, var(--ink) 10%, transparent);
+}
+.scroll-area.scroll-slim:hover,
+.scroll-area.scroll-slim:focus-within {
+  --thumb: color-mix(in oklab, var(--ink) 22%, transparent);
+}
+.scroll-area.scroll-slim::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scroll-area.scroll-slim::-webkit-scrollbar-track {
+  margin-block: 6px;
+}
+.scroll-area.scroll-slim::-webkit-scrollbar-thumb {
+  border-width: 1px;
+}
+
 /* Swipeable rows (tabs, segmented controls) scroll without a visible bar. */
 .no-scrollbar {
   scrollbar-width: none;
