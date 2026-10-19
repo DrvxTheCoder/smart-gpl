@@ -90,14 +90,19 @@ export function useTooltip({ side = "top" }: { side?: "top" | "bottom" } = {}) {
         <div
           ref={tipRef}
           aria-hidden
-          className="pointer-events-none fixed top-0 left-0 z-50 flex h-8 items-center rounded-lg bg-brand-950 px-2.5 text-[13px] font-medium whitespace-nowrap text-white opacity-0 shadow-[0_10px_24px_-10px_rgba(4,17,10,0.55)]"
+          className="pointer-events-none fixed top-0 left-0 z-50 flex h-6 items-center rounded-md bg-brand-950 px-2 text-[11px] font-medium whitespace-nowrap text-white opacity-0 shadow-[0_10px_24px_-10px_rgba(4,17,10,0.55)]"
         >
-          <span className={`absolute left-1/2 size-2.5 -translate-x-1/2 rotate-45 rounded-[2px] bg-brand-950 ${side === "top" ? "-bottom-1" : "-top-1"}`} />
+          <span className={`absolute left-1/2 size-2 -translate-x-1/2 rotate-45 rounded-xs bg-brand-950 ${side === "top" ? "-bottom-1" : "-top-1"}`} />
           <span className="relative">{text}</span>
         </div>,
         document.body,
       )
     : null;
 
-  return { bind, tip, hide };
+  /** Changes the text of the open tooltip in place (e.g. « Copié » after a click). */
+  const relabel = (label: string) => {
+    if (shown.current) setText(label);
+  };
+
+  return { bind, tip, hide, relabel };
 }

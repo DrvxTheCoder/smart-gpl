@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useTooltip } from "@/components/ui/tooltip";
-import { AlertCircle, ArrowLeft, Contract, Info, Lock, MapPin, Pencil, Phone, Plus, RotateCcw, Undo02Icon, User, Wallet } from "@/components/ui/icons";
+import { AlertCircle, ArrowLeft, Check, Contract, Copy, Info, Lock, MapPin, Pencil, Phone, Plus, RotateCcw, Undo02Icon, User, Wallet } from "@/components/ui/icons";
 import { Button, ButtonLink, Card, CardTitle, Dialog, Field, IntegerInput, Segmented, inputCls } from "@/components/ui/primitives";
 import { Select } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/calendar";
@@ -34,7 +34,7 @@ const chip = "inline-flex h-8 items-center gap-1.5 rounded-full bg-card px-3 tex
 
 export default function ClientPage() {
   const { id } = useParams<{ id: string }>();
-  const { config } = useStore();
+  const { config, toast } = useStore();
   const { data, ledger, today, own, exec, can } = useSales();
   const customer = data.customers.find((c) => c.id === decodeURIComponent(id));
   const [picked, setTab] = useState<Tab | null>(null);
@@ -47,6 +47,22 @@ export default function ClientPage() {
   const [draft, setDraft] = useState<{ terms: ContractTerms; from: string } | null>(null);
   const [showAll, setShowAll] = useState(false);
   const hint = useTooltip({ side: "bottom" });
+  const [copied, setCopied] = useState(false);
+  const copyCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch {
+      toast("Copie impossible : le navigateur a refusé l'accès au presse-papiers.", "error");
+      return;
+    }
+    setCopied(true);
+    hint.relabel("Copié");
+    toast(`Code ${code} copié`, "success");
+    window.setTimeout(() => {
+      setCopied(false);
+      hint.relabel("Copier le code client");
+    }, 1600);
+  };
   const cur = config.sales.currency.label;
 
   const pos = useMemo(() => (customer ? customerPosition({ cfg: config, data, ledger, today, own }, customer) : null), [customer, config, data, ledger, today, own]);
@@ -120,9 +136,17 @@ export default function ClientPage() {
             </BadgeRow>
           </div>
           <ul className="mt-2.5 flex flex-wrap items-center gap-2 text-[13px]" aria-label="Fiche client">
-            <li className={chip} {...hint.bind("Code client")}>
-              <span className="sr-only">Code client : </span>
-              <span className="tnum font-medium">{customer.code}</span>
+            <li>
+              <button
+                type="button"
+                className={cn(chip, "cursor-pointer transition-colors hover:bg-brand-50 focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:outline-none")}
+                {...hint.bind(copied ? "Copié" : "Copier le code client")}
+                onClick={() => copyCode(customer.code)}
+              >
+                {copied ? <Check className="size-3.5 text-ok" /> : <Copy className="size-3.5 text-muted" />}
+                <span className="sr-only">Copier le code client </span>
+                <span className="tnum font-medium">{customer.code}</span>
+              </button>
             </li>
             {customer.zone && (
               <li className={chip} {...hint.bind("Zone")}>

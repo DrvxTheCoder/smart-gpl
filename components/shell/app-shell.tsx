@@ -188,9 +188,9 @@ function useRailTooltip(enabled: boolean) {
     <div
       ref={tipRef}
       aria-hidden
-      className="pointer-events-none fixed top-0 left-0 z-50 hidden h-8 items-center rounded-lg bg-brand-950 px-2.5 text-[13px] font-medium whitespace-nowrap text-white opacity-0 shadow-[0_10px_24px_-10px_rgba(4,17,10,0.55)] lg:flex"
+      className="pointer-events-none fixed top-0 left-0 z-50 hidden h-6 items-center rounded-md bg-brand-950 px-2 text-[11px] font-medium whitespace-nowrap text-white opacity-0 shadow-[0_10px_24px_-10px_rgba(4,17,10,0.55)] lg:flex"
     >
-      <span className="absolute top-1/2 -left-1 size-2.5 -translate-y-1/2 rotate-45 rounded-[2px] bg-brand-950" />
+      <span className="absolute top-1/2 -left-1 size-2 -translate-y-1/2 rotate-45 rounded-xs bg-brand-950" />
       <span className="relative">{text}</span>
     </div>
   );
