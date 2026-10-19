@@ -93,7 +93,7 @@ const DEFAULT_WORKFLOW: WorkflowConfig = {
   version: 1,
   steps: ALL_ON,
   approvalThreshold: 10_000_000,
-  numbering: { order: "BC{AAAA}-{N:5}-{CENTRE}", dispatch: "BL-{CENTRE}-{AAAA}-{N:5}", settlement: "RG-{CENTRE}-{AAAA}-{N:5}" },
+  numbering: { order: "BC-{AAAA}{N:5}{CENTRE}", dispatch: "BL-{CENTRE}-{AAAA}-{N:5}", settlement: "RG-{CENTRE}-{AAAA}-{N:5}" },
 };
 
 export const ACTIONS: { id: Action; label: string }[] = [

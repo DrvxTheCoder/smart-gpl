@@ -79,11 +79,13 @@ describe("sales configuration", () => {
   });
 
   it("a stored config holding the old default order numbering gets the new one, a custom one is kept", () => {
-    const old = structuredClone(DEFAULT_CONFIG);
-    old.sales.workflow.numbering.order = "BC-{CENTRE}-{AAAA}-{N:5}";
-    const m = migrateStoredConfig(JSON.stringify({ version: 3, config: old }));
-    expect(m.config.sales.workflow.numbering.order).toBe("BC{AAAA}-{N:5}-{CENTRE}");
-    expect(m.migrated).toBe(true);
+    for (const pattern of ["BC-{CENTRE}-{AAAA}-{N:5}", "BC{AAAA}-{N:5}-{CENTRE}"]) {
+      const old = structuredClone(DEFAULT_CONFIG);
+      old.sales.workflow.numbering.order = pattern;
+      const m = migrateStoredConfig(JSON.stringify({ version: 3, config: old }));
+      expect(m.config.sales.workflow.numbering.order).toBe("BC-{AAAA}{N:5}{CENTRE}");
+      expect(m.migrated).toBe(true);
+    }
     const custom = structuredClone(DEFAULT_CONFIG);
     custom.sales.workflow.numbering.order = "CMD-{CENTRE}-{N:4}";
     expect(migrateStoredConfig(JSON.stringify({ version: 3, config: custom })).config.sales.workflow.numbering.order).toBe("CMD-{CENTRE}-{N:4}");
