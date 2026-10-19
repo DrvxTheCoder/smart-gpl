@@ -11,7 +11,7 @@ import { TermsEditor } from "@/components/settings/sales-settings";
 import { CustomerDialog } from "@/components/sales/customer-dialog";
 import { PassageDialog } from "@/components/sales/passage-dialog";
 import { CallsPanel, CountsPanel, FloatPanel, PassagesPanel } from "@/components/sales/wholesaler-panels";
-import { Figure, Meter, Missing, OrderBadge, TabPanel, TabStrip, TonePill } from "@/components/sales/ui";
+import { Badge, BadgeRow, Figure, Meter, Missing, OrderBadge, TabPanel, TabStrip, TonePill } from "@/components/sales/ui";
 import { useStore } from "@/lib/store";
 import { useSales } from "@/lib/sales/store";
 import { customerPosition } from "@/lib/sales/selectors";
@@ -109,8 +109,10 @@ export default function ClientPage() {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-[30px] font-semibold tracking-[-0.03em] sm:text-[36px]">{customer.name}</h1>
-            <span className="inline-flex h-6 items-center rounded-md bg-brand-100 px-2 text-[12px] font-medium text-brand-800">{pos.category?.label ?? "Sans catégorie"}</span>
-            {!customer.active && <span className="inline-flex h-6 items-center rounded-md bg-board px-2 text-[12px] font-medium text-muted ring-1 ring-line">Inactif</span>}
+            <BadgeRow>
+              <Badge tone="brand">{pos.category?.label ?? "Sans catégorie"}</Badge>
+              {!customer.active && <Badge tone="muted">Inactif</Badge>}
+            </BadgeRow>
           </div>
           <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[15px] text-muted">
             <span>
@@ -423,16 +425,18 @@ export default function ClientPage() {
                     const sent = dispatchedQty(data.dispatches, o.id);
                     return (
                       <li key={o.id}>
-                        <Link href={`/ventes/commandes/${o.id}`} className="-mx-2 flex flex-wrap items-center gap-3 rounded-xl px-2 py-3 hover:bg-board">
+                        <Link href={`/ventes/commandes/${o.id}`} className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-3 hover:bg-board">
                           <span className="min-w-0 flex-1">
-                            <span className="block text-[14px] font-medium">{o.number}</span>
+                            <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <span className="text-[14px] font-medium whitespace-nowrap">{o.number}</span>
+                              <OrderBadge status={o.status} partial={isPartial(o, sent, remainingQty(o, data.dispatches))} />
+                            </span>
                             <span className="block text-[12px] text-muted">
                               {cap(fmtDate(o.date, { weekday: "short", day: "numeric", month: "short" }))}
                               {o.lines.some((l) => l.formatId === BULK) ? ", vrac" : ""}
                             </span>
                           </span>
-                          <OrderBadge status={o.status} partial={isPartial(o, sent, remainingQty(o, data.dispatches))} />
-                          <span className="tnum w-36 text-right text-[14px]">{fmtMoney(amount, cur)}</span>
+                          <span className="tnum shrink-0 text-right text-[14px]">{fmtMoney(amount, cur)}</span>
                         </Link>
                       </li>
                     );

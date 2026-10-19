@@ -242,7 +242,7 @@ export function CountsPanel({ customerId }: { customerId: string }) {
             {history.map((k) => {
               const kv = variance(k.counted, k.expected, config.sales.consignment.varianceTolerancePct);
               return (
-                <li key={k.id} className="flex flex-wrap items-center gap-3 py-2.5 text-[14px]">
+                <li key={k.id} className="flex items-center gap-3 py-2.5 text-[14px]">
                   <span className="min-w-0 flex-1">
                     {cap(fmtDate(dayOf(k.ts), { weekday: "short", day: "numeric", month: "short" }))}, {k.by}
                     <span className="tnum block text-[12px] text-muted">
@@ -250,7 +250,7 @@ export function CountsPanel({ customerId }: { customerId: string }) {
                       {k.reason ? `, ${config.sales.reasons.variance.find((r) => r.code === k.reason)?.label.toLowerCase() ?? k.reason}` : ""}
                     </span>
                   </span>
-                  <TonePill tone={k.status === "VALIDE" ? "ok" : k.status === "A_VALIDER" ? "warn" : "alert"}>{k.status === "VALIDE" ? "Validé" : k.status === "A_VALIDER" ? (can("variance.approve") ? "À valider au magasin" : "En attente") : "Refusé"}</TonePill>
+                  <TonePill tone={k.status === "VALIDE" ? "ok" : k.status === "A_VALIDER" ? "warn" : "alert"}>{k.status === "VALIDE" ? "Validé" : k.status === "A_VALIDER" ? (can("variance.approve") ? "À valider" : "En attente") : "Refusé"}</TonePill>
                 </li>
               );
             })}

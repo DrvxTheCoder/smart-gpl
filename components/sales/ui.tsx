@@ -34,25 +34,51 @@ const badgeTone = {
   brand: "bg-brand-100 text-brand-800",
   ok: "bg-ok/10 text-ok",
   alert: "bg-alert/10 text-alert",
+  // Something someone still has to do: outlined, not filled.
+  pending: "border border-warn/45 text-warn",
+  partial: "hatch text-ink",
 };
+export type BadgeTone = keyof typeof badgeTone;
+
+/** A status label. One size and weight everywhere; it never wraps or shrinks. */
+export function Badge({ tone, children, className }: { tone: BadgeTone; children: React.ReactNode; className?: string }) {
+  return <span className={cn("inline-flex h-6 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12px] font-medium whitespace-nowrap", badgeTone[tone], className)}>{children}</span>;
+}
+
+/** Badges that belong together stay on one line next to what they describe. */
+export function BadgeRow({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <span className={cn("inline-flex shrink-0 flex-nowrap items-center gap-1.5", className)}>{children}</span>;
+}
 
 export function OrderBadge({ status, partial }: { status: OrderStatus; partial?: boolean }) {
   const s = ORDER_STATUS[status];
+  if (!partial) return <Badge tone={s.tone}>{s.label}</Badge>;
   return (
-    <span className="inline-flex flex-wrap items-center gap-1.5">
-      <span className={cn("inline-flex h-6 items-center rounded-md px-2 text-[12px] font-medium whitespace-nowrap", badgeTone[s.tone])}>{s.label}</span>
-      {partial && <span className="hatch inline-flex h-6 items-center rounded-md px-2 text-[12px] font-medium whitespace-nowrap text-ink">Partielle</span>}
-    </span>
+    <BadgeRow>
+      <Badge tone={s.tone}>{s.label}</Badge>
+      <Badge tone="partial">Partielle</Badge>
+    </BadgeRow>
+  );
+}
+
+/** An order waiting for a manager's approval; production reads it as « En attente ». */
+export function ApprovalBadge({ short }: { short?: boolean }) {
+  return short ? (
+    <Badge tone="muted">
+      En attente<span className="sr-only"> de validation commerciale</span>
+    </Badge>
+  ) : (
+    <Badge tone="pending">À valider</Badge>
   );
 }
 
 export function DispatchBadge({ status }: { status: DispatchStatus }) {
   const s = DISPATCH_STATUS[status];
   return (
-    <span className={cn("inline-flex h-6 items-center gap-1.5 rounded-md px-2 text-[12px] font-medium whitespace-nowrap", badgeTone[s.tone])}>
+    <Badge tone={s.tone}>
       {(status === "EN_CHARGEMENT" || status === "CHARGE") && <span className="size-1.5 animate-pulse rounded-full bg-warn" aria-hidden />}
       {s.label}
-    </span>
+    </Badge>
   );
 }
 
@@ -149,13 +175,13 @@ export function Meter({ pct, tone, label }: { pct: number; tone?: Tone; label: s
   );
 }
 
-const FILL: Record<FillStatus, { label: string; cls: string }> = {
-  A_REMPLIR: { label: "À remplir", cls: "border border-warn/45 text-warn" },
-  PARTIELLE: { label: "Remplie en partie", cls: "hatch text-ink" },
-  REMPLIE: { label: "Remplie", cls: "bg-ok/10 text-ok" },
+const FILL: Record<FillStatus, { label: string; tone: BadgeTone }> = {
+  A_REMPLIR: { label: "À remplir", tone: "pending" },
+  PARTIELLE: { label: "Remplie en partie", tone: "partial" },
+  REMPLIE: { label: "Remplie", tone: "ok" },
 };
 
 /** Production's fill status of an order's bottles. */
 export function FillBadge({ status }: { status: FillStatus }) {
-  return <span className={cn("inline-flex h-6 items-center rounded-md px-2 text-[12px] font-medium whitespace-nowrap", FILL[status].cls)}>{FILL[status].label}</span>;
+  return <Badge tone={FILL[status].tone}>{FILL[status].label}</Badge>;
 }

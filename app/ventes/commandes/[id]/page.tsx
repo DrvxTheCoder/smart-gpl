@@ -10,7 +10,7 @@ import { Select } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/calendar";
 import { TimePicker } from "@/components/ui/time-picker";
 import { CheckPanel, QtyGrid } from "@/components/sales/order-entry";
-import { DispatchBadge, FillBadge, Missing, OrderBadge, TabPanel, TabStrip } from "@/components/sales/ui";
+import { ApprovalBadge, BadgeRow, DispatchBadge, FillBadge, Missing, OrderBadge, TabPanel, TabStrip } from "@/components/sales/ui";
 import { useStore } from "@/lib/store";
 import { useSales } from "@/lib/sales/store";
 import { approveOrder, cancelOrder, checkOrder, closeOrder, confirmOrder, declareReliquat, planDispatch, saveDraft } from "@/lib/sales/commands/orders";
@@ -115,9 +115,11 @@ export default function CommandePage() {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-[30px] font-semibold tracking-[-0.03em] sm:text-[36px]">{order.number}</h1>
-            <OrderBadge status={order.status} partial={partial} />
-            {waiting && <span className="inline-flex h-6 items-center rounded-md border border-warn/45 px-2 text-[12px] font-medium text-warn">À valider</span>}
-            {fill && <FillBadge status={fill.status} />}
+            <BadgeRow>
+              <OrderBadge status={order.status} partial={partial} />
+              {waiting && <ApprovalBadge />}
+              {fill && <FillBadge status={fill.status} />}
+            </BadgeRow>
           </div>
           <p className="mt-1 text-[15px] text-muted">
             {customer ? (
@@ -282,7 +284,10 @@ export default function CommandePage() {
                           <Truck className="size-[18px]" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-[14px] font-medium">{d.number}</span>
+                          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="text-[14px] font-medium whitespace-nowrap">{d.number}</span>
+                            <DispatchBadge status={d.status} />
+                          </span>
                           <span className="block text-[12px] text-muted">
                             {cap(fmtDate(dayOf(d.slot), { weekday: "short", day: "numeric", month: "short" }))} à {new Date(d.slot).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}, {d.truck}
                             {d.driver ? `, ${d.driver}` : ""}
@@ -294,7 +299,6 @@ export default function CommandePage() {
                             .map(([f, n]) => `${label(f)} ${fmt(n)}`)
                             .join(", ")}
                         </span>
-                        <DispatchBadge status={d.status} />
                       </AccessLink>
                     </li>
                   ))}

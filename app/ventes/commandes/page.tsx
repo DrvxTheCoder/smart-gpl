@@ -10,7 +10,7 @@ import { shiftDate } from "@/lib/sales/dates";
 import { Button, Card, CardTitle, inputCls } from "@/components/ui/primitives";
 import { Select } from "@/components/ui/select";
 import { OrderEntry } from "@/components/sales/order-entry";
-import { OrderBadge } from "@/components/sales/ui";
+import { ApprovalBadge, Badge, BadgeRow, OrderBadge } from "@/components/sales/ui";
 import { useQuery, useQueryText } from "@/components/sales/use-query";
 import { useStore } from "@/lib/store";
 import { useSales } from "@/lib/sales/store";
@@ -155,11 +155,11 @@ function Inner() {
                       </td>
                       <td className="tnum py-3 pr-3 text-right whitespace-nowrap">{fmtMoney(amount, cur)}</td>
                       <td className="py-3 pr-3">
-                        <div className="flex flex-wrap items-center gap-1.5">
+                        <BadgeRow>
                           <OrderBadge status={o.status} partial={partial} />
-                          {waiting && <span className="inline-flex h-6 items-center rounded-md border border-warn/45 px-2 text-[12px] font-medium text-warn">À valider</span>}
-                          {o.reliquats.length > 0 && <span className="inline-flex h-6 items-center rounded-md bg-board px-2 text-[12px] text-muted ring-1 ring-line">Reliquat</span>}
-                        </div>
+                          {waiting && <ApprovalBadge />}
+                          {o.reliquats.length > 0 && <Badge tone="muted">Reliquat</Badge>}
+                        </BadgeRow>
                       </td>
                       <td className="py-3 text-right">
                         <Link
@@ -214,7 +214,7 @@ function Inner() {
                           {o.number}, {fmtMoney(amount, cur)}
                         </span>
                       </span>
-                      {o.status === "BROUILLON" ? <OrderBadge status="BROUILLON" /> : <span className="inline-flex h-6 items-center rounded-md border border-warn/45 px-2 text-[12px] font-medium text-warn">À valider</span>}
+                      {o.status === "BROUILLON" ? <OrderBadge status="BROUILLON" /> : <ApprovalBadge />}
                     </Link>
                   </li>
                 ))}

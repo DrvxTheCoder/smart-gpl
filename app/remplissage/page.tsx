@@ -3,7 +3,7 @@
 import { Suspense, useMemo, useState } from "react";
 import { Check, Lock } from "@/components/ui/icons";
 import { Button, Card, CardTitle, Dialog, Segmented, Stepper } from "@/components/ui/primitives";
-import { FillBadge, Meter } from "@/components/sales/ui";
+import { ApprovalBadge, BadgeRow, FillBadge, Meter } from "@/components/sales/ui";
 import { useQuery } from "@/components/sales/use-query";
 import { useStore } from "@/lib/store";
 import { useSales } from "@/lib/sales/store";
@@ -132,11 +132,13 @@ function Inner() {
                     const waiting = o.approval.required && !o.approval.by;
                     return (
                       <li key={o.id} className="flex flex-wrap items-center gap-x-4 gap-y-3 py-3.5">
-                        <div className="min-w-0 flex-1 basis-60">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-[15px] font-medium">{o.number}</span>
-                            <FillBadge status={st.status} />
-                            {waiting && <span className="inline-flex h-6 items-center rounded-md bg-board px-2 text-[12px] text-muted ring-1 ring-line">Validation commerciale en attente</span>}
+                        <div className="min-w-0 flex-1 basis-80">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="text-[15px] font-medium whitespace-nowrap">{o.number}</span>
+                            <BadgeRow>
+                              <FillBadge status={st.status} />
+                              {waiting && <ApprovalBadge short />}
+                            </BadgeRow>
                           </div>
                           <p className="text-[13px] text-muted">
                             {names.get(o.customerId)}, {MODE[o.mode].toLowerCase()} {cap(fmtDate(o.date, { weekday: "short", day: "numeric", month: "short" }))}
