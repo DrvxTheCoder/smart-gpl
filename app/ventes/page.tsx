@@ -255,7 +255,7 @@ export default function VentesDashboard() {
           )}
         </Card>
 
-        <Card className="[grid-area:dp]">
+        <Card className="self-start [grid-area:dp]">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <CardTitle>Expéditions du jour</CardTitle>
