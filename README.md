@@ -62,7 +62,7 @@ plain text. The palette, the alert bell and the badges only show what the accoun
 | `/ventes/grossistes` | Consignment follow-up vs threshold and each wholesaler's own rhythm, escalation ladder, passages heatmap, call tasks; passage dialog (`?passage=<id>`) |
 | `/magasin` | Stock et bouteilles: fulls/empties/condemned by brand × format, ATP, competitor positions, movements, adjustments, counts and variance review, inter-brand exchange, day close |
 | `/magasin/rapport` | Print view of the authority daily report (`?c=<centre>&jour=<date>`) |
-| `/expeditions` | Truck queue by stage |
+| `/expeditions` | Truck board, one column per stage (Planifiés → Au chargement → Chargés → En route → Livrés). A card moves to the next column by drag (long press on touch), by keyboard (Space, arrows, Space) or with its next-step button; each move is the lifecycle transition, so skips and moves back are refused with the reason. Gate-in and BL issue (ledger rows) always open a confirmation dialog with the party confirmations; a move still blocked lists what to settle and links to the sheet |
 | `/expeditions/[id]` | Dispatch sheet: Camion → Vides reçues (brand × format, two-party confirmation) → Chargement (weighbridge, prepayment) → BL numérique (PDF) → proof of delivery |
 | `/parametres` | Tenant configuration: Marques et bouteilles, Clients et contrats, Ventes et flux, Consignation, Rapports, Rôles (demo accounts, permission matrix); sections filtered by account |
 | `/connexion` | Mock sign-in with the four demo accounts |
