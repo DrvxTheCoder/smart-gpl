@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FileText, Phone } from "@/components/ui/icons";
-import { Button, Field, IntegerInput, Segmented, inputCls } from "@/components/ui/primitives";
+import { FileText, Plus } from "@/components/ui/icons";
+import { Button, Dialog, Field, IntegerInput, inputCls } from "@/components/ui/primitives";
 import { Select } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/calendar";
-import { Meter, TonePill } from "@/components/sales/ui";
+import { Badge, Meter, TonePill, type BadgeTone } from "@/components/sales/ui";
 import { useStore } from "@/lib/store";
 import { useSales } from "@/lib/sales/store";
 import { countFloat, issueStatement, logCall, logDeclaration } from "@/lib/sales/commands/consignment";
@@ -262,115 +262,210 @@ export function CountsPanel({ customerId }: { customerId: string }) {
   );
 }
 
+const OUTCOME_TONE: Record<CallOutcome, BadgeTone> = { JOINT: "ok", INJOIGNABLE: "alert", RAPPELER: "pending", PASSAGE_PROMIS: "brand" };
+
+/**
+ * Calls to a wholesaler and what they declare having sold. Each side reads
+ * the same way: what it is, one action to log an entry, then the history.
+ */
 export function CallsPanel({ customerId }: { customerId: string }) {
   const { config } = useStore();
-  const { data, exec, today } = useSales();
-  const customer = data.customers.find((c) => c.id === customerId);
+  const { data } = useSales();
+  const [modal, setModal] = useState<"call" | "declaration" | null>(null);
+  const calls = data.calls.filter((c) => c.customerId === customerId).sort((a, b) => b.ts.localeCompare(a.ts));
+  const decls = data.declarations.filter((c) => c.customerId === customerId).sort((a, b) => b.ts.localeCompare(a.ts));
+  const label = (f: string) => config.bottleTypes.find((b) => b.id === f)?.label ?? f;
+  const when = (ts: string) => new Date(ts).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+  return (
+    // Sized on the card's width, not the screen's: the tab lives beside the credit card.
+    <div className="@container">
+    <div className="grid grid-cols-1 gap-x-8 gap-y-8 @3xl:grid-cols-2">
+      <section className="min-w-0" aria-labelledby="calls-title">
+        <PanelHead id="calls-title" title="Journal des appels" sub="Chaque appel de relance et ce qui en est sorti." action="Noter un appel" onAction={() => setModal("call")} />
+        {calls.length === 0 ? (
+          <EmptyNote>Aucun appel noté. Notez chaque relance et son résultat : la dernière apparaît dans le suivi des passages.</EmptyNote>
+        ) : (
+          <ul className="mt-3 divide-y divide-line">
+            {calls.map((c) => (
+              <li key={c.id} className="flex items-start gap-3 py-3">
+                <Badge tone={OUTCOME_TONE[c.outcome]} className="mt-0.5">
+                  {CALL_OUTCOME[c.outcome]}
+                </Badge>
+                <div className="min-w-0 flex-1 text-[14px]">
+                  {c.promised && <p className="font-medium">Passage promis le {fmtDate(c.promised, { weekday: "short", day: "numeric", month: "short" })}</p>}
+                  {c.note && <p className={c.promised ? "text-muted" : undefined}>{c.note}</p>}
+                  <p className="tnum text-[12px] text-muted">
+                    {when(c.ts)}, {c.by}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="min-w-0" aria-labelledby="decl-title">
+        <PanelHead id="decl-title" title="Déclarations du grossiste" sub="Ce qu'il annonce avoir vendu. Simple recoupement : seul le comptage des vides au passage est facturé." action="Noter une déclaration" onAction={() => setModal("declaration")} />
+        {decls.length === 0 ? (
+          <EmptyNote>Aucune déclaration. Quand le grossiste annonce ses ventes au téléphone, notez-les pour les comparer au prochain comptage.</EmptyNote>
+        ) : (
+          <ul className="mt-3 divide-y divide-line">
+            {decls.map((d) => {
+              const lines = Object.entries(d.sold).filter(([, n]) => n);
+              const total = lines.reduce((a, [, n]) => a + n, 0);
+              return (
+                <li key={d.id} className="py-3">
+                  <div className="flex items-baseline justify-between gap-3 text-[14px]">
+                    <span className="font-medium">{cap(fmtDate(dayOf(d.ts), { weekday: "short", day: "numeric", month: "short" }))}</span>
+                    <span className="tnum text-[13px] text-muted">{fmt(total)} bouteilles</span>
+                  </div>
+                  <ul className="mt-1.5 flex flex-wrap gap-1.5" aria-label="Quantités déclarées">
+                    {lines.map(([f, n]) => (
+                      <li key={f} className="tnum inline-flex h-6 items-center gap-1 rounded-md bg-board px-2 text-[12px]">
+                        <span className="font-semibold">{label(f)}</span> {fmt(n)}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-1 text-[12px] text-muted">
+                    {d.by}
+                    {d.note ? ` : ${d.note}` : ""}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <CallDialog open={modal === "call"} onClose={() => setModal(null)} customerId={customerId} />
+      <DeclarationDialog open={modal === "declaration"} onClose={() => setModal(null)} customerId={customerId} />
+    </div>
+    </div>
+  );
+}
+
+function PanelHead({ id, title, sub, action, onAction }: { id: string; title: string; sub: string; action: string; onAction: () => void }) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+      <div className="min-w-0 flex-1 basis-56">
+        <h3 id={id} className="text-[15px] font-medium">
+          {title}
+        </h3>
+        <p className="mt-0.5 text-[13px] text-muted">{sub}</p>
+      </div>
+      <Button size="sm" variant="soft" className="h-10 shrink-0" onClick={onAction}>
+        <Plus className="size-4" />
+        {action}
+      </Button>
+    </div>
+  );
+}
+
+function EmptyNote({ children }: { children: React.ReactNode }) {
+  return <p className="mt-3 rounded-2xl border border-dashed border-line p-4 text-[13px] text-muted">{children}</p>;
+}
+
+function CallDialog({ open, onClose, customerId }: { open: boolean; onClose: () => void; customerId: string }) {
+  const { exec, today } = useSales();
   const [outcome, setOutcome] = useState<CallOutcome>("JOINT");
   const [promised, setPromised] = useState<string | null>(null);
   const [note, setNote] = useState("");
-  const [declared, setDeclared] = useState<Record<string, number>>({});
-  const [decNote, setDecNote] = useState("");
-  const calls = data.calls.filter((c) => c.customerId === customerId).sort((a, b) => b.ts.localeCompare(a.ts));
-  const decls = data.declarations.filter((c) => c.customerId === customerId).sort((a, b) => b.ts.localeCompare(a.ts));
-  const formats = config.bottleTypes.filter((b) => b.kg < 30);
-
+  const close = () => {
+    setOutcome("JOINT");
+    setPromised(null);
+    setNote("");
+    onClose();
+  };
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <div className="min-w-0">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-[15px] font-medium">Journal des appels</h3>
-          {customer?.contact.phone && (
-            <a href={`tel:${customer.contact.phone.replace(/\s/g, "")}`} className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-100 px-4 text-[14px] font-medium text-brand-800 hover:bg-brand-200">
-              <Phone className="size-4" />
-              {customer.contact.phone}
-            </a>
-          )}
-        </div>
-        <form
-          className="mt-3 space-y-3 rounded-2xl bg-board p-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const r = exec((env) => logCall(env, { customerId, outcome, promised, note }));
-            if (r.ok) {
-              setNote("");
-              setPromised(null);
-            }
-          }}
-        >
-          <Segmented label="Résultat de l'appel" value={outcome} onChange={setOutcome} options={(Object.keys(CALL_OUTCOME) as CallOutcome[]).map((k) => ({ value: k, label: CALL_OUTCOME[k] }))} />
-          {outcome === "PASSAGE_PROMIS" && (
-            <Field label="Passage promis le">
-              <DatePicker ariaLabel="Date de passage promise" value={promised} min={today} onChange={setPromised} />
-            </Field>
-          )}
-          <Field label="Note">
-            <input className={inputCls} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ce qui a été dit" />
-          </Field>
-          <Button type="submit" variant="soft" className="w-full">
-            Noter l&apos;appel
-          </Button>
-        </form>
-        <ul className="mt-3 divide-y divide-line">
-          {calls.map((c) => (
-            <li key={c.id} className="py-2.5 text-[14px]">
-              <span className="font-medium">{CALL_OUTCOME[c.outcome]}</span>
-              {c.promised ? `, passage promis le ${fmtDate(c.promised, { day: "numeric", month: "short" })}` : ""}
-              <span className="block text-[12px] text-muted">
-                {new Date(c.ts).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}, {c.by}
-                {c.note ? ` : ${c.note}` : ""}
-              </span>
-            </li>
-          ))}
-          {calls.length === 0 && <li className="py-3 text-[13px] text-muted">Aucun appel noté.</li>}
-        </ul>
-      </div>
-      <div className="min-w-0">
-        <h3 className="text-[15px] font-medium">Déclarations du grossiste</h3>
-        <p className="text-[13px] text-muted">Ce qu&apos;il annonce avoir vendu, par téléphone. Simple recoupement : seul le comptage des vides au passage est facturé.</p>
-        <form
-          className="mt-3 space-y-3 rounded-2xl bg-board p-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const r = exec((env) => logDeclaration(env, { customerId, sold: declared, note: decNote }));
-            if (r.ok) {
-              setDeclared({});
-              setDecNote("");
-            }
-          }}
-        >
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {formats.map((b) => (
-              <Field key={b.id} label={b.label}>
-                <IntegerInput ariaLabel={`Déclaré ${b.label}`} value={declared[b.id] ?? 0} onChange={(n) => setDeclared({ ...declared, [b.id]: n })} />
-              </Field>
+    <Dialog open={open} onClose={close} title="Noter un appel">
+      <form
+        className="space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (exec((env) => logCall(env, { customerId, outcome, promised, note })).ok) close();
+        }}
+      >
+        <fieldset>
+          <legend className="mb-1.5 text-[13px] text-muted">Résultat</legend>
+          <div className="grid grid-cols-2 gap-2">
+            {(Object.keys(CALL_OUTCOME) as CallOutcome[]).map((k) => (
+              <button
+                key={k}
+                type="button"
+                aria-pressed={outcome === k}
+                onClick={() => setOutcome(k)}
+                className={cn(
+                  "h-11 rounded-xl px-3 text-[14px] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:outline-none",
+                  outcome === k ? "bg-brand-800 text-white" : "bg-board text-ink ring-1 ring-line hover:bg-brand-50",
+                )}
+              >
+                {CALL_OUTCOME[k]}
+              </button>
             ))}
           </div>
-          <Field label="Note">
-            <input className={inputCls} value={decNote} onChange={(e) => setDecNote(e.target.value)} />
+        </fieldset>
+        {outcome === "PASSAGE_PROMIS" && (
+          <Field label="Passage promis le">
+            <DatePicker ariaLabel="Date de passage promise" value={promised} min={today} onChange={setPromised} />
           </Field>
-          <Button type="submit" variant="soft" className="w-full">
-            Noter la déclaration
+        )}
+        <Field label="Note">
+          <input className={inputCls} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ce qui a été dit" />
+        </Field>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="ghost" onClick={close}>
+            Annuler
           </Button>
-        </form>
-        <ul className="mt-3 divide-y divide-line">
-          {decls.map((d) => (
-            <li key={d.id} className="py-2.5 text-[14px]">
-              <span className="tnum font-medium">
-                {Object.entries(d.sold)
-                  .filter(([, n]) => n)
-                  .map(([f, n]) => `${config.bottleTypes.find((b) => b.id === f)?.label ?? f} ${fmt(n)}`)
-                  .join(", ")}
-              </span>
-              <span className="block text-[12px] text-muted">
-                {fmtDate(dayOf(d.ts), { day: "numeric", month: "short" })}, {d.by}
-                {d.note ? ` : ${d.note}` : ""}
-              </span>
-            </li>
+          <Button type="submit">Noter l&apos;appel</Button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
+function DeclarationDialog({ open, onClose, customerId }: { open: boolean; onClose: () => void; customerId: string }) {
+  const { config } = useStore();
+  const { exec } = useSales();
+  const [declared, setDeclared] = useState<Record<string, number>>({});
+  const [note, setNote] = useState("");
+  const formats = config.bottleTypes.filter((b) => b.kg < 30);
+  const total = Object.values(declared).reduce((a, n) => a + n, 0);
+  const close = () => {
+    setDeclared({});
+    setNote("");
+    onClose();
+  };
+  return (
+    <Dialog open={open} onClose={close} title="Noter une déclaration">
+      <form
+        className="space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (exec((env) => logDeclaration(env, { customerId, sold: declared, note })).ok) close();
+        }}
+      >
+        <p className="text-[13px] text-muted">Bouteilles que le grossiste annonce avoir vendues depuis son dernier passage.</p>
+        <div className="grid grid-cols-2 gap-3">
+          {formats.map((b) => (
+            <Field key={b.id} label={b.label}>
+              <IntegerInput ariaLabel={`Déclaré ${b.label}`} value={declared[b.id] ?? 0} onChange={(n) => setDeclared({ ...declared, [b.id]: n })} />
+            </Field>
           ))}
-          {decls.length === 0 && <li className="py-3 text-[13px] text-muted">Aucune déclaration.</li>}
-        </ul>
-      </div>
-    </div>
+        </div>
+        <Field label="Note">
+          <input className={inputCls} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Facultatif" />
+        </Field>
+        <div className="flex items-center justify-end gap-2 pt-2">
+          <span className="tnum mr-auto text-[13px] text-muted">{fmt(total)} bouteilles</span>
+          <Button type="button" variant="ghost" onClick={close}>
+            Annuler
+          </Button>
+          <Button type="submit" disabled={total === 0}>
+            Noter
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   );
 }
