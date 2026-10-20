@@ -322,7 +322,7 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
               </CommandGroup>
               <CommandGroup heading="Passages">
                 {wholesalers.map((c) => (
-                  <CommandItem key={c.id} value={`passage grossiste ${c.name} ${c.code}`} onSelect={() => run(() => router.push(`/ventes/grossistes?passage=${c.id}`))}>
+                  <CommandItem key={c.id} value={`passage grossiste ${c.name} ${c.code}`} onSelect={() => run(() => router.push(`/ventes/grossistes/${c.id}/passage`))}>
                     <Store />
                     Enregistrer un passage : {c.name}
                   </CommandItem>

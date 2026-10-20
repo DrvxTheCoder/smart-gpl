@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo } from "react";
 import { Phone } from "@/components/ui/icons";
-import { Button, Card, CardTitle } from "@/components/ui/primitives";
-import { PassageDialog } from "@/components/sales/passage-dialog";
+import { ButtonLink, Card, CardTitle } from "@/components/ui/primitives";
 import { Meter, TonePill } from "@/components/sales/ui";
 import { useQuery } from "@/components/sales/use-query";
 import { useStore } from "@/lib/store";
@@ -22,9 +22,13 @@ const DAYS = 42;
 function Inner() {
   const { config, centreId, centre } = useStore();
   const { data, ledger, today, own, env } = useSales();
-  const [q, setQ] = useQuery({ passage: "" });
-  const passing = q.passage || null;
-  const setPassing = (id: string | null) => setQ({ passage: id ?? "" });
+  const [q] = useQuery({ passage: "" });
+  const router = useRouter();
+  const passageHref = (id: string) => `/ventes/grossistes/${id}/passage?depuis=grossistes`;
+  // Older links opened the passage in a dialog here: it is a page now.
+  useEffect(() => {
+    if (q.passage) router.replace(passageHref(q.passage));
+  }, [q.passage, router]);
   const cur = config.sales.currency.label;
 
   const rows = useMemo(() => wholesalerStatuses({ cfg: config, data, ledger, today, own, centreId }), [config, data, ledger, today, own, centreId]);
@@ -148,10 +152,10 @@ function Inner() {
                                 <Phone className="size-4" />
                               </a>
                             )}
-                            <Button size="sm" variant="ghost" className="h-11" onClick={() => setPassing(w.customer.id)}>
+                            <ButtonLink size="sm" variant="ghost" className="h-11" href={passageHref(w.customer.id)}>
                               Passage
                               <span className="sr-only"> de {w.customer.name}</span>
-                            </Button>
+                            </ButtonLink>
                           </div>
                         </td>
                       </tr>
@@ -231,7 +235,6 @@ function Inner() {
         </Card>
       </div>
 
-      <PassageDialog open={passing !== null} onClose={() => setPassing(null)} customerId={passing} />
     </div>
   );
 }

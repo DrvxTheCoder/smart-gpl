@@ -59,7 +59,8 @@ plain text. The palette, the alert bell and the badges only show what the accoun
 | `/ventes/clients` | Customers: exposure vs limit, overdue, solvency; create (`?nouveau=1`) |
 | `/ventes/clients/[id]` | Customer sheet: versioned contract, account ledger and ageing, payments, reversing entries, incidents, bottle balance, orders, solvency explanation. Wholesalers add: stock chez le grossiste, passages, comptages, appels and declarations |
 | `/ventes/previsions` | Forecast grid (customers or categories, week or month, spreadsheet paste), versions, forecast vs demand, MAPE and bias, fill plan vs line capacity |
-| `/ventes/grossistes` | Consignment follow-up vs threshold and each wholesaler's own rhythm, escalation ladder, passages heatmap, call tasks; passage dialog (`?passage=<id>`) |
+| `/ventes/grossistes` | Consignment follow-up vs threshold and each wholesaler's own rhythm, escalation ladder, passages heatmap, call tasks |
+| `/ventes/grossistes/[id]/passage` | Wholesaler visit: empties returned by brand × format, fulls handed over vs the float cap, two-party confirmation, amount and cash received |
 | `/magasin` | Stock et bouteilles: fulls/empties/condemned by brand × format, ATP, competitor positions, movements, adjustments, counts and variance review, inter-brand exchange, day close |
 | `/magasin/rapport` | Print view of the authority daily report (`?c=<centre>&jour=<date>`) |
 | `/expeditions` | Truck board, one column per stage (Planifiés → Au chargement → Chargés → En route → Livrés). A card moves to the next column by drag (long press on touch), by keyboard (Space, arrows, Space) or with its next-step button; each move is the lifecycle transition, so skips and moves back are refused with the reason. Gate-in and BL issue (ledger rows) always open a confirmation dialog with the party confirmations; a move still blocked lists what to settle and links to the sheet |

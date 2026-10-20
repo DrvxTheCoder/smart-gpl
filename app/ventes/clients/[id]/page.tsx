@@ -10,7 +10,6 @@ import { Select } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/calendar";
 import { TermsEditor } from "@/components/settings/sales-settings";
 import { CustomerDialog } from "@/components/sales/customer-dialog";
-import { PassageDialog } from "@/components/sales/passage-dialog";
 import { CallsPanel, CountsPanel, FloatPanel, PassagesPanel } from "@/components/sales/wholesaler-panels";
 import { Badge, BadgeRow, Figure, Meter, Missing, OrderBadge, TabPanel, TabStrip, TonePill } from "@/components/sales/ui";
 import { useStore } from "@/lib/store";
@@ -40,7 +39,6 @@ export default function ClientPage() {
   const [picked, setTab] = useState<Tab | null>(null);
   const [editing, setEditing] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [passing, setPassing] = useState(false);
   const [explain, setExplain] = useState(false);
   const [incident, setIncident] = useState(false);
   const [reversing, setReversing] = useState<string | null>(null);
@@ -190,7 +188,7 @@ export default function ClientPage() {
                 <Wallet className="size-4" />
                 Règlement
               </Button>
-              <Button onClick={() => setPassing(true)}>Enregistrer un passage</Button>
+              <ButtonLink href={`/ventes/grossistes/${customer.id}/passage`}>Enregistrer un passage</ButtonLink>
             </>
           ) : (
             <Button onClick={() => setPaying(true)}>
@@ -557,7 +555,6 @@ export default function ClientPage() {
       </div>
 
       <CustomerDialog open={editing} onClose={() => setEditing(false)} customer={customer} />
-      <PassageDialog open={passing} onClose={() => setPassing(false)} customerId={customer.id} />
       <PaymentDialog open={paying} onClose={() => setPaying(false)} customerId={customer.id} methods={pos.terms.methods} />
       <IncidentDialog open={incident} onClose={() => setIncident(false)} customerId={customer.id} />
       <ReverseDialog
