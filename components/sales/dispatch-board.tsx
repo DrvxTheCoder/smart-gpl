@@ -308,7 +308,7 @@ export function DispatchBoard({ list, day }: { list: Dispatch[]; day: string }) 
         })}
       </nav>
 
-      <div ref={scroller} className="no-scrollbar -mx-4 -mt-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pt-1 pb-2sm:-mx-5 sm:px-5 xl:snap-none" role="list" aria-label="Tableau des camions par étape">
+      <div ref={scroller} className="no-scrollbar -mx-4 -mt-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pt-1 pb-2 sm:-mx-5 sm:px-5 xl:snap-none" role="list" aria-label="Tableau des camions par étape">
         {BOARD_COLUMNS.map((col) => {
           const items = list.filter((d) => d.status === col.status);
           const move = dragged && drag ? moveFor(dragged.status, col.status, modeOf(dragged)) : null;

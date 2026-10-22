@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Per-device display preferences, set on <html> before the first paint
+   (lib/look.ts): the expanded page width, and the sidebar folded to a rail. */
+@custom-variant wide (&:where([data-wide] *));
+@custom-variant rail (&:where([data-rail] *));
+
 /* ------------------------------------------------------------------
    Tokens. A tenant sets ONE colour (--brand); every shade is derived
    from it with color-mix, so any hex a company picks re-tints the app.

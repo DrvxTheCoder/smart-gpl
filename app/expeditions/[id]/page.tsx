@@ -66,7 +66,7 @@ export default function ExpeditionPage() {
   const current = flow.find((s) => !s.done)?.id;
 
   const pdf = () =>
-    startJob({ kind: "bl", busyMsg: "Un BL est déjà en préparation", doneMsg: `${docLabel("BL", d.number)} téléchargé`, run: (onProgress) => buildBl({ cfg: config, dispatch: d, order, customer, product: PRODUCT, onProgress }) });
+    startJob({ kind: "bl", busyMsg: "Un BL est déjà en préparation", doneMsg: `Téléchargé avec succès`, run: (onProgress) => buildBl({ cfg: config, dispatch: d, order, customer, product: PRODUCT, onProgress }) });
 
   return (
     <div>
@@ -292,7 +292,7 @@ export default function ExpeditionPage() {
                   <p className="text-[12px] text-muted">{fmtDate(dayOf(d.slot))}</p>
                 </div>
               </div>
-              <p className="bg-warn/12 px-5 py-2.5 text-[13px] font-medium text-[#7a5306]">{BL_MARK}</p>
+              {/* <p className="bg-warn/12 px-5 py-2.5 text-[13px] font-medium text-[#7a5306]">{BL_MARK}</p> */}
               <div className="grid gap-5 p-5 sm:grid-cols-3">
                 <dl className="text-[14px]">
                   <dt className="text-[12px] text-muted">Client</dt>

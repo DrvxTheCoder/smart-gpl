@@ -35,8 +35,8 @@ function Inner() {
     <div className="grid min-h-dvh place-items-center bg-canvas p-4">
       <div className="w-full max-w-[920px]">
         <div className="mb-6 flex items-center gap-2.5">
-          <span className="grid size-11 place-items-center rounded-xl bg-brand-800 text-white">
-            <Logo className="size-7" />
+          <span className="grid size-11 place-items-center text-brand-800">
+            <Logo className="size-10" />
           </span>
           <span className="text-[22px] font-extrabold tracking-[-0.02em]">{PRODUCT}</span>
         </div>

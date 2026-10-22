@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_CONFIG, generateInventories } from "./seed";
 import { migrateStoredConfig, storedConfig } from "./tenant-io";
 import type { Centre, Inventory, TenantConfig } from "./types";
@@ -8,6 +8,7 @@ import type { OnProgress, ReportFile } from "./year-report";
 
 import { CONFIG_KEY, DENSITY_KEY, EDITS_KEY, LEGACY_CONFIG_KEY } from "./keys";
 import { useAuth } from "./auth";
+import { applyLook, setWide } from "./look";
 
 export type Density = "compact" | "expanded";
 
@@ -78,6 +79,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const jobsRef = useRef<Job[]>([]);
   const jobSeq = useRef(0);
 
+  // The inline script already applied the saved look; this only matters after
+  // React's dev remount, which resets <html>'s attributes.
+  useLayoutEffect(applyLook, []);
+
   // Client-only boot: mock data depends on "today", and saved branding lives on this device.
   useEffect(() => {
     let cfg = DEFAULT_CONFIG;
@@ -103,9 +108,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setReady(true);
   }, []);
 
+  // Not before boot: the default config would repaint over the saved brand.
   useEffect(() => {
-    document.documentElement.style.setProperty("--brand", config.branding.brand);
-  }, [config.branding.brand]);
+    if (ready) document.documentElement.style.setProperty("--brand", config.branding.brand);
+  }, [ready, config.branding.brand]);
 
   const setConfig = useCallback((fn: (c: TenantConfig) => TenantConfig) => {
     setConfigState((prev) => {
@@ -119,6 +125,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const setDensity = useCallback((d: Density) => {
     setDensityState(d);
+    setWide(d === "expanded");
     try {
       localStorage.setItem(DENSITY_KEY, d);
     } catch {}

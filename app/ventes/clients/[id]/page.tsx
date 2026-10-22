@@ -530,7 +530,7 @@ export default function ClientPage() {
             </div>
             <div className={cn("rounded-xl p-5", pos.solvency.tone === "ok" ? "bg-ok/6" : pos.solvency.tone === "warn" ? "bg-warn/8" : "bg-alert/8")}>
               <div className="w-full flex flex-row justify-between items-center">
-                <p className="text-[13px] text-muted">Solvabilité</p>
+                <p className="text-[13px] text-muted">SmartScore™</p>
                 <TonePill tone={pos.solvency.tone}>{pos.solvency.label}</TonePill>
               </div>
               <div className="mt-1 flex items-baseline gap-3">
@@ -568,7 +568,7 @@ export default function ClientPage() {
         }}
       />
 
-      <Dialog open={explain} onClose={() => setExplain(false)} title="Comment la note est calculée" width="max-w-xl">
+      <Dialog open={explain} onClose={() => setExplain(false)} title="SmartScore™" width="max-w-xl">
         <p className="text-[14px] text-muted">
           Quatre critères notés de 0 à 1, pondérés selon les réglages de {config.branding.companyName}, sur les {config.sales.solvency.lookbackDays} derniers jours. Aucune donnée extérieure.
         </p>

@@ -33,16 +33,16 @@ export async function buildBl(o: { cfg: TenantConfig; dispatch: Dispatch; order:
   const rects: PdfPage["rects"] = [{ x: 0, y: 0, w: A4.width, h: 96, color: brand }];
   const t = (x: number, y: number, text: string, extra: Partial<PdfText> = {}) => texts.push({ x, y, text, size: 9.5, color: INK, ...extra });
 
-  t(M, 40, cfg.branding.companyName, { size: 16, bold: true, color: [255, 255, 255] });
+  t(M, 40, cfg.branding.companyName, { size: 16, weight: "bold", color: [255, 255, 255] });
   t(M, 62, `Bon de livraison numérique · ${centre?.name ?? ""}`, { size: 10, color: [214, 226, 219] });
-  t(A4.width - M, 40, d.number, { size: 14, bold: true, color: [255, 255, 255], align: "right" });
+  t(A4.width - M, 40, d.number, { size: 14, weight: "bold", color: [255, 255, 255], align: "right" });
   t(A4.width - M, 62, fmtDate(dayOf(d.slot)), { size: 10, color: [214, 226, 219], align: "right" });
 
   rects.push({ x: M, y: 112, w: A4.width - 2 * M, h: 24, color: [253, 243, 222] });
-  t(M + 10, 128, BL_MARK, { bold: true, color: [122, 83, 6] });
+  t(M + 10, 128, BL_MARK, { weight: "bold", color: [122, 83, 6] });
 
   const block = (x: number, title: string, lines: string[]) => {
-    t(x, 162, title, { size: 8.5, bold: true, color: MUTED });
+    t(x, 162, title, { size: 8.5, weight: "bold", color: MUTED });
     lines.forEach((l, i) => t(x, 178 + i * 14, l));
   };
   block(M, "CLIENT", [customer?.name ?? "", `${customer?.code ?? ""} · ${customer?.zone ?? ""}`, customer?.contact.phone ?? ""]);
@@ -52,19 +52,19 @@ export async function buildBl(o: { cfg: TenantConfig; dispatch: Dispatch; order:
 
   let y = 240;
   const table = (title: string, head: string[], rows: string[][], widths: number[]) => {
-    t(M, y, title, { size: 10.5, bold: true });
+    t(M, y, title, { size: 10.5, weight: "bold" });
     y += 10;
     rects.push({ x: M, y, w: A4.width - 2 * M, h: 20, color: ZEBRA });
     let x = M;
     head.forEach((h, i) => {
-      t(i ? x + widths[i] - 8 : x + 8, y + 13.5, h, { size: 8.5, bold: true, color: MUTED, align: i ? "right" : "left" });
+      t(i ? x + widths[i] - 8 : x + 8, y + 13.5, h, { size: 8.5, weight: "bold", color: MUTED, align: i ? "right" : "left" });
       x += widths[i];
     });
     y += 20;
     for (const r of rows) {
       x = M;
       r.forEach((c, i) => {
-        t(i ? x + widths[i] - 8 : x + 8, y + 14, c, { align: i ? "right" : "left", bold: i === 0 });
+        t(i ? x + widths[i] - 8 : x + 8, y + 14, c, { align: i ? "right" : "left", weight: i === 0 ? "bold" : undefined });
         x += widths[i];
       });
       rects.push({ x: M, y: y + 20, w: A4.width - 2 * M, h: 0.6, color: LINE });
@@ -91,7 +91,7 @@ export async function buildBl(o: { cfg: TenantConfig; dispatch: Dispatch; order:
   }
   o.onProgress(0.8);
 
-  t(M, y, "Confirmations", { size: 10.5, bold: true });
+  t(M, y, "Confirmations", { size: 10.5, weight: "bold" });
   y += 18;
   const confs = [...d.gateIn.map((c) => ["Entrée", c] as const), ...d.loading.map((c) => ["Chargement", c] as const), ...d.delivery.map((c) => ["Livraison", c] as const)];
   if (!confs.length) t(M, y, "Aucune confirmation enregistrée.", { color: MUTED });
@@ -101,7 +101,7 @@ export async function buildBl(o: { cfg: TenantConfig; dispatch: Dispatch; order:
     y += 15;
   }
   t(M, A4.height - 24, `${BL_MARK} · Propulsé par ${o.product}`, { size: 8, color: MUTED });
-  const blob = pdfDocument([{ texts, rects }], A4);
+  const blob = await pdfDocument([{ texts, rects }], A4);
   o.onProgress(1);
   return { blob, filename: `${d.number}.pdf` };
 }

@@ -33,6 +33,7 @@ import { canOpen, moduleDef, moduleOf, MODULES, type ModuleId } from "@/lib/modu
 import { fillState } from "@/lib/sales/stock";
 import { useStore } from "@/lib/store";
 import { COLLAPSED_KEY } from "@/lib/keys";
+import { setRail } from "@/lib/look";
 import { useSalesMaybe } from "@/lib/sales/store";
 import { wholesalerStatuses } from "@/lib/sales/alerts";
 import { Select } from "@/components/ui/select";
@@ -41,6 +42,7 @@ import { Island } from "./island";
 import { AlertBell } from "./alert-bell";
 import { cn } from "@/lib/format";
 import { buildYearReport } from "@/lib/year-report";
+import { ICON_PATHS, ICON_SIZE } from "@/lib/brand";
 import { failingExport } from "@/lib/dev/failing-export"; // DEV ONLY, temporary
 
 gsap.registerPlugin(useGSAP);
@@ -49,11 +51,10 @@ export const PRODUCT = "Smart GPL"; // placeholder product name
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className={className} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-      <rect x="3.5" y="3.5" width="25" height="25" rx="8.5" />
-      <path d="M9.5 20a6.5 6.5 0 0 1 13 0" />
-      <path d="M16 20l3.6-4.4" />
-      <circle cx="16" cy="20" r="1.1" fill="currentColor" stroke="none" />
+    <svg viewBox={`0 0 ${ICON_SIZE} ${ICON_SIZE}`} className={className} fill="currentColor" aria-hidden>
+      {ICON_PATHS.map((d) => (
+        <path key={d} d={d} />
+      ))}
     </svg>
   );
 }
@@ -198,14 +199,11 @@ function useRailTooltip(enabled: boolean) {
   return { bind, tooltip, hide };
 }
 
-function SectionLabel({ collapsed, className, children }: { collapsed: boolean; className?: string; children: React.ReactNode }) {
+function SectionLabel({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
     <p className={cn("relative mb-2 h-[18px] px-1 text-[12px] font-medium whitespace-nowrap text-faint", className)}>
-      <span className={cn("transition-opacity duration-200", collapsed && "lg:opacity-0")}>{children}</span>
-      <span
-        aria-hidden
-        className={cn("absolute top-1/2 left-3 hidden h-px w-5 bg-line transition-opacity duration-300 lg:block", collapsed ? "opacity-100" : "opacity-0")}
-      />
+      <span className="transition-opacity duration-200 lg:rail:opacity-0">{children}</span>
+      <span aria-hidden className="absolute top-1/2 left-3 hidden h-px w-5 bg-line opacity-0 transition-opacity duration-300 lg:block rail:opacity-100" />
     </p>
   );
 }
@@ -276,8 +274,9 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
     });
 
   // Labels keep their full-width layout and are clipped by the rail, so
-  // nothing reflows while the width animates.
-  const fade = cn("transition-opacity duration-200", collapsed && "lg:pointer-events-none lg:opacity-0");
+  // nothing reflows while the width animates. The rail look comes from the
+  // data-rail attribute on <html>, set before the first paint (lib/look.ts).
+  const fade = "transition-opacity duration-200 lg:rail:pointer-events-none lg:rail:opacity-0";
   const itemCls = "relative flex h-11 w-full items-center gap-3 overflow-hidden rounded-xl px-3 text-[15px] whitespace-nowrap transition-colors";
 
   return (
@@ -285,17 +284,17 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
       <aside
         className={cn(
           "fixed inset-y-3 left-3 z-40 flex w-[248px] print:hidden flex-col overflow-hidden rounded-[26px] bg-board p-5 transition-[translate,width,box-shadow] duration-[420ms] ease-[cubic-bezier(.2,.9,.25,1)] lg:sticky lg:top-3 lg:bottom-auto lg:z-auto lg:h-[calc(100dvh-1.5rem)] lg:shrink-0 lg:self-start lg:translate-x-0",
-          collapsed && "lg:w-[84px]",
+          "lg:rail:w-[84px]",
           open ? "translate-x-0 shadow-2xl" : "-translate-x-[110%]",
         )}
         aria-label="Navigation principale"
       >
         <div className="flex items-center justify-between">
-          <Link href={moduleDef(mod).home} className="flex items-center gap-2.5 rounded-xl" onClick={onClose} {...bind(PRODUCT)}>
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-800 text-white">
-              <Logo className="size-7" />
+          <Link href={moduleDef(mod).home} className="flex items-center gap-1 rounded-xl" onClick={onClose} {...bind(PRODUCT)}>
+            <span className="grid size-11 shrink-0 place-items-center text-brand-800">
+              <Logo className="size-8" />
             </span>
-            <span className={cn("text-[22px] font-extrabold tracking-[-0.02em]", fade)}>{PRODUCT}</span>
+            <span className={cn("text-[22px] font-extrabold tracking-[-0.02em] text-nowrap", fade)}>{PRODUCT}</span>
           </Link>
           <button className="grid size-9 place-items-center rounded-full lg:hidden" onClick={onClose} aria-label="Fermer le menu">
             <X className="size-5" />
@@ -315,7 +314,7 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
         >
           <span ref={railRef} aria-hidden className="absolute top-0 left-0 h-7 w-[3px] rounded-r-full bg-brand-800 opacity-0" />
           <div>
-            <SectionLabel collapsed={collapsed}>{moduleDef(mod).label}</SectionLabel>
+            <SectionLabel>{moduleDef(mod).label}</SectionLabel>
             <ul className="space-y-0.5">
               {items.map(({ href, label, icon: Icon, badge }) => {
                 const active = href === current;
@@ -343,8 +342,8 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
                           <span
                             aria-hidden
                             className={cn(
-                              "absolute top-2.5 left-[26px] hidden size-2 rounded-full bg-brand-800 ring-2 ring-board transition-[opacity,scale] duration-300 lg:block",
-                              collapsed ? "scale-100 opacity-100" : "scale-50 opacity-0",
+                              "absolute top-2.5 left-[26px] hidden size-2 scale-50 rounded-full bg-brand-800 opacity-0 ring-2 ring-board transition-[opacity,scale] duration-300 lg:block",
+                              "rail:scale-100 rail:opacity-100",
                             )}
                           />
                         </>
@@ -356,7 +355,7 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
             </ul>
           </div>
 
-          <SectionLabel collapsed={collapsed} className="mt-7">
+          <SectionLabel className="mt-7">
             Général
           </SectionLabel>
           <ul className="space-y-0.5">
@@ -403,7 +402,7 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
           <div
             className={cn(
               "surface-deep contours relative w-[208px] overflow-hidden rounded-[20px] p-4 transition-[opacity,visibility] duration-200",
-              collapsed && "lg:invisible lg:opacity-0",
+              "lg:rail:invisible lg:rail:opacity-0",
             )}
           >
             <span className="grid size-8 place-items-center rounded-full bg-white/15">
@@ -415,9 +414,9 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
               onClick={exportYear}
               className="mt-4 h-10 w-full rounded-full bg-brand-600 text-[14px] font-medium text-white ring-1 ring-white/15 hover:bg-brand-400 hover:text-brand-950"
             >
-              Exporter l&apos;année en PDF
+              Générer le PDF
             </button>
-            <DevFailingExport />
+            {/* <DevFailingExport /> */}
           </div>
           <button
             onClick={exportYear}
@@ -425,7 +424,7 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
             {...bind(`${reportLabel} (PDF)`)}
             className={cn(
               "surface-deep absolute bottom-0 left-0 hidden size-11 place-items-center rounded-xl transition-[opacity,scale,visibility] duration-300 lg:grid",
-              collapsed ? "scale-100 opacity-100" : "invisible scale-75 opacity-0",
+              "invisible scale-75 opacity-0 rail:visible rail:scale-100 rail:opacity-100",
             )}
           >
             <FileDown className="size-[18px]" />
@@ -526,7 +525,6 @@ function Topbar({ onMenu, collapsed, onCollapse, raised }: { onMenu: () => void;
   const name = user.name;
   const role = user.role;
   const initials = name.split(" ").map((p) => p[0]).join("");
-  const Toggle = collapsed ? PanelLeftOpen : PanelLeftClose;
 
   return (
     <header
@@ -544,7 +542,8 @@ function Topbar({ onMenu, collapsed, onCollapse, raised }: { onMenu: () => void;
         aria-label={collapsed ? "Déplier le menu" : "Replier le menu"}
         aria-expanded={!collapsed}
       >
-        <Toggle className="size-4" strokeWidth={1.8} />
+        <PanelLeftClose className="size-4 rail:hidden" strokeWidth={1.8} />
+        <PanelLeftOpen className="hidden size-4 rail:block" strokeWidth={1.8} />
       </button>
       <div className="hidden shrink-0 lg:block">
         <ModuleSwitcher />
@@ -570,7 +569,7 @@ function Topbar({ onMenu, collapsed, onCollapse, raised }: { onMenu: () => void;
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const { ready: storeReady, density, toast } = useStore();
+  const { ready: storeReady, toast } = useStore();
   const { ready: authReady, account } = useAuth();
   const sales = useSalesMaybe();
   const path = usePathname();
@@ -606,6 +605,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const toggleCollapsed = () => {
     const next = !collapsed;
     setCollapsed(next);
+    setRail(next);
     try {
       localStorage.setItem(COLLAPSED_KEY, next ? "1" : "0");
     } catch {}
@@ -640,12 +640,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     // Expanded fills the window, keeping the same 12px gutter on every side.
-    <div
-      className={cn(
-        "mx-auto flex min-h-dvh gap-3 p-3 print:p-0 transition-[max-width] duration-420 ease-[cubic-bezier(.2,.9,.25,1)]",
-        density === "expanded" ? "max-w-full" : "max-w-[1680px]",
-      )}
-    >
+    // The width comes from the data-wide attribute on <html> (lib/look.ts).
+    <div className="mx-auto flex min-h-dvh max-w-[1680px] gap-3 p-3 transition-[max-width] duration-420 ease-[cubic-bezier(.2,.9,.25,1)] wide:max-w-full print:p-0">
       <Sidebar open={open} onClose={() => setOpen(false)} collapsed={collapsed} />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         {/* Sticky, backed by canvas down to its middle: the gutter above and

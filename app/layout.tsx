@@ -5,6 +5,7 @@ import { StoreProvider } from "@/lib/store";
 import { AuthProvider } from "@/lib/auth";
 import { SalesProvider } from "@/lib/sales/store";
 import { AppShell } from "@/components/shell/app-shell";
+import { lookScript } from "@/lib/look";
 
 export const metadata: Metadata = {
   title: "Smart GPL",
@@ -15,7 +16,12 @@ export const viewport: Viewport = { themeColor: "#e8ebe8", width: "device-width"
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
+    // The inline script applies the saved look before the first paint; <html>
+    // then differs from the server render, hence suppressHydrationWarning.
+    <html lang="fr" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: lookScript }} />
+      </head>
       <body>
         <AuthProvider>
           <StoreProvider>

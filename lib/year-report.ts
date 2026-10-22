@@ -1,7 +1,7 @@
 import { aggregate, type Aggregate } from "./aggregate";
-import { cap, fmt, fmtDate, fmtDuration } from "./format";
-import { A4_LANDSCAPE, pdfDocument, type PdfPage, type PdfText, type Rgb } from "./pdf";
-import { iso } from "./seed";
+import { ICON_PATHS, LOCKUP } from "./brand";
+import { cap, fmt, fmtDuration } from "./format";
+import { A4_LANDSCAPE, pdfDocument, type PdfPage, type Rgb } from "./pdf";
 import type { Centre, Inventory, TenantConfig } from "./types";
 
 /** Reports progress in [0, 1]; a background job turns it into the hub's ring. */
@@ -62,8 +62,7 @@ export async function buildYearReport(opts: {
     await tick();
   }
 
-  const end = year === today.getFullYear() ? iso(today) : `${year}-12-31`;
-  const blob = pdfDocument(layout({ config, year, end, months, total, centres }));
+  const blob = await pdfDocument(layout({ config, year, months, total, centres }));
   onProgress(1);
   return { blob, filename: `rapport-annuel-${year}.pdf` };
 }
@@ -71,9 +70,11 @@ export async function buildYearReport(opts: {
 /* ---------- Layout ---------- */
 
 const INK: Rgb = [20, 28, 23];
-const MUTED: Rgb = [104, 114, 108];
+const MUTED: Rgb = [120, 126, 122];
 const LINE: Rgb = [226, 230, 227];
-const ZEBRA: Rgb = [245, 247, 245];
+const FOOT: Rgb = [243, 245, 243];
+const WHITE: Rgb = [255, 255, 255];
+const SIGN: Rgb = [178, 180, 180];
 
 function hexRgb(hex: string): Rgb {
   const h = hex.replace("#", "");
@@ -82,6 +83,7 @@ function hexRgb(hex: string): Rgb {
 }
 
 const darken = (c: Rgb, k: number): Rgb => c.map((v) => Math.round(v * k)) as Rgb;
+const mix = (a: Rgb, b: Rgb, k: number): Rgb => a.map((v, i) => Math.round(v * (1 - k) + b[i] * k)) as Rgb;
 
 interface Col {
   label: string;
@@ -90,96 +92,92 @@ interface Col {
   left?: boolean;
 }
 
-const dash = (a: Aggregate, s: string) => (a.days ? s : "—");
+const dash = (a: Aggregate, s: string) => (a.days ? s : "–");
 
 const MONTH_COLS: Col[] = [
-  { label: "Mois", w: 96, left: true, cell: (r) => r.label },
-  { label: "Journées", w: 58, cell: (r) => String(r.a.days) },
-  { label: "Conditionné (T)", w: 86, cell: (r) => dash(r.a, fmt(r.a.conditionneT, 1)) },
-  { label: "Vrac (T)", w: 70, cell: (r) => dash(r.a, fmt(r.a.vracT, 1)) },
-  { label: "Appro (T)", w: 70, cell: (r) => dash(r.a, fmt(r.a.approT, 1)) },
-  { label: "Bouteilles", w: 72, cell: (r) => dash(r.a, fmt(r.a.bottlesN)) },
-  { label: "Temps utile", w: 74, cell: (r) => dash(r.a, fmtDuration(r.a.utileMin)) },
-  { label: "Arrêts", w: 66, cell: (r) => dash(r.a, fmtDuration(r.a.stopMin)) },
-  { label: "Rendement (T/h)", w: 88, cell: (r) => dash(r.a, fmt(r.a.rendementTph, 2)) },
-  { label: "Écart moyen (%)", w: 90, cell: (r) => dash(r.a, fmt(r.a.meanAbsEcart, 2)) },
+  { label: "Mois", w: 104, left: true, cell: (r) => r.label },
+  { label: "Journées", w: 50, cell: (r) => dash(r.a, String(r.a.days)) },
+  { label: "Conditionné (T)", w: 80, cell: (r) => dash(r.a, fmt(r.a.conditionneT, 1)) },
+  { label: "Vrac (T)", w: 56, cell: (r) => dash(r.a, fmt(r.a.vracT, 1)) },
+  { label: "Appro (T)", w: 58, cell: (r) => dash(r.a, fmt(r.a.approT, 1)) },
+  { label: "Bouteilles", w: 62, cell: (r) => dash(r.a, fmt(r.a.bottlesN)) },
+  { label: "Temps utile", w: 64, cell: (r) => dash(r.a, fmtDuration(r.a.utileMin)) },
+  { label: "Arrêts", w: 54, cell: (r) => dash(r.a, fmtDuration(r.a.stopMin)) },
+  { label: "Rendement (T/h)", w: 82, cell: (r) => dash(r.a, fmt(r.a.rendementTph, 2)) },
+  // Conditionné against the installed capacity of the lines over their temps utile.
+  { label: "Rendement (%)", w: 78, cell: (r) => dash(r.a, fmt(r.a.capacityPct, 1)) },
+  { label: "Écart moyen (%)", w: 82, cell: (r) => dash(r.a, fmt(r.a.meanAbsEcart, 2)) },
 ];
 
-const CENTRE_COLS: Col[] = [
-  { label: "Centre", w: 96, left: true, cell: (r) => r.label },
-  ...MONTH_COLS.slice(1),
-];
+const CENTRE_COLS: Col[] = [{ ...MONTH_COLS[0], label: "Centre" }, ...MONTH_COLS.slice(1)];
 
-const M = 36; // page margin
+const M = 34; // page margin, header text
+const BAND_H = 88;
+const BODY_X = 36; // rows sit 8pt inside the header bar
+const PAD = 8;
+const HEAD_H = 24.5;
 const ROW_H = 22;
 
-function table(t: PdfPage, top: number, cols: Col[], rows: Row[], foot?: Row) {
-  let x = M;
+function table(t: PdfPage, top: number, cols: Col[], rows: Row[], foot: Row, headColor: Rgb) {
+  let x = BODY_X;
   const xs = cols.map((c) => {
     const at = x;
     x += c.w;
     return at;
   });
-  const width = x - M;
-  t.rects!.push({ x: M, y: top, w: width, h: ROW_H, color: ZEBRA });
-  cols.forEach((c, i) =>
-    t.texts.push({ x: c.left ? xs[i] + 8 : xs[i] + c.w - 8, y: top + 14.5, text: c.label, size: 8.5, bold: true, color: MUTED, align: c.left ? "left" : "right" }),
-  );
-  let y = top + ROW_H;
-  const all = foot ? [...rows, foot] : rows;
-  all.forEach((r, ri) => {
-    const isFoot = foot && ri === all.length - 1;
-    t.rects!.push({ x: M, y: y + ROW_H - 0.6, w: width, h: 0.6, color: LINE });
-    if (isFoot) t.rects!.push({ x: M, y, w: width, h: ROW_H, color: ZEBRA });
+  const width = x - BODY_X;
+  const cellX = (i: number) => (cols[i].left ? xs[i] + PAD : xs[i] + cols[i].w - PAD);
+  const align = (i: number) => (cols[i].left ? "left" : "right") as "left" | "right";
+
+  t.rects!.push({ x: BODY_X - 8, y: top, w: width + 16, h: HEAD_H, r: 7, color: headColor });
+  cols.forEach((c, i) => t.texts.push({ x: cellX(i), y: top + 15.3, text: c.label, size: 8.5, weight: "bold", color: WHITE, align: align(i) }));
+
+  let y = top + HEAD_H + 8;
+  rows.forEach((r, ri) => {
+    if (ri < rows.length - 1) t.rects!.push({ x: BODY_X, y: y + ROW_H - 0.6, w: width, h: 0.6, color: LINE });
     cols.forEach((c, i) =>
-      t.texts.push({
-        x: c.left ? xs[i] + 8 : xs[i] + c.w - 8,
-        y: y + 14.5,
-        text: c.cell(r),
-        size: 9.5,
-        bold: !!isFoot || i === 0,
-        color: r.a.days || isFoot ? INK : MUTED,
-        align: c.left ? "left" : "right",
-      }),
+      t.texts.push({ x: cellX(i), y: y + 14.5, text: c.cell(r), size: 9.5, weight: i === 0 ? "bold" : "regular", color: r.a.days ? INK : MUTED, align: align(i) }),
     );
     y += ROW_H;
   });
-  return y;
+  t.rects!.push({ x: BODY_X, y, w: width, h: ROW_H, color: FOOT });
+  cols.forEach((c, i) => t.texts.push({ x: cellX(i), y: y + 14.5, text: c.cell(foot), size: 9.5, weight: "bold", color: INK, align: align(i) }));
 }
 
-function layout(d: { config: TenantConfig; year: number; end: string; months: Row[]; total: Aggregate; centres: Row[] }): PdfPage[] {
+/** "propulsé par" over the Smart GPL lockup, centred at the foot of the page. */
+function signature(t: PdfPage) {
+  const { width, height } = A4_LANDSCAPE;
+  const s = 16 / LOCKUP.height;
+  const x = width / 2 - (LOCKUP.width * s) / 2;
+  const top = height - 38;
+  t.texts.push({ x: width / 2, y: top - 4.5, text: "propulsé par", size: 5.5, weight: "bold", color: SIGN, align: "center" });
+  for (const d of ICON_PATHS) t.paths!.push({ d, x, y: top, scale: s, color: SIGN });
+  for (const w of [LOCKUP.word, LOCKUP.tm]) t.texts.push({ x: x + w.x * s, y: top + w.y * s, text: w.text, size: w.size * s, weight: "extrabold", color: SIGN });
+}
+
+function layout(d: { config: TenantConfig; year: number; months: Row[]; total: Aggregate; centres: Row[] }): PdfPage[] {
   const { width } = A4_LANDSCAPE;
-  const brand = darken(hexRgb(d.config.branding.brand), 0.55);
+  const band = darken(hexRgb(d.config.branding.brand), 0.55);
+  const headColor = mix(band, [165, 170, 168], 0.75);
   const company = d.config.branding.companyName;
-  const span = `Tous centres · du 1er janvier au ${fmtDate(d.end)}`;
-  const generated = `Généré le ${fmtDate(iso(new Date()))}`;
 
-  const page = (title: string, subtitle: string): PdfPage => ({
-    rects: [{ x: 0, y: 0, w: width, h: 92, color: brand }],
-    texts: [
-      { x: M, y: 40, text: title, size: 20, bold: true, color: [255, 255, 255] },
-      { x: M, y: 62, text: `${company} · ${subtitle}`, size: 10, color: [214, 226, 219] },
-      { x: width - M, y: 40, text: String(d.year), size: 20, bold: true, color: [255, 255, 255], align: "right" },
-      { x: width - M, y: 62, text: generated, size: 9, color: [214, 226, 219], align: "right" },
-    ] as PdfText[],
-  });
+  const page = (): PdfPage => {
+    const p: PdfPage = {
+      rects: [{ x: 0, y: 0, w: width, h: BAND_H, color: band }],
+      paths: [],
+      texts: [
+        { x: M, y: 42.5, text: `Rapport Annuel ${d.year}`, size: 20, weight: "bold", color: WHITE },
+        { x: M + 1, y: 58.5, text: `${company}  |  Tous les centres`, size: 9, color: [214, 226, 223] },
+        { x: width - M, y: 50, text: company, size: 18, weight: "extrabold", color: WHITE, align: "right" },
+      ],
+    };
+    signature(p);
+    return p;
+  };
 
-  const p1 = page(`Rapport annuel ${d.year}`, span);
-  table(p1, 116, MONTH_COLS, d.months, { label: "Année", a: d.total });
-
-  const p2 = page(`Rapport annuel ${d.year} · par centre`, span);
-  const end = table(p2, 116, CENTRE_COLS, d.centres, { label: "Tous centres", a: d.total });
-  p2.texts.push({
-    x: M,
-    y: end + 28,
-    text: "Journées clôturées uniquement. Écart moyen : moyenne des écarts absolus journaliers.",
-    size: 8.5,
-    color: MUTED,
-  });
-
-  const pages = [p1, p2];
-  pages.forEach((p, i) =>
-    p.texts.push({ x: width - M, y: A4_LANDSCAPE.height - 20, text: `${company} · page ${i + 1}/${pages.length}`, size: 8, color: MUTED, align: "right" }),
-  );
-  return pages;
+  const p1 = page();
+  table(p1, 119, MONTH_COLS, d.months, { label: "Année", a: d.total }, headColor);
+  const p2 = page();
+  table(p2, 119, CENTRE_COLS, d.centres, { label: "Tous centres", a: d.total }, headColor);
+  return [p1, p2];
 }
