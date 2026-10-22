@@ -641,7 +641,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     // Expanded fills the window, keeping the same 12px gutter on every side.
     // The width comes from the data-wide attribute on <html> (lib/look.ts).
-    <div className="mx-auto flex min-h-dvh max-w-[1680px] gap-3 p-3 transition-[max-width] duration-420 ease-[cubic-bezier(.2,.9,.25,1)] wide:max-w-full print:p-0">
+    // overflow-clip: nothing may make the document taller than the shell,
+    // or the sticky sidebar gets pushed up past the bottom of its container.
+    // Unlike hidden, clip is no scroll container, so sticky still works;
+    // popovers and the island are fixed and escape it.
+    <div className="mx-auto flex min-h-dvh max-w-[1680px] gap-3 overflow-clip p-3 transition-[max-width] duration-420 ease-[cubic-bezier(.2,.9,.25,1)] wide:max-w-full print:p-0">
       <Sidebar open={open} onClose={() => setOpen(false)} collapsed={collapsed} />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         {/* Sticky, backed by canvas down to its middle: the gutter above and

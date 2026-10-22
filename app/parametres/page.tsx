@@ -194,28 +194,28 @@ function Inner() {
       </Dialog>
 
       <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <Card className="h-fit min-w-0 p-2.5 lg:sticky lg:top-[108px]">
+        <Card className="h-fit min-w-0 p-2.5 lg:sticky lg:top-27">
           <nav aria-label="Sections des paramètres">
             <ul ref={navRef} className="no-scrollbar relative flex gap-1 overflow-x-auto lg:flex-col">
               <li
                 aria-hidden
-                className={cn("pointer-events-none absolute top-0 left-0 rounded-2xl bg-brand-800", navPill.ready && glide)}
+                className={cn("pointer-events-none absolute top-0 left-0 rounded-2xl bg-brand-800 cursor-pointer", navPill.ready && glide)}
                 style={{ transform: `translate(${navPill.x}px, ${navPill.y}px)`, width: navPill.w, height: navPill.h }}
               />
               {tabs.map(({ id, label, sub, icon: Icon }) => (
-                <li key={id} className="shrink-0">
+                <li key={id} className="shrink-0 ">
                   <button
                     type="button"
                     aria-current={tab === id ? "page" : undefined}
                     onClick={() => go(id)}
                     className={cn("relative flex w-full items-center gap-3 rounded-2xl p-2.5 text-left transition-colors duration-300", tab === id ? "text-white" : "hover:bg-board")}
                   >
-                    <span className={cn("grid size-9 shrink-0 place-items-center rounded-xl transition-colors duration-300", tab === id ? "bg-white/15" : "bg-board")}>
-                      <Icon className="size-[18px]" />
+                    <span className={cn("grid size-7 shrink-0 place-items-center rounded-lg transition-colors duration-300", tab === id ? "bg-white/15" : "bg-board")}>
+                      <Icon className="size-4.5" />
                     </span>
                     <span>
                       <span className="block text-[14px] font-medium">{label}</span>
-                      <span className={cn("hidden text-[12px] transition-colors duration-300 lg:block", tab === id ? "text-white/70" : "text-muted")}>{sub}</span>
+                      {/* <span className={cn("hidden text-[12px] transition-colors duration-300 lg:block", tab === id ? "text-white/70" : "text-muted")}>{sub}</span> */}
                     </span>
                   </button>
                 </li>
@@ -225,8 +225,10 @@ function Inner() {
         </Card>
 
         {/* On desktop a long section scrolls inside its own column, so the
-            section list stays beside it. */}
-        <div key={tab} className="panel-in scroll-area min-w-0 lg:-mr-2.5 lg:max-h-[calc(100dvh-140px)] lg:overflow-y-auto lg:[scrollbar-gutter:stable]">
+            section list stays beside it. `relative` makes it the containing
+            block of absolute children (sr-only labels…): otherwise they are
+            not clipped by it and stretch the page below the shell. */}
+        <div key={tab} className="panel-in scroll-area relative min-w-0 lg:-mr-2.5 lg:max-h-[calc(100dvh-140px)] lg:overflow-y-auto lg:[scrollbar-gutter:stable]">
           {tab === "marque" && (
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
               <Card>
