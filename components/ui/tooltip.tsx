@@ -90,7 +90,7 @@ export function useTooltip({ side = "top" }: { side?: "top" | "bottom" } = {}) {
         <div
           ref={tipRef}
           aria-hidden
-          className="pointer-events-none fixed top-0 left-0 z-50 flex h-6 items-center rounded-md bg-brand-950 px-2 text-[11px] font-medium whitespace-nowrap text-white opacity-0 shadow-[0_10px_24px_-10px_rgba(4,17,10,0.55)]"
+          className="pointer-events-none fixed top-0 left-0 z-50 flex h-6 items-center rounded-md bg-brand-950 px-2 text-[11px] font-medium whitespace-nowrap text-white opacity-0 shadow-[0_10px_24px_-10px_rgba(4,17,10,0.55)] dark:ring-1 dark:ring-white/10"
         >
           <span className={`absolute left-1/2 size-2 -translate-x-1/2 rotate-45 rounded-xs bg-brand-950 ${side === "top" ? "-bottom-1" : "-top-1"}`} />
           <span className="relative">{text}</span>

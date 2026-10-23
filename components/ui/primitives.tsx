@@ -29,9 +29,9 @@ type Variant = "primary" | "ghost" | "soft" | "danger" | "light";
 const variants: Record<Variant, string> = {
   primary: "bg-brand-800 text-white hover:bg-brand-950",
   ghost: "border border-brand-800/80 text-ink hover:bg-brand-50",
-  soft: "bg-brand-100 text-brand-950 hover:bg-brand-200",
+  soft: "bg-brand-100 text-brand-deep hover:bg-brand-200",
   danger: "bg-alert text-white hover:brightness-95",
-  light: "bg-white text-brand-950 hover:bg-brand-50",
+  light: "bg-white text-brand-950 hover:bg-white/85",
 };
 
 type BtnProps = React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "sm" | "md" };
@@ -130,7 +130,7 @@ export function StatusBadge({ status }: { status: "EN_COURS" | "TERMINE" }) {
       En cours
     </span>
   ) : (
-    <span className="inline-flex h-6 items-center rounded-md bg-brand-100 px-2 text-[12px] font-medium text-brand-800">Clôturé</span>
+    <span className="inline-flex h-6 items-center rounded-md bg-brand-100 px-2 text-[12px] font-medium text-brand-ink">Clôturé</span>
   );
 }
 
@@ -276,7 +276,7 @@ export function Field({
 }
 
 export const inputCls =
-  "tnum h-10 w-full rounded-xl border border-line bg-white px-3 text-[15px] text-ink outline-none transition-colors placeholder:text-faint focus:border-brand-600 disabled:bg-board disabled:text-muted";
+  "tnum h-10 w-full rounded-xl border border-line bg-field px-3 text-[15px] text-ink outline-none transition-colors placeholder:text-faint focus:border-brand-600 disabled:bg-board disabled:text-muted";
 
 export function NumberInput({
   value,

@@ -245,7 +245,7 @@ export default function VentesDashboard() {
                     {w.step ? (w.step.action === "BLOQUER" ? "Bloqué" : w.step.action === "NOTIFIER" ? "Responsable prévenu" : "À appeler") : "Inhabituel"}
                   </TonePill>
                   {w.customer.contact.phone && (
-                    <a href={`tel:${w.customer.contact.phone.replace(/\s/g, "")}`} aria-label={`Appeler ${w.customer.name}`} className="grid size-11 place-items-center rounded-full bg-brand-100 text-brand-800 hover:bg-brand-200">
+                    <a href={`tel:${w.customer.contact.phone.replace(/\s/g, "")}`} aria-label={`Appeler ${w.customer.name}`} className="grid size-11 place-items-center rounded-full bg-brand-100 text-brand-ink hover:bg-brand-200">
                       <Phone className="size-4" />
                     </a>
                   )}

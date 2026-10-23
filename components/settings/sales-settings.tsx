@@ -131,7 +131,7 @@ export function TermsEditor({ terms, onChange, wholesaler, disabled }: { terms: 
                 onClick={() => set({ methods: on ? terms.methods.filter((x) => x !== m) : [...terms.methods, m] })}
                 className={cn(
                   "h-9 rounded-full border px-3.5 text-[13px] transition-colors disabled:opacity-60",
-                  on ? "border-brand-800 bg-brand-800 text-white" : "border-line bg-white text-ink hover:border-brand-600",
+                  on ? "border-brand-800 bg-brand-800 text-white" : "border-line bg-field text-ink hover:border-brand-600",
                 )}
               >
                 {PAYMENT_METHOD[m]}
@@ -201,7 +201,7 @@ export function CustomersPanel() {
                         {cat.defaults.payment.kind === "COMPTANT" ? "comptant" : `${cat.defaults.payment.days} jours`}, plafond {fmtMoney(cat.defaults.creditLimit, sales.currency.label)}
                       </span>
                     </span>
-                    <span className="text-[13px] text-brand-800">{expanded ? "Replier" : "Modifier"}</span>
+                    <span className="text-[13px] text-brand-ink">{expanded ? "Replier" : "Modifier"}</span>
                   </button>
                   <RemoveBtn label={`Supprimer ${cat.label}`} disabled={sales.categories.length <= 1} onClick={() => set((s) => ({ ...s, categories: s.categories.filter((c) => c.id !== cat.id) }))} />
                 </div>
@@ -733,7 +733,7 @@ function TemplateCard({ title, t, columns, onChange }: { title: string; t: Repor
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <CardTitle>{title}</CardTitle>
-        {t.placeholder && <span className="rounded-md bg-warn/12 px-2 py-0.5 text-[12px] font-medium text-[#7a5306]">Modèle provisoire</span>}
+        {t.placeholder && <span className="rounded-md bg-warn/12 px-2 py-0.5 text-[12px] font-medium text-warn-ink">Modèle provisoire</span>}
       </div>
       <div className="mt-4 grid gap-4">
         <Field label="Titre">
@@ -821,7 +821,7 @@ export function RolesPanel() {
                   {a.admin ? " (toutes)" : ""}
                 </span>
               </span>
-              {a.id === account?.id && <span className="text-[12px] font-medium text-brand-800">Connecté</span>}
+              {a.id === account?.id && <span className="text-[12px] font-medium text-brand-ink">Connecté</span>}
             </li>
           ))}
         </ul>

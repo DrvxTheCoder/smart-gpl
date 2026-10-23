@@ -153,7 +153,7 @@ function Inner() {
               />
             </div>
             {!allowed && (
-              <p className="mt-4 flex items-center gap-2 rounded-2xl bg-brand-100 px-4 py-3 text-[14px] text-brand-950">
+              <p className="mt-4 flex items-center gap-2 rounded-2xl bg-brand-100 px-4 py-3 text-[14px] text-brand-deep">
                 <Lock className="size-4 shrink-0" />
                 Lecture seule : la saisie est ouverte à l&apos;équipe commerciale. Rôle actuel : {role.label.toLowerCase()}.
               </p>

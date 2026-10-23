@@ -4,6 +4,9 @@
    (lib/look.ts): the expanded page width, and the sidebar folded to a rail. */
 @custom-variant wide (&:where([data-wide] *));
 @custom-variant rail (&:where([data-rail] *));
+/* Theme, also set before the first paint: "light" or "dark", resolved from
+   the device preference or the system. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* ------------------------------------------------------------------
    Tokens. A tenant sets ONE colour (--brand); every shade is derived
@@ -20,18 +23,30 @@
   --faint: #9aa39e;
   --line: #e1e6e2;
 
+  --field: #ffffff; /* inputs, chips and pickers sitting on a card */
+
   --ok: #23854f;
   --warn: #c98a0b;
   --alert: #c2412d;
+  --warn-ink: #7a5306; /* text on a warn tint */
+
+  /* What the brand shades mix towards: white in light, the card in dark. */
+  --tint: white;
 
   --b-950: color-mix(in oklab, var(--brand) 52%, #04110a);
   --b-800: color-mix(in oklab, var(--brand) 82%, #04110a);
   --b-600: var(--brand);
   --b-400: color-mix(in oklab, var(--brand) 58%, white);
-  --b-200: color-mix(in oklab, var(--brand) 24%, white);
-  --b-100: color-mix(in oklab, var(--brand) 11%, white);
-  --b-50: color-mix(in oklab, var(--brand) 5%, white);
+  --b-200: color-mix(in oklab, var(--brand) 24%, var(--tint));
+  --b-100: color-mix(in oklab, var(--brand) 11%, var(--tint));
+  --b-50: color-mix(in oklab, var(--brand) 5%, var(--tint));
   --hatch: color-mix(in oklab, var(--brand) 22%, #c9cfcb);
+
+  /* Roles, so dark mode can move text and fills apart. Brand as text (links,
+     accents), brand as strong text on a tint, and the strongest data shade. */
+  --b-ink: var(--b-800);
+  --b-deep: var(--b-950);
+  --b-strong: var(--b-950);
 
   /* Bklit chart tokens, derived from the brand like everything else. */
   --chart-1: var(--b-800);
@@ -65,6 +80,53 @@
   --muted-foreground: var(--muted);
 }
 
+/* ------------------------------------------------------------------
+   Dark. Same layering as light (canvas < board < card, each one step
+   closer), on a green-black that keeps the neutrals' slight green cast.
+   The brand still drives every shade: tints mix into the card instead of
+   white, solid fills lift a little so white text keeps its contrast, and
+   brand text turns to a pale tone of the brand.
+   ------------------------------------------------------------------ */
+:root[data-theme="dark"] {
+  --canvas: #0b100d;
+  --board: #111814;
+  --card: #18201b;
+  --field: #1d2620;
+  --ink: #e3e9e5;
+  --muted: #95a199;
+  --faint: #627069;
+  --line: #27322b;
+
+  --ok: #40b273;
+  --warn: #e0a63a;
+  --alert: #ee6b53;
+  --warn-ink: #f2c770;
+
+  --tint: var(--card);
+  --b-950: color-mix(in oklab, var(--brand) 50%, #050d08);
+  --b-800: color-mix(in oklab, var(--brand) 90%, white);
+  --b-600: color-mix(in oklab, var(--brand) 76%, white);
+  --b-400: color-mix(in oklab, var(--brand) 55%, white);
+  --b-200: color-mix(in oklab, var(--brand) 34%, var(--tint));
+  --b-100: color-mix(in oklab, var(--brand) 20%, var(--tint));
+  --b-50: color-mix(in oklab, var(--brand) 10%, var(--tint));
+  --hatch: color-mix(in oklab, var(--brand) 30%, #3b4741);
+
+  --b-ink: color-mix(in oklab, var(--brand) 42%, #eef6f1);
+  --b-deep: color-mix(in oklab, var(--brand) 22%, #f4f9f6);
+  --b-strong: color-mix(in oklab, var(--brand) 38%, #eef6f1);
+
+  --chart-1: var(--b-strong);
+  --chart-2: var(--b-600);
+  --chart-3: var(--b-800);
+  --chart-line-primary: var(--b-ink);
+  --chart-tooltip-background: color-mix(in oklab, #050d08 92%, transparent);
+  --chart-marker-badge-background: var(--b-950);
+  --chart-segment-background: var(--b-50);
+
+  color-scheme: dark;
+}
+
 @theme inline {
   --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
 
@@ -78,6 +140,8 @@
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-alert: var(--alert);
+  --color-field: var(--field);
+  --color-warn-ink: var(--warn-ink);
 
   --color-brand-950: var(--b-950);
   --color-brand-800: var(--b-800);
@@ -86,6 +150,8 @@
   --color-brand-200: var(--b-200);
   --color-brand-100: var(--b-100);
   --color-brand-50: var(--b-50);
+  --color-brand-ink: var(--b-ink);
+  --color-brand-deep: var(--b-deep);
 
   --color-foreground: var(--ink);
   --color-chart-label: var(--chart-label);
@@ -325,6 +391,40 @@ textarea:focus-visible {
     linear-gradient(160deg, var(--b-800), var(--b-950));
   color: white;
 }
+/* In the dark the hero glows less and keeps a hairline edge, so it reads as
+   lit from within rather than as a hole in the page. */
+:root[data-theme="dark"] .surface-deep {
+  background:
+    radial-gradient(120% 90% at 100% 0%, color-mix(in oklab, var(--brand) 55%, transparent), transparent 62%),
+    linear-gradient(160deg, color-mix(in oklab, var(--brand) 78%, #050d08), var(--b-950));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), inset 0 0 0 1px rgb(255 255 255 / 0.04);
+}
+
+/* Theme switch. During the swap every transition is off, so the page changes
+   in one frame instead of a cascade of per-element fades. Where the browser
+   has view transitions, the new theme opens as a circle from the toggle
+   (lib/look.ts setThemePref). */
+:root[data-theme-switching] *,
+:root[data-theme-switching] *::before,
+:root[data-theme-switching] *::after {
+  transition: none !important;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) {
+  animation: theme-reveal 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0 at var(--vt-x, 50%) var(--vt-y, 0));
+  }
+  to {
+    clip-path: circle(var(--vt-r, 150%) at var(--vt-x, 50%) var(--vt-y, 0));
+  }
+}
 
 /* Fine contour lines on dark cards, a nod to gauge charts */
 .contours {
@@ -417,5 +517,25 @@ input[type="number"] {
   html,
   body {
     background: white;
+  }
+  /* Paper is white whatever the screen theme. */
+  :root[data-theme="dark"] {
+    --canvas: #e8ebe8;
+    --board: #f2f4f2;
+    --card: #fbfcfb;
+    --field: #ffffff;
+    --ink: #16201a;
+    --muted: #69736d;
+    --faint: #9aa39e;
+    --line: #e1e6e2;
+    --warn-ink: #7a5306;
+    --tint: white;
+    --b-950: color-mix(in oklab, var(--brand) 52%, #04110a);
+    --b-800: color-mix(in oklab, var(--brand) 82%, #04110a);
+    --b-600: var(--brand);
+    --b-400: color-mix(in oklab, var(--brand) 58%, white);
+    --b-ink: var(--b-800);
+    --b-deep: var(--b-950);
+    color-scheme: light;
   }
 }

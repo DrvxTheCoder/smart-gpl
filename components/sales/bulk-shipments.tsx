@@ -26,7 +26,7 @@ export function BulkShipments({ centreId, date, field, entered, editable, onTake
   const differs = Math.abs(t - entered) >= 0.05;
   return (
     <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl bg-board px-4 py-3">
-      <Truck className="size-[18px] shrink-0 text-brand-800" />
+      <Truck className="size-[18px] shrink-0 text-brand-ink" />
       <div className="min-w-0 flex-1">
         <p className="tnum text-[14px]">
           Expéditions vrac enregistrées : <b className="font-semibold">{fmt(t, 1)} T</b>
@@ -34,7 +34,7 @@ export function BulkShipments({ centreId, date, field, entered, editable, onTake
         <p className="text-[12px] text-muted">
           {trucks.length ? `${trucks.length} camion${trucks.length > 1 ? "s" : ""} pesé${trucks.length > 1 ? "s" : ""}, BL émis. ` : "Aucun BL vrac émis ce jour-là. "}
           {differs ? `Écart avec « ${field.label} » : ${fmt(entered - t, 1)} T.` : `Concorde avec « ${field.label} ».`}{" "}
-          <AccessLink href="/expeditions" className="text-brand-800 hover:underline">
+          <AccessLink href="/expeditions" className="text-brand-ink hover:underline">
             Voir les expéditions
           </AccessLink>
         </p>

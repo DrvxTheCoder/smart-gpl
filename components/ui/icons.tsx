@@ -45,6 +45,7 @@ import {
   LogoutSquare02Icon,
   Menu09Icon,
   Moon02Icon,
+  Sun03Icon,
   Notification01Icon,
   PaintBoardIcon,
   PauseIcon,
@@ -131,6 +132,7 @@ export const Play = make(PlayIcon);
 export const Pause = make(PauseIcon);
 export const Lock = make(SquareLock02Icon);
 export const Moon = make(Moon02Icon);
+export const Sun = make(Sun03Icon);
 
 // Direction
 export const ArrowLeft = make(ArrowLeft02Icon);

@@ -162,7 +162,7 @@ export default function ClientPage() {
             )}
             {customer.contact.phone && (
               <li>
-                <a href={`tel:${customer.contact.phone.replace(/\s/g, "")}`} className="inline-flex h-8 items-center gap-1.5 rounded-full bg-brand-100 px-3 text-brand-800 transition-colors hover:bg-brand-200" {...hint.bind("Appeler le contact")}>
+                <a href={`tel:${customer.contact.phone.replace(/\s/g, "")}`} className="inline-flex h-8 items-center gap-1.5 rounded-full bg-brand-100 px-3 text-brand-ink transition-colors hover:bg-brand-200" {...hint.bind("Appeler le contact")}>
                   <Phone className="size-3.5" />
                   <span className="sr-only">Appeler </span>
                   {customer.contact.name && <span className="font-medium">{customer.contact.name}</span>}
@@ -267,7 +267,7 @@ export default function ClientPage() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <h3 className="flex items-center gap-2 text-[16px] font-medium">
-                        <Contract className="size-[18px] text-brand-800" />
+                        <Contract className="size-[18px] text-brand-ink" />
                         {pos.contract ? `Version ${pos.contract.version}, depuis le ${fmtDate(pos.contract.validFrom)}` : "Aucun contrat en vigueur"}
                       </h3>
                       <p className="mt-0.5 text-[13px] text-muted">Chaque commande garde la version sous laquelle elle a été passée.</p>
@@ -452,7 +452,7 @@ export default function ClientPage() {
                     {fmt(returns.own)} de votre marque, {fmt(returns.other)} d&apos;autres marques ({fmt(returnShare * 100)} %).
                   </p>
                   {returnShare > 0.5 && (
-                    <p className="mt-2 text-[13px] text-[#7a5306]">
+                    <p className="mt-2 text-[13px] text-warn-ink">
                       La majorité des vides rendues ne se remplissent pas : elles attendent l&apos;échange avec les autres sociétés et réduisent vos vides disponibles pour la production.
                     </p>
                   )}
@@ -539,7 +539,7 @@ export default function ClientPage() {
                   <span className="text-[16px] font-medium text-muted"> / 100</span>
                 </p>
               </div>
-              <button type="button" onClick={() => setExplain(true)} className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-brand-800 hover:underline">
+              <button type="button" onClick={() => setExplain(true)} className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-brand-ink hover:underline">
                 <Info className="size-4" />
                 Comment c&apos;est calculé
               </button>

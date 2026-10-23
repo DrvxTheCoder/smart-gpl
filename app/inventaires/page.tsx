@@ -254,7 +254,7 @@ function Inner() {
                     key={c.date}
                     href={`/inventaires/${r.inv.id}`}
                     aria-label={label}
-                    className="flex min-h-[78px] flex-col items-start rounded-xl border border-line bg-white p-2 transition-colors hover:border-brand-600 sm:min-h-[92px]"
+                    className="flex min-h-[78px] flex-col items-start rounded-xl border border-line bg-field p-2 transition-colors hover:border-brand-600 sm:min-h-[92px]"
                   >
                     {body}
                   </Link>

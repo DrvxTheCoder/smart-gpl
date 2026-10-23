@@ -12,7 +12,8 @@ export const metadata: Metadata = {
   description: "Production et ventes GPL : inventaires journaliers, commandes, expéditions, bouteilles par marque et grossistes.",
 };
 
-export const viewport: Viewport = { themeColor: "#e8ebe8", width: "device-width", initialScale: 1 };
+// theme-color is set by the look script, per theme.
+export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

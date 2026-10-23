@@ -346,7 +346,7 @@ export function DispatchBoard({ list, day }: { list: Dispatch[]; day: string }) 
                 <p
                   className={cn(
                     "mb-2 flex min-h-9 items-center gap-2 rounded-xl px-3 py-1.5 text-[12px] font-medium",
-                    state === "ready" && "bg-brand-100 text-brand-800",
+                    state === "ready" && "bg-brand-100 text-brand-ink",
                     state === "blocked" && "bg-warn/10 text-warn",
                     state === "invalid" && "bg-board text-muted",
                   )}
@@ -513,7 +513,7 @@ function Card({
                 onClick={onNext}
                 aria-label={`${next.label}, ${d.truck}`}
                 title={next.label}
-                className="grid size-9 shrink-0 place-items-center rounded-full text-brand-800 transition-colors hover:bg-card focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:outline-none"
+                className="grid size-9 shrink-0 place-items-center rounded-full text-brand-ink transition-colors hover:bg-card focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:outline-none"
               >
                 <ChevronRight className="size-4" />
               </button>
@@ -583,7 +583,7 @@ function MoveDialog({ id, action, onClose, onDone }: { id: string; action: Dispa
                 </>
               )}
               .{" "}
-              <Link href={sheet} className="text-brand-800 hover:underline">
+              <Link href={sheet} className="text-brand-ink hover:underline">
                 {empties + damaged ? "Corriger le comptage" : "Saisir le comptage"}
               </Link>
               <span className="mt-1 block text-[12px] text-muted">Le comptage entre au stock du magasin dès la validation, puis il est figé.</span>

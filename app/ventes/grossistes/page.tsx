@@ -148,7 +148,7 @@ function Inner() {
                         <td className="py-3 pl-3">
                           <div className="flex justify-end gap-2">
                             {w.customer.contact.phone && (
-                              <a href={`tel:${w.customer.contact.phone.replace(/\s/g, "")}`} aria-label={`Appeler ${w.customer.name}`} className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-100 text-brand-800 hover:bg-brand-200">
+                              <a href={`tel:${w.customer.contact.phone.replace(/\s/g, "")}`} aria-label={`Appeler ${w.customer.name}`} className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-100 text-brand-ink hover:bg-brand-200">
                                 <Phone className="size-4" />
                               </a>
                             )}

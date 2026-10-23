@@ -31,7 +31,7 @@ export function TonePill({ tone, children, className, title }: { tone: Tone; chi
 const badgeTone = {
   muted: "bg-board text-muted ring-1 ring-line",
   warn: "bg-warn/10 text-warn",
-  brand: "bg-brand-100 text-brand-800",
+  brand: "bg-brand-100 text-brand-ink",
   ok: "bg-ok/10 text-ok",
   alert: "bg-alert/10 text-alert",
   // Something someone still has to do: outlined, not filled.
@@ -143,7 +143,7 @@ export function Missing({ text, href, back }: { text: string; href: string; back
     <div className="grid min-h-[50vh] place-items-center text-center">
       <div>
         <p className="text-[18px] font-medium">{text}</p>
-        <Link href={href} className="mt-3 inline-block text-brand-800 underline">
+        <Link href={href} className="mt-3 inline-block text-brand-ink underline">
           {back}
         </Link>
       </div>

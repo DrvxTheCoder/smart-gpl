@@ -57,7 +57,7 @@ export default function FichePage() {
       <div className="grid min-h-[50vh] place-items-center text-center">
         <div>
           <p className="text-[18px] font-medium">Cet inventaire n&apos;existe pas.</p>
-          <Link href="/inventaires" className="mt-3 inline-block text-brand-800 underline">
+          <Link href="/inventaires" className="mt-3 inline-block text-brand-ink underline">
             Revenir à la liste des inventaires
           </Link>
         </div>
@@ -198,7 +198,7 @@ export default function FichePage() {
         <div
           className={cn(
             "mb-4 flex items-center gap-3 rounded-2xl px-4 py-3 text-[14px]",
-            editMode ? "bg-warn/12 text-[#7a5306]" : "bg-brand-100 text-brand-950",
+            editMode ? "bg-warn/12 text-warn-ink" : "bg-brand-100 text-brand-deep",
           )}
         >
           {editMode ? <Pencil className="size-4 shrink-0" /> : <Lock className="size-4 shrink-0" />}
@@ -244,7 +244,7 @@ export default function FichePage() {
           <Card>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <span className="grid size-10 place-items-center rounded-xl bg-brand-100 text-brand-800">
+                <span className="grid size-10 place-items-center rounded-xl bg-brand-100 text-brand-ink">
                   <Moon className="size-5" />
                 </span>
                 <div>
@@ -291,7 +291,7 @@ export default function FichePage() {
                           }
                           className={cn(
                             "h-9 rounded-full border px-3 text-[13px] transition-colors disabled:opacity-60",
-                            on ? "border-brand-800 bg-brand-800 text-white" : "border-line bg-white text-ink hover:border-brand-600",
+                            on ? "border-brand-800 bg-brand-800 text-white" : "border-line bg-field text-ink hover:border-brand-600",
                           )}
                         >
                           {l.name} <span className="tnum opacity-70">{l.capacityTph} T/h</span>
@@ -463,7 +463,7 @@ export default function FichePage() {
                           </dl>
                         )}
                         {tr.warnings.length > 0 && (
-                          <ul className="mt-3 space-y-1 rounded-xl bg-warn/12 px-3 py-2 text-[13px] text-[#7a5306]">
+                          <ul className="mt-3 space-y-1 rounded-xl bg-warn/12 px-3 py-2 text-[13px] text-warn-ink">
                             {tr.warnings.map((w) => (
                               <li key={w}>{w}</li>
                             ))}
@@ -715,7 +715,7 @@ export default function FichePage() {
         )}
         {!closeBlocked && needsWarningConfirm && (
           <div className="mt-4 rounded-2xl border border-warn/45 bg-warn/8 p-3 text-[14px]">
-            <ul className="space-y-1 text-[13px] text-[#7a5306]">
+            <ul className="space-y-1 text-[13px] text-warn-ink">
               {s.tankWarnings.map((w) => (
                 <li key={w}>{w}</li>
               ))}
@@ -849,7 +849,7 @@ function EcartScale({ pct, ok, warn }: { pct: number; ok: number; warn: number }
       <div className="relative h-2 rounded-full bg-alert/25">
         <span className="absolute inset-y-0 rounded-full bg-warn/45" style={{ left: `${pos(-warn)}%`, right: `${100 - pos(warn)}%` }} />
         <span className="absolute inset-y-0 rounded-full bg-ok/70" style={{ left: `${pos(-ok)}%`, right: `${100 - pos(ok)}%` }} />
-        <span className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-white bg-ink shadow transition-[left] duration-500" style={{ left: `${pos(pct)}%` }} />
+        <span className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-card bg-ink shadow transition-[left] duration-500" style={{ left: `${pos(pct)}%` }} />
       </div>
       <div className="tnum mt-1.5 flex justify-between text-[11px] text-faint">
         <span>−{range} %</span>

@@ -28,7 +28,7 @@ import { XAxis } from "./bklit/x-axis";
 
 /** Bklit's signature ease: slow in, fast middle, slow settle. */
 const EASE = "cubic-bezier(0.85, 0, 0.15, 1)";
-const SHADES = ["var(--b-950)", "var(--b-800)", "var(--b-600)", "var(--b-400)", "var(--b-200)", "#d9a441", "#9aa39e"];
+const SHADES = ["var(--b-strong)", "var(--b-800)", "var(--b-600)", "var(--b-400)", "var(--b-200)", "#d9a441", "#9aa39e"];
 
 function Hatch({ id }: { id: string }) {
   return <PatternLines id={id} width={7} height={7} orientation={["diagonal"]} stroke="var(--hatch)" strokeWidth={1.6} background="var(--card)" />;
@@ -65,7 +65,7 @@ export function WeekBars({ data, unit = "T" }: { data: BarDatum[]; unit?: string
     const rank = new Map([...closed].sort((a, b) => b.value - a.value).map((d, k) => [d.full, k]));
     return data.map((d) => {
       const r = rank.get(d.full);
-      const tone = d.state !== "closed" ? "var(--b-400)" : r === 0 ? "var(--b-950)" : r != null && r <= 2 ? "var(--b-800)" : "var(--b-400)";
+      const tone = d.state !== "closed" ? "var(--b-400)" : r === 0 ? "var(--b-strong)" : r != null && r <= 2 ? "var(--b-800)" : "var(--b-400)";
       return {
         ...d,
         tone,

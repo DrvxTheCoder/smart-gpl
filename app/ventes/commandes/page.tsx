@@ -231,7 +231,7 @@ function Inner() {
             <p className="tnum mt-2 text-[13px] text-muted">
               {toExport.length} ligne{toExport.length > 1 ? "s" : ""}, {fmtMoney(toExport.reduce((a, l) => a + l.amount, 0), cur)}
             </p>
-            {config.sales.reports.sage.placeholder && <p className="mt-2 text-[12px] text-[#7a5306]">Colonnes provisoires : à aligner sur l&apos;import Sage du client (Paramètres, Rapports).</p>}
+            {config.sales.reports.sage.placeholder && <p className="mt-2 text-[12px] text-warn-ink">Colonnes provisoires : à aligner sur l&apos;import Sage du client (Paramètres, Rapports).</p>}
             <Button variant="ghost" className="mt-3 w-full" disabled={!toExport.length} onClick={exportSage}>
               <FileSpreadsheet className="size-4" />
               Exporter en CSV
@@ -246,7 +246,7 @@ function Inner() {
                     type="button"
                     aria-pressed={query.statut === s}
                     onClick={() => setQuery({ statut: query.statut === s ? "all" : s, page: "1" })}
-                    className={cn("tnum h-9 rounded-full border px-3.5 text-[13px] transition-colors", query.statut === s ? "border-brand-800 bg-brand-800 text-white" : "border-line bg-white hover:border-brand-600")}
+                    className={cn("tnum h-9 rounded-full border px-3.5 text-[13px] transition-colors", query.statut === s ? "border-brand-800 bg-brand-800 text-white" : "border-line bg-field hover:border-brand-600")}
                   >
                     {ORDER_STATUS[s].label} {counts[s] ?? 0}
                   </button>

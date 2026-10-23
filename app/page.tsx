@@ -216,7 +216,7 @@ export default function Dashboard() {
           <CardTitle>Inventaire du jour</CardTitle>
           {todayInv ? (
             <>
-              <p className="mt-4 text-[24px] leading-tight font-semibold tracking-[-0.02em] text-brand-800">
+              <p className="mt-4 text-[24px] leading-tight font-semibold tracking-[-0.02em] text-brand-ink">
                 {cap(fmtDate(todayInv.date, { weekday: "long", day: "numeric", month: "long" }))}
               </p>
               <p className="mt-2 text-[14px] text-muted">
@@ -251,7 +251,7 @@ export default function Dashboard() {
               return (
                 <li key={i.id}>
                   <Link href={`/inventaires/${i.id}`} className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-board">
-                    <span className={"grid size-9 shrink-0 place-items-center rounded-xl text-[11px] font-semibold " + (i.status === "EN_COURS" ? "bg-warn/12 text-warn" : "bg-brand-100 text-brand-800")}>
+                    <span className={"grid size-9 shrink-0 place-items-center rounded-xl text-[11px] font-semibold " + (i.status === "EN_COURS" ? "bg-warn/12 text-warn" : "bg-brand-100 text-brand-ink")}>
                       {centre(i.centreId).code}
                     </span>
                     <span className="min-w-0 flex-1">

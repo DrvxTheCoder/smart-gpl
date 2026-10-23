@@ -175,7 +175,7 @@ function Inner() {
 function Step({ n, title }: { n: number; title: string }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="tnum grid size-7 shrink-0 place-items-center rounded-full bg-brand-100 text-[13px] font-semibold text-brand-800">{n}</span>
+      <span className="tnum grid size-7 shrink-0 place-items-center rounded-full bg-brand-100 text-[13px] font-semibold text-brand-ink">{n}</span>
       <CardTitle>{title}</CardTitle>
     </div>
   );

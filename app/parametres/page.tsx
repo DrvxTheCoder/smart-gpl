@@ -4,6 +4,8 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Cylinder, Factory, Palette, Plus, RotateCcw, SlidersHorizontal, Trash2, ArrowLeftRight, Container, Monitor, Download, FileUp, Users, Workflow, Store, FileText, ShieldUser } from "@/components/ui/icons";
 import { useStore, type Density } from "@/lib/store";
+import { useTheme } from "@/lib/use-theme";
+import type { ThemePref } from "@/lib/look";
 import { cn, fmt } from "@/lib/format";
 import type { Centre, FlowField, TankType, TenantConfig } from "@/lib/types";
 import { Button, Card, CardTitle, Dialog, Field, NumberInput, glide, inputCls, useIndicator } from "@/components/ui/primitives";
@@ -94,7 +96,7 @@ function Inner() {
           onClick={() => setCid(x.id)}
           className={cn(
             "relative h-9 rounded-full border px-3.5 text-[13px] font-medium transition-colors duration-300",
-            x.id === cid ? "border-transparent text-white" : "border-line bg-white hover:border-brand-600",
+            x.id === cid ? "border-transparent text-white" : "border-line bg-field hover:border-brand-600",
           )}
         >
           {x.name}
@@ -280,7 +282,7 @@ function Inner() {
 
               <Card>
                 <CardTitle>Aperçu de l&apos;en-tête de rapport</CardTitle>
-                <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-white">
+                <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-field">
                   <div className="flex items-center gap-3 border-b-4 border-brand-800 p-4">
                     <span className="grid size-11 place-items-center rounded-xl bg-brand-800 text-[15px] font-bold text-white">{config.branding.shortName || "—"}</span>
                     <div>
@@ -297,7 +299,7 @@ function Inner() {
                     ))}
                     <div className="mt-3 flex gap-2">
                       <span className="rounded-md bg-brand-800 px-2 py-1 text-[10px] font-semibold text-white">Stock théorique</span>
-                      <span className="rounded-md bg-brand-100 px-2 py-1 text-[10px] font-semibold text-brand-950">Stock physique</span>
+                      <span className="rounded-md bg-brand-100 px-2 py-1 text-[10px] font-semibold text-brand-deep">Stock physique</span>
                     </div>
                   </div>
                 </div>
@@ -685,9 +687,88 @@ const DENSITIES: { id: Density; label: string; sub: string }[] = [
   { id: "expanded", label: "Étendue", sub: "Occupe toute la largeur de la fenêtre, avec une marge égale sur chaque bord." },
 ];
 
+const THEMES: { id: ThemePref; label: string }[] = [
+  { id: "light", label: "Clair" },
+  { id: "dark", label: "Sombre" },
+  { id: "system", label: "Système" },
+];
+
+// Fixed swatches: each preview shows its own theme, whatever the current one.
+const SWATCH = {
+  light: { canvas: "#e8ebe8", card: "#fbfcfb", line: "#e1e6e2", fill: "color-mix(in oklab, var(--brand) 82%, #04110a)" },
+  dark: { canvas: "#0b100d", card: "#18201b", line: "#27322b", fill: "color-mix(in oklab, var(--brand) 90%, white)" },
+};
+
+function ThemePreview({ t }: { t: keyof typeof SWATCH }) {
+  const c = SWATCH[t];
+  return (
+    <span className="flex h-full gap-1 p-1.5" style={{ background: c.canvas }}>
+      <span className="w-3 rounded-md" style={{ background: c.card }} />
+      <span className="flex flex-1 flex-col gap-1">
+        <span className="h-3 rounded-md" style={{ background: c.card }} />
+        <span className="flex flex-1 flex-col justify-end gap-1 rounded-md p-1.5" style={{ background: c.card }}>
+          <span className="h-1.5 w-2/3 rounded-full" style={{ background: c.line }} />
+          <span className="h-3 w-1/2 rounded-full" style={{ background: c.fill }} />
+        </span>
+      </span>
+    </span>
+  );
+}
+
+function ThemeCard() {
+  const { pref, setTheme } = useTheme();
+  return (
+    <Card>
+      <CardTitle>Thème</CardTitle>
+      <p className="mt-1 text-[13px] text-muted">Clair, sombre, ou celui du système. Préférence propre à cet appareil.</p>
+      <div className="mt-5 grid grid-cols-3 gap-3" role="radiogroup" aria-label="Thème">
+        {THEMES.map((t) => {
+          const on = pref === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                setTheme(t.id, { x: r.left + r.width / 2, y: r.top + r.height / 2 });
+              }}
+              className={cn("rounded-2xl border p-3 text-left transition-colors", on ? "border-brand-800 border-3" : "border-line hover:border-faint")}
+            >
+              <span aria-hidden className="relative block h-24 overflow-hidden rounded-xl ring-1 ring-line">
+                {t.id === "system" ? (
+                  <>
+                    <span className="absolute inset-0">
+                      <ThemePreview t="light" />
+                    </span>
+                    <span className="absolute inset-0 [clip-path:polygon(100%_0,100%_100%,0_100%)]">
+                      <ThemePreview t="dark" />
+                    </span>
+                  </>
+                ) : (
+                  <ThemePreview t={t.id} />
+                )}
+              </span>
+              <span className="mt-3 flex items-center justify-between gap-2 text-[14px] font-medium">
+                {t.label}
+                <span className={cn("grid size-4 place-items-center rounded-full border", on ? "border-brand-800" : "border-line")}>
+                  {on && <span className="size-2 rounded-full bg-brand-800" />}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
 function DisplayPanel() {
   const { density, setDensity } = useStore();
   return (
+    <div className="space-y-4">
+    <ThemeCard />
     <Card>
       <CardTitle>Largeur de l&apos;interface</CardTitle>
       <p className="mt-1 text-[13px] text-muted">Préférence propre à cet appareil.</p>
@@ -705,10 +786,10 @@ function DisplayPanel() {
             >
               <span aria-hidden className="flex h-24 justify-center rounded-xl bg-board p-1.5">
                 <span className={cn("flex gap-1 transition-[width] duration-300", d.id === "compact" ? "w-[64%]" : "w-full")}>
-                  <span className="w-3 rounded-md bg-white" />
+                  <span className="w-3 rounded-md bg-card" />
                   <span className="flex flex-1 flex-col gap-1">
-                    <span className="h-3 rounded-md bg-white" />
-                    <span className="flex-1 rounded-md bg-white" />
+                    <span className="h-3 rounded-md bg-card" />
+                    <span className="flex-1 rounded-md bg-card" />
                   </span>
                 </span>
               </span>
@@ -725,6 +806,7 @@ function DisplayPanel() {
         })}
       </div>
     </Card>
+    </div>
   );
 }
 

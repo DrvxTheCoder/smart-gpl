@@ -85,7 +85,7 @@ export function CustomerDialog({ open, onClose, customer }: { open: boolean; onC
                   type="button"
                   aria-pressed={on}
                   onClick={() => set({ centreIds: on ? f.centreIds.filter((x) => x !== c.id) : [...f.centreIds, c.id] })}
-                  className={cn("h-10 rounded-full border px-3.5 text-[13px] transition-colors", on ? "border-brand-800 bg-brand-800 text-white" : "border-line bg-white hover:border-brand-600")}
+                  className={cn("h-10 rounded-full border px-3.5 text-[13px] transition-colors", on ? "border-brand-800 bg-brand-800 text-white" : "border-line bg-field hover:border-brand-600")}
                 >
                   {c.name}
                 </button>

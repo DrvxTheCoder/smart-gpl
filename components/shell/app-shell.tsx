@@ -34,6 +34,7 @@ import { fillState } from "@/lib/sales/stock";
 import { useStore } from "@/lib/store";
 import { COLLAPSED_KEY } from "@/lib/keys";
 import { setRail } from "@/lib/look";
+import { ThemeToggle } from "./theme-toggle";
 import { useSalesMaybe } from "@/lib/sales/store";
 import { wholesalerStatuses } from "@/lib/sales/alerts";
 import { Select } from "@/components/ui/select";
@@ -189,7 +190,7 @@ function useRailTooltip(enabled: boolean) {
     <div
       ref={tipRef}
       aria-hidden
-      className="pointer-events-none fixed top-0 left-0 z-50 hidden h-6 items-center rounded-md bg-brand-950 px-2 text-[11px] font-medium whitespace-nowrap text-white opacity-0 shadow-[0_10px_24px_-10px_rgba(4,17,10,0.55)] lg:flex"
+      className="pointer-events-none fixed top-0 left-0 z-50 hidden h-6 items-center rounded-md bg-brand-950 px-2 text-[11px] font-medium whitespace-nowrap text-white opacity-0 shadow-[0_10px_24px_-10px_rgba(4,17,10,0.55)] dark:ring-1 dark:ring-white/10 lg:flex"
     >
       <span className="absolute top-1/2 -left-1 size-2 -translate-y-1/2 rotate-45 rounded-xs bg-brand-950" />
       <span className="relative">{text}</span>
@@ -291,8 +292,8 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
       >
         <div className="flex items-center justify-between">
           <Link href={moduleDef(mod).home} className="flex items-center gap-1 rounded-xl" onClick={onClose} {...bind(PRODUCT)}>
-            <span className="grid size-11 shrink-0 place-items-center text-brand-800">
-              <Logo className="size-8" />
+            <span className="grid size-11 shrink-0 place-items-center text-brand-ink">
+              <Logo className="size-8 text-brand-800" />
             </span>
             <span className={cn("text-[22px] font-extrabold tracking-[-0.02em] text-nowrap", fade)}>{PRODUCT}</span>
           </Link>
@@ -329,7 +330,7 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
                       className={cn(itemCls, active ? "font-semibold text-ink" : "text-muted hover:bg-card/70 hover:text-ink")}
                       {...bind(count ? `${label} · ${what}` : label)}
                     >
-                      <Icon className={cn("size-[19px] shrink-0", active && "text-brand-800")} strokeWidth={active ? 2.1 : 1.7} />
+                      <Icon className={cn("size-[19px] shrink-0", active && "text-brand-ink")} strokeWidth={active ? 2.1 : 1.7} />
                       <span className={fade}>{label}</span>
                       {count > 0 && (
                         <>
@@ -367,7 +368,7 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
                 className={cn(itemCls, current === "/parametres" ? "font-semibold text-ink" : "text-muted hover:bg-card/70 hover:text-ink")}
                 {...bind("Paramètres")}
               >
-                <Settings2 className={cn("size-[19px] shrink-0", current === "/parametres" && "text-brand-800")} strokeWidth={current === "/parametres" ? 2.1 : 1.7} />
+                <Settings2 className={cn("size-[19px] shrink-0", current === "/parametres" && "text-brand-ink")} strokeWidth={current === "/parametres" ? 2.1 : 1.7} />
                 <span className={fade}>Paramètres</span>
               </Link>
             </li>
@@ -553,6 +554,7 @@ function Topbar({ onMenu, collapsed, onCollapse, raised }: { onMenu: () => void;
         <div className="hidden md:block">
           <CentreSwitcher />
         </div>
+        <ThemeToggle />
         <AlertBell />
         <Link href="/parametres" className="flex items-center gap-2.5 rounded-full pr-2" aria-label={`Paramètres du compte de ${name}`}>
           <span className="grid size-11 place-items-center rounded-full bg-[#f2cdb8] text-[14px] font-semibold text-[#5b2f19]">{initials}</span>

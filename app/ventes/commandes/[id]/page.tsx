@@ -123,7 +123,7 @@ export default function CommandePage() {
           </div>
           <p className="mt-1 text-[15px] text-muted">
             {customer ? (
-              <Link href={`/ventes/clients/${customer.id}`} className="text-brand-800 hover:underline">
+              <Link href={`/ventes/clients/${customer.id}`} className="text-brand-ink hover:underline">
                 {customer.name}
               </Link>
             ) : (
@@ -166,7 +166,7 @@ export default function CommandePage() {
       </div>
 
       {!draft && (
-        <div className={cn("mb-4 flex items-start gap-3 rounded-2xl px-4 py-3 text-[14px]", order.status === "ANNULEE" ? "bg-alert/8 text-alert" : "bg-brand-100 text-brand-950")}>
+        <div className={cn("mb-4 flex items-start gap-3 rounded-2xl px-4 py-3 text-[14px]", order.status === "ANNULEE" ? "bg-alert/8 text-alert" : "bg-brand-100 text-brand-deep")}>
           <Lock className="mt-0.5 size-4 shrink-0" />
           <span>
             {order.status === "ANNULEE"
@@ -189,7 +189,7 @@ export default function CommandePage() {
       {replaces && (
         <p className="mb-4 text-[14px] text-muted">
           Rectifie{" "}
-          <Link href={`/ventes/commandes/${replaces.id}`} className="text-brand-800 underline">
+          <Link href={`/ventes/commandes/${replaces.id}`} className="text-brand-ink underline">
             {replaces.number}
           </Link>
           .
@@ -258,7 +258,7 @@ export default function CommandePage() {
                     </tfoot>
                   </table>
                   {order.reliquats.length > 0 && (
-                    <ul className="mt-4 space-y-1 rounded-2xl bg-warn/10 px-4 py-3 text-[13px] text-[#7a5306]">
+                    <ul className="mt-4 space-y-1 rounded-2xl bg-warn/10 px-4 py-3 text-[13px] text-warn-ink">
                       {order.reliquats.map((r, i) => (
                         <li key={i}>
                           Reliquat {label(r.formatId)} : {fmt(r.qty)}, {config.sales.reasons.reliquat.find((x) => x.code === r.reason)?.label.toLowerCase() ?? r.reason} ({r.by}, {fmtDate(dayOf(r.at), { day: "numeric", month: "short" })})
@@ -280,7 +280,7 @@ export default function CommandePage() {
                   {trucks.map((d) => (
                     <li key={d.id}>
                       <AccessLink href={`/expeditions/${d.id}`} className="-mx-2 flex flex-wrap items-center gap-3 rounded-xl px-2 py-3 hover:bg-board" plainClassName="-mx-2 flex flex-wrap items-center gap-3 px-2 py-3">
-                        <span className="grid size-10 place-items-center rounded-xl bg-brand-100 text-brand-800">
+                        <span className="grid size-10 place-items-center rounded-xl bg-brand-100 text-brand-ink">
                           <Truck className="size-[18px]" />
                         </span>
                         <span className="min-w-0 flex-1">
@@ -390,7 +390,7 @@ export default function CommandePage() {
           </ul>
         )}
         {check && check.credit.decision !== "ALLOW" && (
-          <div className={cn("mt-4 rounded-2xl border p-3 text-[14px]", blocked ? "border-alert/40 bg-alert/6 text-alert" : "border-warn/45 bg-warn/8 text-[#7a5306]")}>
+          <div className={cn("mt-4 rounded-2xl border p-3 text-[14px]", blocked ? "border-alert/40 bg-alert/6 text-alert" : "border-warn/45 bg-warn/8 text-warn-ink")}>
             {check.credit.reasons.map((r) => (
               <p key={r}>{r}</p>
             ))}
@@ -404,7 +404,7 @@ export default function CommandePage() {
               ))}
           </div>
         )}
-        {check && check.approval.length > 0 && !blocked && <p className="mt-4 rounded-2xl bg-warn/12 p-3 text-[13px] text-[#7a5306]">Elle attendra ensuite la validation d&apos;un responsable avant le chargement.</p>}
+        {check && check.approval.length > 0 && !blocked && <p className="mt-4 rounded-2xl bg-warn/12 p-3 text-[13px] text-warn-ink">Elle attendra ensuite la validation d&apos;un responsable avant le chargement.</p>}
         {check && check.shortfalls.length > 0 && config.sales.stock.backorder === "RELIQUAT" && (
           <label className="mt-4 flex items-start gap-3 rounded-2xl border border-warn/45 bg-warn/8 p-3 text-[14px]">
             <input type="checkbox" className="mt-1 size-4 accent-[var(--warn)]" checked={ackShort} onChange={(e) => setAckShort(e.target.checked)} />

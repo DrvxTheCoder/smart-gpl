@@ -245,7 +245,7 @@ function Inner() {
                           </td>
                           <td className="py-2 pl-3 text-[12px] text-muted">
                             {disp ? (
-                              <Link href={`/expeditions/${disp.id}`} className="text-brand-800 hover:underline">
+                              <Link href={`/expeditions/${disp.id}`} className="text-brand-ink hover:underline">
                                 {disp.number}
                               </Link>
                             ) : (
@@ -447,7 +447,7 @@ function Inner() {
             </tbody>
           </table>
         </div>
-        {closing && closing !== today && open.some((d) => d < closing) && <p className="mt-3 rounded-2xl bg-warn/12 p-3 text-[13px] text-[#7a5306]">Des journées précédentes ne sont pas clôturées : pensez à les clôturer aussi.</p>}
+        {closing && closing !== today && open.some((d) => d < closing) && <p className="mt-3 rounded-2xl bg-warn/12 p-3 text-[13px] text-warn-ink">Des journées précédentes ne sont pas clôturées : pensez à les clôturer aussi.</p>}
         <div className="mt-6 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setClosing(null)}>
             Annuler

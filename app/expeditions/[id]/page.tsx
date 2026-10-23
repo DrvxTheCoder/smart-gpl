@@ -83,12 +83,12 @@ export default function ExpeditionPage() {
           </div>
           <p className="mt-1 text-[15px] text-muted">
             {customer && (
-              <AccessLink href={`/ventes/clients/${customer.id}`} className="text-brand-800 hover:underline" plainClassName="text-ink">
+              <AccessLink href={`/ventes/clients/${customer.id}`} className="text-brand-ink hover:underline" plainClassName="text-ink">
                 {customer.name}
               </AccessLink>
             )}
             , commande{" "}
-            <AccessLink href={`/ventes/commandes/${order.id}`} className="text-brand-800 hover:underline" plainClassName="text-ink">
+            <AccessLink href={`/ventes/commandes/${order.id}`} className="text-brand-ink hover:underline" plainClassName="text-ink">
               {order.number}
             </AccessLink>
             , {MODE[order.mode].toLowerCase()}, {centre?.name}
@@ -166,7 +166,7 @@ export default function ExpeditionPage() {
                     </Field>
                   </>
                 )}
-                {d.dispute && gateDone && <p className="mt-3 rounded-2xl bg-warn/12 p-3 text-[13px] text-[#7a5306]">Comptage contesté : {d.dispute}</p>}
+                {d.dispute && gateDone && <p className="mt-3 rounded-2xl bg-warn/12 p-3 text-[13px] text-warn-ink">Comptage contesté : {d.dispute}</p>}
               </div>
               {(!gateDone || d.gateIn.length > 0) && steps.gateInspection && (
                 <div className="mt-5">
@@ -234,14 +234,14 @@ export default function ExpeditionPage() {
                 )}
               </div>
               {!bulk && !loadDone && (
-                <p className={cn("mt-3 rounded-2xl p-3 text-[13px]", Object.entries(d.loaded).every(([f, n]) => n <= (ctx.fillable[f] ?? 0)) ? "bg-ok/8 text-ok" : steps.fillConfirmation ? "bg-warn/12 text-[#7a5306]" : "bg-board text-muted")}>
+                <p className={cn("mt-3 rounded-2xl p-3 text-[13px]", Object.entries(d.loaded).every(([f, n]) => n <= (ctx.fillable[f] ?? 0)) ? "bg-ok/8 text-ok" : steps.fillConfirmation ? "bg-warn/12 text-warn-ink" : "bg-board text-muted")}>
                   Rempli par la production :{" "}
                   {formats.map((b) => `${b.label} ${fmt(ctx.fillable[b.id] ?? 0)}`).join(", ")}
                   {Object.entries(d.loaded).some(([f, n]) => n > (ctx.fillable[f] ?? 0)) ? (steps.fillConfirmation ? ". Le chargement attend la confirmation du remplissage." : ". Confirmation indicative : elle ne bloque pas le chargement.") : "."}
                 </p>
               )}
               {steps.prepayment && ctx.cash && !loadDone && (
-                <p className={cn("mt-3 rounded-2xl p-3 text-[13px]", ctx.prepaid ? "bg-ok/8 text-ok" : "bg-warn/12 text-[#7a5306]")}>
+                <p className={cn("mt-3 rounded-2xl p-3 text-[13px]", ctx.prepaid ? "bg-ok/8 text-ok" : "bg-warn/12 text-warn-ink")}>
                   {ctx.prepaid ? "Client au comptant : règlement reçu, le chargement peut partir." : (
                     <>
                       Client au comptant : {fmtMoney(ctx.amount, cur)} à encaisser avant de charger.{" "}
@@ -281,7 +281,7 @@ export default function ExpeditionPage() {
 
           {locked && (
             <Card className="overflow-hidden p-0">
-              <div className="flex items-center gap-3 border-b-4 border-brand-800 bg-white p-5">
+              <div className="flex items-center gap-3 border-b-4 border-brand-800 bg-field p-5">
                 <span className="grid size-11 place-items-center rounded-xl bg-brand-800 text-[15px] font-bold text-white">{config.branding.shortName}</span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[15px] font-semibold">{config.branding.companyName}</p>
@@ -292,7 +292,7 @@ export default function ExpeditionPage() {
                   <p className="text-[12px] text-muted">{fmtDate(dayOf(d.slot))}</p>
                 </div>
               </div>
-              {/* <p className="bg-warn/12 px-5 py-2.5 text-[13px] font-medium text-[#7a5306]">{BL_MARK}</p> */}
+              {/* <p className="bg-warn/12 px-5 py-2.5 text-[13px] font-medium text-warn-ink">{BL_MARK}</p> */}
               <div className="grid gap-5 p-5 sm:grid-cols-3">
                 <dl className="text-[14px]">
                   <dt className="text-[12px] text-muted">Client</dt>

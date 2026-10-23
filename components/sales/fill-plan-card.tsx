@@ -56,7 +56,7 @@ export function FillPlanCard({ title, plan }: { title: string; plan: FillPlan })
         </div>
       </div>
       {plan.reasons.length > 0 && (
-        <ul className={cn("mt-4 space-y-1 rounded-2xl px-3 py-2 text-[13px]", plan.tone === "alert" ? "bg-alert/8 text-alert" : "bg-warn/12 text-[#7a5306]")}>
+        <ul className={cn("mt-4 space-y-1 rounded-2xl px-3 py-2 text-[13px]", plan.tone === "alert" ? "bg-alert/8 text-alert" : "bg-warn/12 text-warn-ink")}>
           {plan.reasons.map((r) => (
             <li key={r}>{r}</li>
           ))}

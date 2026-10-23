@@ -9,3 +9,4 @@ export const DENSITY_KEY = "jauge:density"; // a per-device display preference, 
 export const COLLAPSED_KEY = "jauge:sidebar-collapsed";
 export const SALES_KEY = "jauge:sales:v1"; // { version, overlay }: sales created on this device
 export const SESSION_KEY = "jauge:session"; // mock login: the signed-in demo account id
+export const THEME_KEY = "jauge:theme"; // "light" | "dark" | "system", per device

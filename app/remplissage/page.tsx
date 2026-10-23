@@ -112,7 +112,7 @@ function Inner() {
         </p>
       )}
       {!allowed && (
-        <p className="mb-4 flex items-center gap-2 rounded-2xl bg-brand-100 px-4 py-3 text-[14px] text-brand-950">
+        <p className="mb-4 flex items-center gap-2 rounded-2xl bg-brand-100 px-4 py-3 text-[14px] text-brand-deep">
           <Lock className="size-4 shrink-0" />
           Lecture seule : la confirmation du remplissage revient à la production. Rôle actuel : {role.label.toLowerCase()}.
         </p>

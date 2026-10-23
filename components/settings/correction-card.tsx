@@ -270,9 +270,9 @@ export function CorrectionCard({ config, setConfig, toast }: { config: TenantCon
             <dd className="tnum">{p.rows.length}</dd>
           </dl>
           {p.rows.length > 0 ? (
-            <div className="scroll-area mt-3 max-h-64 overflow-y-auto rounded-xl border border-line bg-white">
+            <div className="scroll-area mt-3 max-h-64 overflow-y-auto rounded-xl border border-line bg-field">
               <table className="tnum w-full text-[13px]">
-                <thead className="sticky top-0 bg-white text-left text-[12px] text-muted">
+                <thead className="sticky top-0 bg-field text-left text-[12px] text-muted">
                   <tr>
                     <th className="px-3 py-2 font-medium">°C</th>
                     <th className="px-3 py-2 text-right font-medium">Correction liquide</th>

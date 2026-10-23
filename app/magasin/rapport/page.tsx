@@ -44,7 +44,7 @@ function Inner() {
         </Button>
       </div>
 
-      <article className="mx-auto max-w-[900px] rounded-card bg-white p-6 text-ink print:max-w-none print:rounded-none print:p-0">
+      <article className="mx-auto max-w-[900px] rounded-card bg-card p-6 text-ink print:max-w-none print:rounded-none print:p-0">
         <header className="flex items-center gap-3 border-b-4 border-brand-800 pb-4">
           <span className="grid size-12 place-items-center rounded-xl bg-brand-800 text-[16px] font-bold text-white print:[print-color-adjust:exact]">{config.branding.shortName}</span>
           <div className="min-w-0 flex-1">
@@ -58,7 +58,7 @@ function Inner() {
             <p className="text-[12px] text-muted">{closed ? `Clôturé par ${closed.by}` : isClosed(data.closes, centre.id, day) ? "" : "Journée non clôturée : chiffres provisoires"}</p>
           </div>
         </header>
-        {t.placeholder && <p className="mt-4 rounded-lg border border-warn/45 bg-warn/8 px-3 py-2 text-[13px] font-medium text-[#7a5306]">{PLACEHOLDER}</p>}
+        {t.placeholder && <p className="mt-4 rounded-lg border border-warn/45 bg-warn/8 px-3 py-2 text-[13px] font-medium text-warn-ink">{PLACEHOLDER}</p>}
         {t.header && t.header !== PLACEHOLDER && <p className="mt-3 text-[13px] text-muted">{t.header}</p>}
         <div className="relative mt-5 overflow-x-auto print:overflow-visible">
         <table className="w-full min-w-[640px] text-[13px] print:min-w-0">

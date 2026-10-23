@@ -92,23 +92,23 @@ export function CheckPanel({ check, compact }: { check: OrderCheck; compact?: bo
         <TonePill tone={DECISION_TONE[check.credit.decision]}>{DECISION_TEXT[check.credit.decision]}</TonePill>
       </div>
       {check.credit.reasons.length > 0 && (
-        <ul className={cn("space-y-1 rounded-2xl p-3 text-[13px]", check.credit.decision === "BLOCK" ? "bg-alert/8 text-alert" : "bg-warn/12 text-[#7a5306]")}>
+        <ul className={cn("space-y-1 rounded-2xl p-3 text-[13px]", check.credit.decision === "BLOCK" ? "bg-alert/8 text-alert" : "bg-warn/12 text-warn-ink")}>
           {check.credit.reasons.map((r) => (
             <li key={r}>{r}</li>
           ))}
         </ul>
       )}
       {!compact && check.approval.length > 0 && check.credit.decision !== "BLOCK" && (
-        <p className="rounded-2xl bg-warn/12 p-3 text-[13px] text-[#7a5306]">Après confirmation, la commande attendra la validation d&apos;un responsable avant le chargement.</p>
+        <p className="rounded-2xl bg-warn/12 p-3 text-[13px] text-warn-ink">Après confirmation, la commande attendra la validation d&apos;un responsable avant le chargement.</p>
       )}
       {check.overCap.map((r) => (
-        <p key={r} className="rounded-2xl bg-warn/12 p-3 text-[13px] text-[#7a5306]">
+        <p key={r} className="rounded-2xl bg-warn/12 p-3 text-[13px] text-warn-ink">
           {r} Validation du responsable requise.
         </p>
       ))}
       {check.placementBlocked && <p className="rounded-2xl bg-alert/8 p-3 text-[13px] text-alert">{check.placementBlocked}</p>}
       {check.shortfalls.length > 0 && (
-        <p className="rounded-2xl bg-warn/12 p-3 text-[13px] text-[#7a5306]">
+        <p className="rounded-2xl bg-warn/12 p-3 text-[13px] text-warn-ink">
           Stock disponible insuffisant pour {check.shortfalls.length} format{check.shortfalls.length > 1 ? "s" : ""} :{" "}
           {config.sales.stock.backorder === "RELIQUAT" ? "la commande peut être confirmée, le manque deviendra un reliquat." : "réduisez les quantités, la politique du site bloque les commandes au-delà du disponible."}
         </p>

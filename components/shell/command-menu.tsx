@@ -11,6 +11,8 @@ import {
   Factory,
   LayoutGrid,
   Monitor,
+  Moon,
+  Sun,
   Palette,
   PanelLeftClose,
   PanelLeftOpen,
@@ -42,6 +44,7 @@ import {
   Kbd,
 } from "@/components/ui/command";
 import { useStore } from "@/lib/store";
+import { useTheme } from "@/lib/use-theme";
 import { useSalesMaybe } from "@/lib/sales/store";
 import { useAuth } from "@/lib/auth";
 import { canOpen } from "@/lib/modules";
@@ -140,9 +143,11 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
   const shownInvs = query ? sorted : sorted.slice(0, 5);
 
   // Shortcuts read the latest state without re-binding the listener.
+  const { theme, setTheme } = useTheme();
   const actions = useRef({
     openToday: () => {},
     toggleWidth: () => {},
+    toggleTheme: () => {},
     collapse: onCollapse,
   });
   actions.current = {
@@ -152,6 +157,7 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
       setDensity(next);
       toast(next === "expanded" ? "Vue étendue" : "Vue compacte", next);
     },
+    toggleTheme: () => setTheme(theme === "dark" ? "light" : "dark", { x: innerWidth / 2, y: 0 }),
     collapse: onCollapse,
   };
 
@@ -182,6 +188,7 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
       } else if (k === "n" && allowed.current.production) actions.current.openToday();
       else if (k === "m") actions.current.collapse();
       else if (k === "l") actions.current.toggleWidth();
+      else if (k === "t") actions.current.toggleTheme();
       else {
         const a = allowed.current.salesActions.find((x) => x.key.toLowerCase() === k);
         if (a) {
@@ -243,6 +250,11 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
               <Monitor />
               {density === "compact" ? "Passer en vue étendue" : "Passer en vue compacte"}
               <CommandShortcut keys={["L"]} />
+            </CommandItem>
+            <CommandItem value="theme sombre clair dark mode nuit jour" onSelect={() => run(actions.current.toggleTheme)}>
+              {theme === "dark" ? <Sun /> : <Moon />}
+              {theme === "dark" ? "Passer en thème clair" : "Passer en thème sombre"}
+              <CommandShortcut keys={["T"]} />
             </CommandItem>
           </CommandGroup>
 
@@ -336,7 +348,7 @@ export function CommandMenu({ collapsed, onCollapse }: { collapsed: boolean; onC
               <CommandItem key={c.id} value={`centre ${c.name}`} onSelect={() => run(() => setCentreId(c.id))}>
                 <Factory />
                 <span className="flex-1">{c.name}</span>
-                {centreId === c.id && <span className="text-[12px] text-brand-800">Actuel</span>}
+                {centreId === c.id && <span className="text-[12px] text-brand-ink">Actuel</span>}
               </CommandItem>
             ))}
           </CommandGroup>

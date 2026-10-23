@@ -35,7 +35,7 @@ function Inner() {
     <div className="grid min-h-dvh place-items-center bg-canvas p-4">
       <div className="w-full max-w-[920px]">
         <div className="mb-6 flex items-center gap-2.5">
-          <span className="grid size-11 place-items-center text-brand-800">
+          <span className="grid size-11 place-items-center text-brand-ink">
             <Logo className="size-10" />
           </span>
           <span className="text-[22px] font-extrabold tracking-[-0.02em]">{PRODUCT}</span>
@@ -84,7 +84,7 @@ function Inner() {
                     }}
                     className="flex min-h-16 w-full items-center gap-3 rounded-2xl bg-card p-3 text-left transition-colors hover:bg-brand-50"
                   >
-                    <span className={cn("grid size-11 shrink-0 place-items-center rounded-full text-[14px] font-semibold", a.admin ? "bg-brand-800 text-white" : "bg-brand-100 text-brand-800")}>
+                    <span className={cn("grid size-11 shrink-0 place-items-center rounded-full text-[14px] font-semibold", a.admin ? "bg-brand-800 text-white" : "bg-brand-100 text-brand-ink")}>
                       {a.name
                         .split(" ")
                         .map((p) => p[0])
