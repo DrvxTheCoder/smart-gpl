@@ -52,6 +52,7 @@ export const DEFAULT_CONFIG: TenantConfig = {
         { id: "s1", name: "Sphère S1", type: "SPHERE", capacityM3: 1000, capacityT: 570, heightMm: 12400, calcMode: "AUTOMATIC" },
         { id: "s2", name: "Sphère S2", type: "SPHERE", capacityM3: 1000, capacityT: 570, heightMm: 12400, calcMode: "AUTOMATIC" },
         { id: "c1", name: "Cigare C1", type: "CIGARE", capacityM3: 250, capacityT: 142.5, heightMm: 3600, calcMode: "AUTOMATIC" },
+        { id: "v1", name: "Citerne V1", type: "CITERNE", capacityM3: 150, capacityT: 85.5, heightMm: 7800, calcMode: "AUTOMATIC" },
       ],
       approFields: [
         { id: "butanier", label: "Butanier" },

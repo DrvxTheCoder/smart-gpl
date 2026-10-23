@@ -417,6 +417,7 @@ function Inner() {
                               options={[
                                 { value: "SPHERE", label: "Sphère" },
                                 { value: "CIGARE", label: "Cigare" },
+                                { value: "CITERNE", label: "Citerne" },
                                 { value: "AUTRE", label: "Autre" },
                               ]}
                             />

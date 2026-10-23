@@ -11,7 +11,7 @@ import type { BottleType, Branding, CalcMode, Centre, FlowField, ProductionLine,
 export const STORAGE_VERSION = 3;
 export const TEMPLATE_FORMAT = "jauge-tenant-config";
 
-const TANK_TYPES: readonly TankType[] = ["SPHERE", "CIGARE", "AUTRE"];
+const TANK_TYPES: readonly TankType[] = ["SPHERE", "CIGARE", "CITERNE", "AUTRE"];
 const CALC_MODES: readonly CalcMode[] = ["AUTOMATIC", "PERCENTAGE"];
 
 /** Full structural check. Returns the typed config only when there is no error. */

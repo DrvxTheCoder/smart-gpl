@@ -416,7 +416,7 @@ export default function FichePage() {
                           <p className="text-[16px] font-semibold">
                             {res.name}{" "}
                             <span className="text-[13px] font-normal text-muted">
-                              {res.type === "SPHERE" ? "Sphère" : res.type === "CIGARE" ? "Cigare" : "Autre"}, {fmt(res.capacityM3)} m³
+                              {res.type === "SPHERE" ? "Sphère" : res.type === "CIGARE" ? "Cigare" : res.type === "CITERNE" ? "Citerne" : "Autre"}, {fmt(res.capacityM3)} m³
                             </span>
                           </p>
                           {!tr.blocked && (

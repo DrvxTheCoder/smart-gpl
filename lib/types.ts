@@ -2,7 +2,7 @@ import type { SalesConfig } from "./sales/types";
 
 export type * from "./sales/types";
 
-export type TankType = "SPHERE" | "CIGARE" | "AUTRE";
+export type TankType = "SPHERE" | "CIGARE" | "CITERNE" | "AUTRE";
 export type CalcMode = "AUTOMATIC" | "PERCENTAGE";
 export type InventoryStatus = "EN_COURS" | "TERMINE";
 
