@@ -298,7 +298,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <DemandCard />
+      {/* <DemandCard /> */}
     </div>
   );
 }

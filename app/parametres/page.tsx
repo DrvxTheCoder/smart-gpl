@@ -1,21 +1,22 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Cylinder, Factory, Palette, Plus, RotateCcw, SlidersHorizontal, Trash2, ArrowLeftRight, Container, Monitor, Download, FileUp, Users, Workflow, Store, FileText, ShieldUser } from "@/components/ui/icons";
 import { useStore, type Density } from "@/lib/store";
-import { useTheme } from "@/lib/use-theme";
-import type { ThemePref } from "@/lib/look";
 import { cn, fmt } from "@/lib/format";
 import type { Centre, FlowField, TankType, TenantConfig } from "@/lib/types";
 import { Button, Card, CardTitle, Dialog, Field, NumberInput, glide, inputCls, useIndicator } from "@/components/ui/primitives";
 import { Select } from "@/components/ui/select";
 import { Logo, PRODUCT } from "@/components/shell/app-shell";
 import { CorrectionCard } from "@/components/settings/correction-card";
+import { ThemeCard } from "@/components/settings/theme-card";
 import { downloadText, takeFile } from "@/components/settings/files";
 import { exportTenantJson, parseTenantJson } from "@/lib/tenant-io";
 import { useSales } from "@/lib/sales/store";
-import { useAuth } from "@/lib/auth";
+import { ACCOUNTS, useAuth } from "@/lib/auth";
+import { MultiCombobox, type ComboOption } from "@/components/ui/multi-combobox";
+import { Sortable, SortableItem, byIds } from "@/components/ui/sortable";
 import { canSeeSetting } from "@/lib/settings-access";
 import { BrandsCard, ConsignmentPanel, CustomersPanel, ReportsPanel, RolesPanel, WorkflowPanel } from "@/components/settings/sales-settings";
 
@@ -69,12 +70,41 @@ function Inner() {
   const navPill = useIndicator(navRef, '[aria-current="page"]', [tab]);
   const centresRef = useRef<HTMLDivElement>(null);
   const centrePill = useIndicator(centresRef, '[aria-pressed="true"]', [cid, tab, config.centres.length]);
+  // On desktop the section panel ends at the window's bottom edge, so it
+  // scrolls on its own and the page itself never has to. Its height follows
+  // where it starts, which moves when the header wraps.
+  const gridRef = useRef<HTMLDivElement>(null);
+  const headRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const fit = () => {
+      const top = grid.getBoundingClientRect().top + window.scrollY;
+      // 32px: the main's bottom padding (sm:p-5) plus the shell's (p-3).
+      grid.style.setProperty("--panel-h", `${Math.max(window.innerHeight - top - 32, 320)}px`);
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    if (headRef.current) ro.observe(headRef.current);
+    window.addEventListener("resize", fit);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+  }, []);
   useEffect(() => {
     const t = params.get("tab") as Tab | null;
     if (t && TABS.some((x) => x.id === t)) setTab(t);
   }, [params]);
 
   const c = centre(cid);
+  // No user directory yet: the demo accounts, plus whoever already runs a centre.
+  const people = useMemo(() => {
+    const out = new Map<string, ComboOption>(ACCOUNTS.map((a) => [a.name, { value: a.name, label: a.name, sub: a.title }]));
+    for (const x of config.centres)
+      for (const m of x.managers) if (!out.has(m)) out.set(m, { value: m, label: m, sub: `Chef de production · ${x.name}` });
+    return [...out.values()].sort((a, b) => a.label.localeCompare(b.label, "fr"));
+  }, [config.centres]);
   const setCentre = (fn: (c: Centre) => Centre) => setConfig((cfg) => ({ ...cfg, centres: cfg.centres.map((x) => (x.id === cid ? fn(x) : x)) }));
   const go = (t: Tab) => {
     setTab(t);
@@ -107,7 +137,7 @@ function Inner() {
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+      <div ref={headRef} className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[34px] font-semibold tracking-[-0.03em] sm:text-[40px]">Paramètres</h1>
           <p className="mt-1 text-[15px] text-muted">Adaptez {PRODUCT} aux installations et aux habitudes de {config.branding.companyName}.</p>
@@ -195,7 +225,7 @@ function Inner() {
         )}
       </Dialog>
 
-      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <div ref={gridRef} className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
         <Card className="h-fit min-w-0 p-2.5 lg:sticky lg:top-27">
           <nav aria-label="Sections des paramètres">
             <ul ref={navRef} className="no-scrollbar relative flex gap-1 overflow-x-auto lg:flex-col">
@@ -230,7 +260,7 @@ function Inner() {
             section list stays beside it. `relative` makes it the containing
             block of absolute children (sr-only labels…): otherwise they are
             not clipped by it and stretch the page below the shell. */}
-        <div key={tab} className="panel-in scroll-area relative min-w-0 lg:-mr-2.5 lg:max-h-[calc(100dvh-140px)] lg:overflow-y-auto lg:[scrollbar-gutter:stable]">
+        <div key={tab} className="panel-in rounded-card scroll-area relative min-w-0 lg:-mr-2.5 lg:max-h-(--panel-h) lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-gutter:stable]">
           {tab === "marque" && (
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
               <Card>
@@ -249,8 +279,8 @@ function Inner() {
                   </Field>
                 </div>
 
-                <h3 className="mt-8 text-[15px] font-medium">Couleur de marque</h3>
-                <p className="text-[13px] text-muted">Une seule couleur suffit : toutes les nuances de l&apos;interface et des rapports en découlent.</p>
+                <h3 className="mt-4 text-[15px] font-medium">Couleur de marque</h3>
+                {/* <p className="text-[13px] text-muted">Choisissez la couleur de votre marque</p> */}
                 <div className="mt-4 flex flex-wrap gap-3">
                   {PRESETS.map((p) => {
                     const on = config.branding.brand.toLowerCase() === p.hex;
@@ -260,7 +290,7 @@ function Inner() {
                         type="button"
                         aria-pressed={on}
                         onClick={() => setConfig((cfg) => ({ ...cfg, branding: { ...cfg.branding, brand: p.hex } }))}
-                        className={cn("flex items-center gap-2 rounded-full border py-1.5 pr-3.5 pl-1.5 text-[13px] transition-colors", on ? "border-ink" : "border-line hover:border-faint")}
+                        className={cn("flex items-center gap-2 rounded-full border py-1.5 pr-3.5 pl-1.5 text-[13px] transition-colors cursor-pointer", on ? "border-brand-800 dark:border-ink/30 border-2" : "border-line hover:border-faint/50 border-2")}
                       >
                         <span className="size-7 rounded-full" style={{ background: p.hex }} />
                         {p.name}
@@ -303,8 +333,8 @@ function Inner() {
                     </div>
                   </div>
                 </div>
-                <div className="mt-4 flex items-center gap-2 text-[12px] text-muted">
-                  <Logo className="size-4" /> Propulsé par {PRODUCT}, mention discrète en pied de page.
+                <div className="mt-4 flex items-center gap-1.5 text-[12px] text-muted text-center">
+                  Propulsé par {" "}<Logo className="size-4 -mr-0.5" />{PRODUCT}
                 </div>
               </Card>
             </div>
@@ -334,7 +364,7 @@ function Inner() {
                   Ajouter un centre
                 </Button>
               </div>
-              <div className="mt-6 grid gap-4 sm:grid-cols-[1fr_120px]">
+              <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_120px]">
                 <Field label="Nom du centre">
                   <input className={inputCls} value={c.name} onChange={(e) => setCentre((x) => ({ ...x, name: e.target.value }))} />
                 </Field>
@@ -344,13 +374,21 @@ function Inner() {
                 <Field label="Adresse" className="sm:col-span-2">
                   <input className={inputCls} value={c.address} onChange={(e) => setCentre((x) => ({ ...x, address: e.target.value }))} />
                 </Field>
-                <Field label="Chefs de production" hint="Séparés par des virgules" className="sm:col-span-2">
-                  <input
-                    className={inputCls}
-                    value={c.managers.join(", ")}
-                    onChange={(e) => setCentre((x) => ({ ...x, managers: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) }))}
+                {/* Not a Field: its <label> would forward clicks to the chips' buttons. */}
+                <div className="flex min-w-0 flex-col gap-1.5 sm:col-span-2">
+                  <label htmlFor="centre-managers" className="text-[13px] text-muted">
+                    Chefs de production
+                  </label>
+                  <MultiCombobox
+                    id="centre-managers"
+                    value={c.managers}
+                    onChange={(managers) => setCentre((x) => ({ ...x, managers }))}
+                    options={people}
+                    placeholder="Rechercher un utilisateur"
+                    empty="Aucun utilisateur trouvé"
+                    creatable
                   />
-                </Field>
+                </div>
               </div>
 
               <div className="mt-8 flex items-baseline justify-between">
@@ -359,9 +397,12 @@ function Inner() {
                   Capacité installée : <b className="text-ink">{fmt(c.lines.reduce((a, l) => a + l.capacityTph, 0), 1)} T/h</b>
                 </p>
               </div>
-              <ul className="mt-3 space-y-2">
+              <Sortable ids={c.lines.map((l) => l.id)} onReorder={(ids) => setCentre((x) => ({ ...x, lines: byIds(x.lines, ids) }))} className="mt-3 space-y-2">
                 {c.lines.map((l) => (
-                  <li key={l.id} className="grid grid-cols-[1fr_140px_auto] items-end gap-3 rounded-2xl bg-board p-3">
+                  <SortableItem key={l.id} id={l.id} label={l.name} className="grid grid-cols-[auto_1fr_140px_auto] items-end gap-3 rounded-2xl bg-board p-3 pl-1.5">
+                    {(handle) => (
+                      <>
+                      <span className="flex h-10 items-center">{handle}</span>
                       <div className="flex items-center gap-2">
                         {/* <small>Designation</small> */}
                         <input className={cn(inputCls, "mt-1")} placeholder="Nom de la ligne" value={l.name} onChange={(e) => setCentre((x) => ({ ...x, lines: x.lines.map((y) => (y.id === l.id ? { ...y, name: e.target.value } : y)) }))} />
@@ -371,9 +412,11 @@ function Inner() {
                         <NumberInput value={l.capacityTph} onChange={(v) => setCentre((x) => ({ ...x, lines: x.lines.map((y) => (y.id === l.id ? { ...y, capacityTph: v } : y)) }))} />
                       </div>
                     <RemoveBtn label={`Supprimer ${l.name}`} disabled={c.lines.length <= 1} onClick={() => setCentre((x) => ({ ...x, lines: x.lines.filter((y) => y.id !== l.id) }))} />
-                  </li>
+                      </>
+                    )}
+                  </SortableItem>
                 ))}
-              </ul>
+              </Sortable>
               <Button
                 size="sm"
                 variant="ghost"
@@ -393,6 +436,9 @@ function Inner() {
                 <table className="w-full min-w-[960px] text-[14px]">
                   <thead>
                     <tr className="text-left text-[12px] text-muted">
+                      <th className="w-10 pb-2">
+                        <span className="sr-only">Ordre</span>
+                      </th>
                       <th className="pb-2 font-medium">Nom</th>
                       <th className="pb-2 font-medium">Type</th>
                       <th className="pb-2 font-medium">Capacité m³</th>
@@ -403,11 +449,14 @@ function Inner() {
                       <th className="pb-2" />
                     </tr>
                   </thead>
-                  <tbody>
+                  <Sortable as="tbody" ids={c.reservoirs.map((r) => r.id)} onReorder={(ids) => setCentre((x) => ({ ...x, reservoirs: byIds(x.reservoirs, ids) }))}>
                     {c.reservoirs.map((r) => {
                       const upd = (patch: Partial<typeof r>) => setCentre((x) => ({ ...x, reservoirs: x.reservoirs.map((y) => (y.id === r.id ? { ...y, ...patch } : y)) }));
                       return (
-                        <tr key={r.id} className="border-t border-line">
+                        <SortableItem as="tr" key={r.id} id={r.id} label={r.name} className="bg-card">
+                          {(handle) => (
+                          <>
+                          <td className="py-2 pr-1">{handle}</td>
                           <td className="py-2 pr-2">
                             <input aria-label="Nom" className={inputCls} value={r.name} onChange={(e) => upd({ name: e.target.value })} />
                           </td>
@@ -455,10 +504,12 @@ function Inner() {
                           <td className="py-2">
                             <RemoveBtn label={`Supprimer ${r.name}`} onClick={() => setCentre((x) => ({ ...x, reservoirs: x.reservoirs.filter((y) => y.id !== r.id) }))} />
                           </td>
-                        </tr>
+                          </>
+                          )}
+                        </SortableItem>
                       );
                     })}
-                  </tbody>
+                  </Sortable>
                 </table>
               </div>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -509,9 +560,12 @@ function Inner() {
               <Card>
                 <CardTitle>Formats de bouteilles</CardTitle>
                 <p className="mt-1 text-[13px] text-muted">Le tonnage conditionné est calculé à partir du poids unitaire. Communs à tous les centres.</p>
-                <ul className="mt-5 space-y-2">
+                <Sortable ids={config.bottleTypes.map((b) => b.id)} onReorder={(ids) => setConfig((cfg) => ({ ...cfg, bottleTypes: byIds(cfg.bottleTypes, ids) }))} className="mt-5 space-y-2">
                   {config.bottleTypes.map((b) => (
-                    <li key={b.id} className="grid grid-cols-[1fr_140px_auto] items-end gap-3 rounded-2xl bg-board p-3">
+                    <SortableItem key={b.id} id={b.id} label={b.label} className="grid grid-cols-[auto_1fr_140px_auto] items-end gap-3 rounded-2xl bg-board p-3 pl-1.5">
+                      {(handle) => (
+                      <>
+                      <span className="flex h-10 items-center">{handle}</span>
                       <Field label="Libellé">
                         <input className={inputCls} value={b.label} onChange={(e) => setConfig((cfg) => ({ ...cfg, bottleTypes: cfg.bottleTypes.map((x) => (x.id === b.id ? { ...x, label: e.target.value } : x)) }))} />
                       </Field>
@@ -523,9 +577,11 @@ function Inner() {
                         disabled={config.bottleTypes.length <= 1}
                         onClick={() => setConfig((cfg) => ({ ...cfg, bottleTypes: cfg.bottleTypes.filter((x) => x.id !== b.id) }))}
                       />
-                    </li>
+                      </>
+                      )}
+                    </SortableItem>
                   ))}
-                </ul>
+                </Sortable>
                 <Button
                   size="sm"
                   variant="ghost"
@@ -583,15 +639,20 @@ function FieldList({ title, sub, fields, onChange }: { title: string; sub: strin
     <div>
       <h3 className="text-[16px] font-medium">{title}</h3>
       <p className="text-[13px] text-muted">{sub}</p>
-      <ul className="mt-3 space-y-2">
+      <Sortable ids={fields.map((f) => f.id)} onReorder={(ids) => onChange(byIds(fields, ids))} className="mt-3 space-y-2">
         {fields.map((f) => (
-          <li key={f.id} className="flex items-center gap-2">
-            <input aria-label="Libellé" className={inputCls} value={f.label} onChange={(e) => onChange(fields.map((x) => (x.id === f.id ? { ...x, label: e.target.value } : x)))} />
-            <span className="w-8 shrink-0 text-[12px] text-faint">T</span>
-            <RemoveBtn label={`Supprimer ${f.label}`} disabled={fields.length <= 1} onClick={() => onChange(fields.filter((x) => x.id !== f.id))} />
-          </li>
+          <SortableItem key={f.id} id={f.id} label={f.label} className="-ml-2 flex items-center gap-2 rounded-xl bg-card">
+            {(handle) => (
+              <>
+                {handle}
+                <input aria-label="Libellé" className={inputCls} value={f.label} onChange={(e) => onChange(fields.map((x) => (x.id === f.id ? { ...x, label: e.target.value } : x)))} />
+                <span className="w-8 shrink-0 text-[12px] text-faint">T</span>
+                <RemoveBtn label={`Supprimer ${f.label}`} disabled={fields.length <= 1} onClick={() => onChange(fields.filter((x) => x.id !== f.id))} />
+              </>
+            )}
+          </SortableItem>
         ))}
-      </ul>
+      </Sortable>
       <form
         className="mt-3 flex gap-2"
         onSubmit={(e) => {
@@ -687,92 +748,15 @@ const DENSITIES: { id: Density; label: string; sub: string }[] = [
   { id: "expanded", label: "Étendue", sub: "Occupe toute la largeur de la fenêtre, avec une marge égale sur chaque bord." },
 ];
 
-const THEMES: { id: ThemePref; label: string }[] = [
-  { id: "light", label: "Clair" },
-  { id: "dark", label: "Sombre" },
-  { id: "system", label: "Système" },
-];
-
-// Fixed swatches: each preview shows its own theme, whatever the current one.
-const SWATCH = {
-  light: { canvas: "#e8ebe8", card: "#fbfcfb", line: "#e1e6e2", fill: "color-mix(in oklab, var(--brand) 82%, #04110a)" },
-  dark: { canvas: "#0b100d", card: "#18201b", line: "#27322b", fill: "color-mix(in oklab, var(--brand) 90%, white)" },
-};
-
-function ThemePreview({ t }: { t: keyof typeof SWATCH }) {
-  const c = SWATCH[t];
-  return (
-    <span className="flex h-full gap-1 p-1.5" style={{ background: c.canvas }}>
-      <span className="w-3 rounded-md" style={{ background: c.card }} />
-      <span className="flex flex-1 flex-col gap-1">
-        <span className="h-3 rounded-md" style={{ background: c.card }} />
-        <span className="flex flex-1 flex-col justify-end gap-1 rounded-md p-1.5" style={{ background: c.card }}>
-          <span className="h-1.5 w-2/3 rounded-full" style={{ background: c.line }} />
-          <span className="h-3 w-1/2 rounded-full" style={{ background: c.fill }} />
-        </span>
-      </span>
-    </span>
-  );
-}
-
-function ThemeCard() {
-  const { pref, setTheme } = useTheme();
-  return (
-    <Card>
-      <CardTitle>Thème</CardTitle>
-      <p className="mt-1 text-[13px] text-muted">Clair, sombre, ou celui du système. Préférence propre à cet appareil.</p>
-      <div className="mt-5 grid grid-cols-3 gap-3" role="radiogroup" aria-label="Thème">
-        {THEMES.map((t) => {
-          const on = pref === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              onClick={(e) => {
-                const r = e.currentTarget.getBoundingClientRect();
-                setTheme(t.id, { x: r.left + r.width / 2, y: r.top + r.height / 2 });
-              }}
-              className={cn("rounded-2xl border p-3 text-left transition-colors", on ? "border-brand-800 border-3" : "border-line hover:border-faint")}
-            >
-              <span aria-hidden className="relative block h-24 overflow-hidden rounded-xl ring-1 ring-line">
-                {t.id === "system" ? (
-                  <>
-                    <span className="absolute inset-0">
-                      <ThemePreview t="light" />
-                    </span>
-                    <span className="absolute inset-0 [clip-path:polygon(100%_0,100%_100%,0_100%)]">
-                      <ThemePreview t="dark" />
-                    </span>
-                  </>
-                ) : (
-                  <ThemePreview t={t.id} />
-                )}
-              </span>
-              <span className="mt-3 flex items-center justify-between gap-2 text-[14px] font-medium">
-                {t.label}
-                <span className={cn("grid size-4 place-items-center rounded-full border", on ? "border-brand-800" : "border-line")}>
-                  {on && <span className="size-2 rounded-full bg-brand-800" />}
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
 function DisplayPanel() {
   const { density, setDensity } = useStore();
   return (
-    <div className="space-y-4">
+    <div className="grid gap-4 xl:grid-cols-[auto_minmax(0,1fr)]">
     <ThemeCard />
     <Card>
       <CardTitle>Largeur de l&apos;interface</CardTitle>
       <p className="mt-1 text-[13px] text-muted">Préférence propre à cet appareil.</p>
-      <div className="mt-5 grid grid-cols-3 gap-3" role="radiogroup" aria-label="Largeur de l'interface">
+      <div className="mt-5 grid grid-cols-2 gap-3" role="radiogroup" aria-label="Largeur de l'interface">
         {DENSITIES.map((d) => {
           const on = density === d.id;
           return (
@@ -782,23 +766,22 @@ function DisplayPanel() {
               role="radio"
               aria-checked={on}
               onClick={() => setDensity(d.id)}
-              className={cn("rounded-2xl border p-3 text-left transition-colors", on ? "border-brand-800 border-3" : "border-line hover:border-faint")}
+              className={cn("rounded-2xl p-1 px-1.5 text-left transition-colors cursor-pointer", on ? "bg-brand-800" : "border-line hover:border-brand-600 border-2")}
             >
-              <span aria-hidden className="flex h-24 justify-center rounded-xl bg-board p-1.5">
+              <span aria-hidden className="flex h-24 justify-center rounded-xl bg-brand-100 p-1.5">
                 <span className={cn("flex gap-1 transition-[width] duration-300", d.id === "compact" ? "w-[64%]" : "w-full")}>
-                  <span className="w-3 rounded-md bg-card" />
+                  <span className="w-3 rounded-lg bg-brand-200" />
                   <span className="flex flex-1 flex-col gap-1">
-                    <span className="h-3 rounded-md bg-card" />
-                    <span className="flex-1 rounded-md bg-card" />
+                    <span className="h-3 rounded-md bg-brand-200" />
+                    <span className="flex-1 rounded-md bg-brand-200" />
                   </span>
                 </span>
               </span>
-              <span className="mt-3 flex justify-between items-center gap-2 text-[14px] font-medium">
-
+              <span className={cn("mt-3 flex justify-center items-center gap-2 text-[14px] font-medium", on && "text-white")}>
                 {d.label}
-                <span className={cn("grid size-4 place-items-center rounded-full border", on ? "border-brand-800" : "border-line")}>
+                {/* <span className={cn("grid size-4 place-items-center rounded-full border", on ? "border-brand-800" : "border-line")}>
                   {on && <span className="size-2 rounded-full bg-brand-800" />}
-                </span>
+                </span> */}
               </span>
               {/* <span className="mt-1 block text-[12px] text-muted">{d.sub}</span> */}
             </button>

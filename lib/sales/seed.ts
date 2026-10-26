@@ -129,7 +129,8 @@ export function generateSales(cfg: TenantConfig, inventories: Inventory[], today
   for (const inv of inventories) {
     if (inv.status !== "TERMINE") continue;
     prod.set(`${inv.centreId}|${inv.date}`, producedBottles(inv));
-    const field = cfg.centres.find((c) => c.id === inv.centreId)?.sortieFields[0]?.id;
+    const fields = cfg.centres.find((c) => c.id === inv.centreId)?.sortieFields ?? [];
+    const field = (fields.find((f) => f.id === "vrac") ?? fields[0])?.id; // same pick as the inventory form
     if (field) vracKg.set(`${inv.centreId}|${inv.date}`, Math.round((inv.sorties[field] ?? 0) * 1000));
   }
   const prevProduction = (centre: string, d: string): Qty => {

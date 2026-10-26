@@ -39,6 +39,7 @@ import {
   CylinderIcon,
   DashboardSquare01Icon,
   Delete02Icon,
+  DragDropVerticalIcon,
   FileExportIcon,
   FileImportIcon,
   Factory01Icon,
@@ -116,6 +117,7 @@ export const Info = make(InformationCircleIcon);
 
 // Actions
 export const Plus = make(Add01Icon);
+export const Grip = make(DragDropVerticalIcon);
 export const Minus = make(MinusSignIcon);
 export const Printer = make(PrinterIcon);
 export const Repeat = make(RepeatIcon);

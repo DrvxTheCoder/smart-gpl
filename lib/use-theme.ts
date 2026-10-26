@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { applyLook, readThemePref, setThemePref, systemTheme, type Theme, type ThemePref } from "./look";
+import { applyLook, readContrast, readThemePref, setContrast, setThemePref, systemTheme, type Theme, type ThemePref } from "./look";
 
 /** The device's theme preference and what it resolves to. Follows the system
     live while the preference is "system". Before mount it reports light, the
@@ -9,10 +9,12 @@ import { applyLook, readThemePref, setThemePref, systemTheme, type Theme, type T
 export function useTheme() {
   const [pref, setPref] = useState<ThemePref>("system");
   const [system, setSystem] = useState<Theme>("light");
+  const [contrast, setContrastState] = useState(false);
 
   useEffect(() => {
     setPref(readThemePref());
     setSystem(systemTheme());
+    setContrastState(readContrast());
     const mq = matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => {
       setSystem(mq.matches ? "dark" : "light");
@@ -22,6 +24,7 @@ export function useTheme() {
     // Another tab changed it.
     const onStorage = () => {
       setPref(readThemePref());
+      setContrastState(readContrast());
       applyLook();
     };
     addEventListener("storage", onStorage);
@@ -36,5 +39,10 @@ export function useTheme() {
     setThemePref(next, origin);
   }, []);
 
-  return { pref, theme: pref === "system" ? system : pref, setTheme: choose };
+  const toggleContrast = useCallback((on: boolean) => {
+    setContrastState(on);
+    setContrast(on);
+  }, []);
+
+  return { pref, theme: pref === "system" ? system : pref, setTheme: choose, contrast, setContrast: toggleContrast };
 }

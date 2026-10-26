@@ -4,15 +4,15 @@
    defaults first. The CSS reads the attributes it sets (see the `wide`,
    `rail` and `dark` variants in globals.css); React state only catches up after. */
 
-import { COLLAPSED_KEY, CONFIG_KEY, DENSITY_KEY, LEGACY_CONFIG_KEY, THEME_KEY } from "./keys";
+import { COLLAPSED_KEY, CONFIG_KEY, CONTRAST_KEY, DENSITY_KEY, LEGACY_CONFIG_KEY, THEME_KEY } from "./keys";
 
 export type ThemePref = "light" | "dark" | "system";
 export type Theme = "light" | "dark";
 
-const KEYS = { config: CONFIG_KEY, legacy: LEGACY_CONFIG_KEY, density: DENSITY_KEY, collapsed: COLLAPSED_KEY, theme: THEME_KEY };
+const KEYS = { config: CONFIG_KEY, legacy: LEGACY_CONFIG_KEY, density: DENSITY_KEY, collapsed: COLLAPSED_KEY, theme: THEME_KEY, contrast: CONTRAST_KEY };
 
 // Browser chrome colour per theme: the canvas tokens in globals.css.
-const CHROME = { light: "#e8ebe8", dark: "#0b100d" };
+const CHROME = { light: "#e8ebe8", dark: "#111113", contrast: "#000000" };
 
 // Serialised into the page: self-contained, no imports, no helpers.
 function applyLookFrom(keys: typeof KEYS, chrome: typeof CHROME) {
@@ -27,13 +27,22 @@ function applyLookFrom(keys: typeof KEYS, chrome: typeof CHROME) {
     }
     root.toggleAttribute("data-wide", localStorage.getItem(keys.density) === "expanded");
     root.toggleAttribute("data-rail", localStorage.getItem(keys.collapsed) === "1");
-    const pref = localStorage.getItem(keys.theme);
+    let pref = localStorage.getItem(keys.theme);
+    if (pref === "contrast") {
+      // Early builds stored high contrast as a theme of its own.
+      pref = "dark";
+      localStorage.setItem(keys.theme, pref);
+      localStorage.setItem(keys.contrast, "1");
+    }
+    const contrast = localStorage.getItem(keys.contrast) === "1";
     const dark = pref === "dark" || (pref !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
     root.setAttribute("data-theme", dark ? "dark" : "light");
+    if (contrast) root.setAttribute("data-contrast", "high");
+    else root.removeAttribute("data-contrast");
     root.style.colorScheme = dark ? "dark" : "light";
     const meta = document.querySelector('meta[name="theme-color"]:not([media])') || document.head.appendChild(document.createElement("meta"));
     meta.setAttribute("name", "theme-color");
-    meta.setAttribute("content", dark ? chrome.dark : chrome.light);
+    meta.setAttribute("content", dark ? (contrast ? chrome.contrast : chrome.dark) : chrome.light);
   } catch {}
 }
 
@@ -49,6 +58,7 @@ export const readThemePref = (): ThemePref => {
   try {
     const v = localStorage.getItem(THEME_KEY);
     if (v === "light" || v === "dark") return v;
+    if (v === "contrast") return "dark";
   } catch {}
   return "system";
 };
@@ -59,6 +69,26 @@ export const systemTheme = (): Theme => (matchMedia("(prefers-color-scheme: dark
     asked), the new theme spreads from it in a circle where the browser has
     view transitions; elsewhere the swap is instant, never a cascade of
     per-element colour transitions. */
+export const readContrast = () => {
+  try {
+    return localStorage.getItem(CONTRAST_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
+/** High contrast on top of the current theme. A plain, instant swap. */
+export function setContrast(on: boolean) {
+  try {
+    if (on) localStorage.setItem(CONTRAST_KEY, "1");
+    else localStorage.removeItem(CONTRAST_KEY);
+  } catch {}
+  const root = document.documentElement;
+  root.setAttribute("data-theme-switching", "");
+  applyLook();
+  requestAnimationFrame(() => requestAnimationFrame(() => root.removeAttribute("data-theme-switching")));
+}
+
 export function setThemePref(pref: ThemePref, origin?: { x: number; y: number }) {
   try {
     if (pref === "system") localStorage.removeItem(THEME_KEY);

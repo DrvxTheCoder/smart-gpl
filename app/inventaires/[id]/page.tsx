@@ -52,6 +52,10 @@ export default function FichePage() {
   const c = inv ? centre(inv.centreId) : null;
   const s = useMemo(() => (inv && c ? summarize(inv, c, config, now) : null), [inv, c, config, now]);
 
+  // Bulk shipments land in the "vrac" field wherever it sits in the order;
+  // the first field only stands in for centres without one.
+  const vracField = c?.sortieFields.find((f) => f.id === "vrac") ?? c?.sortieFields[0];
+
   if (!inv || !c || !s) {
     return (
       <div className="grid min-h-[50vh] place-items-center text-center">
@@ -397,10 +401,10 @@ export default function FichePage() {
                   <BulkShipments
                     centreId={inv.centreId}
                     date={inv.date}
-                    field={c.sortieFields[0]}
-                    entered={c.sortieFields[0] ? inv.sorties[c.sortieFields[0].id] ?? 0 : 0}
+                    field={vracField}
+                    entered={vracField ? inv.sorties[vracField.id] ?? 0 : 0}
                     editable={editable}
-                    onTake={(t) => c.sortieFields[0] && set((i) => ({ ...i, sorties: { ...i.sorties, [c.sortieFields[0].id]: t } }))}
+                    onTake={(t) => vracField && set((i) => ({ ...i, sorties: { ...i.sorties, [vracField.id]: t } }))}
                   />
                 </div>
               )}

@@ -10,3 +10,4 @@ export const COLLAPSED_KEY = "jauge:sidebar-collapsed";
 export const SALES_KEY = "jauge:sales:v1"; // { version, overlay }: sales created on this device
 export const SESSION_KEY = "jauge:session"; // mock login: the signed-in demo account id
 export const THEME_KEY = "jauge:theme"; // "light" | "dark" | "system", per device
+export const CONTRAST_KEY = "jauge:contrast"; // "1": high contrast on top of either theme
