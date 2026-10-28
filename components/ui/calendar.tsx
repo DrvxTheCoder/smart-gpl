@@ -171,7 +171,7 @@ export function Calendar({
                   className={cn(
                     "tnum relative grid size-9 place-items-center rounded-full text-[13px] transition-[background-color,color,scale] duration-200 active:scale-90 disabled:pointer-events-none",
                     sel ? "bg-brand-800 font-semibold text-white" : "hover:bg-board",
-                    !sel && d === today && "font-semibold text-brand-800 ring-1 ring-brand-600/50 ring-inset",
+                    !sel && d === today && "font-semibold text-brand-ink ring-1 ring-brand-600/50 ring-inset",
                     !sel && !inMonth && "text-faint",
                     disabled && "text-faint/60 line-through decoration-faint/50",
                   )}
@@ -270,12 +270,12 @@ function PickerTrigger({
         aria-expanded={open}
         onClick={onClick}
         className={cn(
-          "tnum flex h-10 w-full items-center gap-2 rounded-xl border border-line bg-white pl-3 text-left text-[15px] text-ink outline-none transition-[border-color,box-shadow] duration-200 hover:border-faint focus-visible:border-brand-600 disabled:pointer-events-none disabled:bg-board disabled:text-muted",
+          "tnum flex h-10 w-full items-center gap-2 rounded-xl border border-line bg-field pl-3 text-left text-[15px] text-ink outline-none transition-[border-color,box-shadow] duration-200 hover:border-faint focus-visible:border-brand-600 disabled:pointer-events-none disabled:bg-board disabled:text-muted",
           open && "border-brand-600 ring-3 ring-brand-600/12",
           onClear && text ? "pr-9" : "pr-3",
         )}
       >
-        <CalendarDays aria-hidden className={cn("size-4 shrink-0 transition-colors", open ? "text-brand-800" : "text-muted")} />
+        <CalendarDays aria-hidden className={cn("size-4 shrink-0 transition-colors", open ? "text-brand-ink" : "text-muted")} />
         <span className={cn("min-w-0 flex-1 truncate", !text && "text-faint")}>{text ?? placeholder}</span>
       </button>
       {onClear && text && !disabled && (
@@ -365,7 +365,7 @@ export function DatePicker({
                 onChange(today);
                 close(true);
               }}
-              className="h-8 rounded-full px-3 text-[13px] font-medium text-brand-800 hover:bg-brand-50 disabled:opacity-40"
+              className="h-8 rounded-full px-3 text-[13px] font-medium text-brand-ink hover:bg-brand-50 disabled:opacity-40"
             >
               Aujourd&apos;hui
             </button>

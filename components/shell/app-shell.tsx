@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import {
@@ -12,20 +12,38 @@ import {
   Settings2,
   LifeBuoy,
   LogOut,
-  Bell,
   Menu,
   X,
   FileDown,
   PanelLeftClose,
   PanelLeftOpen,
   ArrowDown,
+  ShoppingCart,
+  Store,
+  Target,
+  TrendingUp,
+  Truck,
+  Users,
+  Warehouse,
+  Factory,
 } from "@/components/ui/icons";
+import { Segmented } from "@/components/ui/primitives";
+import { useAuth } from "@/lib/auth";
+import { canOpen, moduleDef, moduleOf, MODULES, type ModuleId } from "@/lib/modules";
+import { fillState } from "@/lib/sales/stock";
 import { useStore } from "@/lib/store";
+import { COLLAPSED_KEY } from "@/lib/keys";
+import { setRail } from "@/lib/look";
+import { ThemeToggle } from "./theme-toggle";
+import { useSalesMaybe } from "@/lib/sales/store";
+import { wholesalerStatuses } from "@/lib/sales/alerts";
 import { Select } from "@/components/ui/select";
 import { CommandMenu } from "./command-menu";
 import { Island } from "./island";
+import { AlertBell } from "./alert-bell";
 import { cn } from "@/lib/format";
 import { buildYearReport } from "@/lib/year-report";
+import { ICON_PATHS, ICON_SIZE } from "@/lib/brand";
 import { failingExport } from "@/lib/dev/failing-export"; // DEV ONLY, temporary
 
 gsap.registerPlugin(useGSAP);
@@ -34,27 +52,85 @@ export const PRODUCT = "Smart GPL"; // placeholder product name
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className={className} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-      <rect x="3.5" y="3.5" width="25" height="25" rx="8.5" />
-      <path d="M9.5 20a6.5 6.5 0 0 1 13 0" />
-      <path d="M16 20l3.6-4.4" />
-      <circle cx="16" cy="20" r="1.1" fill="currentColor" stroke="none" />
+    <svg viewBox={`0 0 ${ICON_SIZE} ${ICON_SIZE}`} className={className} fill="currentColor" aria-hidden>
+      {ICON_PATHS.map((d) => (
+        <path key={d} d={d} />
+      ))}
     </svg>
   );
 }
 
-const NAV = [
-  { href: "/", label: "Tableau de bord", icon: LayoutGrid },
-  { href: "/inventaires", label: "Inventaires", icon: ClipboardList, badge: true },
-  { href: "/analyses", label: "Analyses", icon: ChartColumn },
-  { href: "/parametres", label: "Paramètres", icon: Settings2 },
-];
+type BadgeKey = "inventories" | "approvals" | "dispatches" | "late" | "fills";
+const BADGE_TEXT: Record<BadgeKey, string> = { inventories: "en cours", approvals: "à valider", dispatches: "au chargement", late: "en retard", fills: "à remplir" };
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof LayoutGrid;
+  badge?: BadgeKey;
+}
 
-const COLLAPSED_KEY = "jauge:sidebar-collapsed";
+/* Each module has its own navigation; Paramètres, help and sign-out are shared. */
+const NAV: Record<ModuleId, NavItem[]> = {
+  production: [
+    { href: "/", label: "Tableau de bord", icon: LayoutGrid },
+    { href: "/inventaires", label: "Inventaires", icon: ClipboardList, badge: "inventories" },
+    { href: "/remplissage", label: "Remplissage", icon: Factory, badge: "fills" },
+    { href: "/analyses", label: "Analyses", icon: ChartColumn },
+  ],
+  ventes: [
+    { href: "/ventes", label: "Tableau de bord", icon: TrendingUp },
+    { href: "/ventes/commandes", label: "Commandes", icon: ShoppingCart, badge: "approvals" },
+    { href: "/ventes/clients", label: "Clients", icon: Users },
+    { href: "/ventes/previsions", label: "Prévisions", icon: Target },
+    { href: "/ventes/grossistes", label: "Grossistes", icon: Store, badge: "late" },
+  ],
+  stock: [
+    { href: "/magasin", label: "Stock et bouteilles", icon: Warehouse },
+    { href: "/expeditions", label: "Expéditions", icon: Truck, badge: "dispatches" },
+  ],
+};
+
+/* Where each module was last left, so switching back returns there. */
+const lastPath: Partial<Record<ModuleId, string>> = {};
+let lastModule: ModuleId | null = null;
+
+/** The module on screen: the page's own, or for shared pages the last one visited. */
+function useCurrentModule(): ModuleId {
+  const path = usePathname();
+  const { account } = useAuth();
+  return moduleOf(path) ?? (lastModule && account?.modules.includes(lastModule) ? lastModule : account?.modules[0] ?? "production");
+}
+
+/** Switch between the modules the account may open; hidden for a single-module account. */
+function ModuleSwitcher({ onSwitch }: { onSwitch?: () => void }) {
+  const { account } = useAuth();
+  const router = useRouter();
+  const current = useCurrentModule();
+  const mods = MODULES.filter((m) => account?.modules.includes(m.id));
+  if (mods.length < 2) return null;
+  return (
+    <Segmented
+      label="Module"
+      value={current}
+      onChange={(m) => {
+        onSwitch?.();
+        router.push(lastPath[m] ?? moduleDef(m).home);
+      }}
+      options={mods.map((m) => ({ value: m.id, label: m.label }))}
+    />
+  );
+}
+
 const isDesktop = () => window.matchMedia("(min-width: 1024px)").matches;
 
-function isActive(path: string, href: string) {
-  return href === "/" ? path === "/" : path.startsWith(href);
+/** The one link to highlight: the longest href the path falls under. */
+function activeHref(path: string, items: NavItem[]) {
+  let best = "";
+  for (const href of [...items.map((i) => i.href), "/parametres"]) {
+    const hit = href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`);
+    if (hit && href.length > best.length) best = href;
+  }
+  return best;
 }
 
 /**
@@ -114,9 +190,9 @@ function useRailTooltip(enabled: boolean) {
     <div
       ref={tipRef}
       aria-hidden
-      className="pointer-events-none fixed top-0 left-0 z-50 hidden h-8 items-center rounded-lg bg-brand-950 px-2.5 text-[13px] font-medium whitespace-nowrap text-white opacity-0 shadow-[0_10px_24px_-10px_rgba(4,17,10,0.55)] lg:flex"
+      className="pointer-events-none fixed top-0 left-0 z-50 hidden h-6 items-center rounded-md bg-brand-950 px-2 text-[11px] font-medium whitespace-nowrap text-white opacity-0 shadow-[0_10px_24px_-10px_rgba(4,17,10,0.55)] dark:ring-1 dark:ring-white/10 lg:flex"
     >
-      <span className="absolute top-1/2 -left-1 size-2.5 -translate-y-1/2 rotate-45 rounded-[2px] bg-brand-950" />
+      <span className="absolute top-1/2 -left-1 size-2 -translate-y-1/2 rotate-45 rounded-xs bg-brand-950" />
       <span className="relative">{text}</span>
     </div>
   );
@@ -124,22 +200,36 @@ function useRailTooltip(enabled: boolean) {
   return { bind, tooltip, hide };
 }
 
-function SectionLabel({ collapsed, className, children }: { collapsed: boolean; className?: string; children: React.ReactNode }) {
+function SectionLabel({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
     <p className={cn("relative mb-2 h-[18px] px-1 text-[12px] font-medium whitespace-nowrap text-faint", className)}>
-      <span className={cn("transition-opacity duration-200", collapsed && "lg:opacity-0")}>{children}</span>
-      <span
-        aria-hidden
-        className={cn("absolute top-1/2 left-3 hidden h-px w-5 bg-line transition-opacity duration-300 lg:block", collapsed ? "opacity-100" : "opacity-0")}
-      />
+      <span className="transition-opacity duration-200 lg:rail:opacity-0">{children}</span>
+      <span aria-hidden className="absolute top-1/2 left-3 hidden h-px w-5 bg-line opacity-0 transition-opacity duration-300 lg:block rail:opacity-100" />
     </p>
   );
 }
 
 function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => void; collapsed: boolean }) {
   const path = usePathname();
-  const { inventories, toast, config, startJob } = useStore();
-  const openCount = inventories.filter((i) => i.status === "EN_COURS").length;
+  const { inventories, toast, config, startJob, centreId } = useStore();
+  const { logout } = useAuth();
+  const router = useRouter();
+  const mod = useCurrentModule();
+  const items = NAV[mod];
+  const sales = useSalesMaybe(); // the shell renders before the sales data is built
+  const here = (id: string) => centreId === "all" || id === centreId;
+  const late = useMemo(
+    () => (sales ? wholesalerStatuses({ cfg: config, data: sales.data, ledger: sales.ledger, today: sales.today, own: sales.own, centreId }).filter((w) => w.step).length : 0),
+    [sales, config, centreId],
+  );
+  const badges: Record<BadgeKey, number> = {
+    inventories: inventories.filter((i) => i.status === "EN_COURS").length,
+    approvals: sales?.data.orders.filter((o) => here(o.centreId) && o.status === "CONFIRMEE" && o.approval.required && !o.approval.by).length ?? 0,
+    late,
+    dispatches: sales?.data.dispatches.filter((d) => here(d.centreId) && (d.status === "EN_CHARGEMENT" || d.status === "CHARGE")).length ?? 0,
+    fills: sales?.data.orders.filter((o) => here(o.centreId) && (o.status === "CONFIRMEE" || o.status === "EXPEDIEE") && fillState(o) != null && fillState(o)?.status !== "REMPLIE").length ?? 0,
+  };
+  const current = activeHref(path, items);
   const navRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLSpanElement>(null);
   const { bind, tooltip, hide } = useRailTooltip(collapsed);
@@ -152,10 +242,26 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
       const y = link.offsetTop + link.offsetHeight / 2 - 14;
       gsap.to(railRef.current, { y, opacity: 1, duration: 0.5, ease: "power3.out" });
     },
-    { dependencies: [path], scope: navRef },
+    { dependencies: [path, mod], scope: navRef },
   );
 
   useEffect(() => hide(true), [path, hide]);
+
+  // On a short screen the nav scrolls; a fade at its foot says there is more below.
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const read = () => setMore(el.scrollTop + el.clientHeight < el.scrollHeight - 4);
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    el.addEventListener("scroll", read, { passive: true });
+    return () => {
+      ro.disconnect();
+      el.removeEventListener("scroll", read);
+    };
+  }, []);
 
   const year = new Date().getFullYear();
   const reportLabel = `Rapport annuel ${year}`;
@@ -169,77 +275,103 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
     });
 
   // Labels keep their full-width layout and are clipped by the rail, so
-  // nothing reflows while the width animates.
-  const fade = cn("transition-opacity duration-200", collapsed && "lg:pointer-events-none lg:opacity-0");
+  // nothing reflows while the width animates. The rail look comes from the
+  // data-rail attribute on <html>, set before the first paint (lib/look.ts).
+  const fade = "transition-opacity duration-200 lg:rail:pointer-events-none lg:rail:opacity-0";
   const itemCls = "relative flex h-11 w-full items-center gap-3 overflow-hidden rounded-xl px-3 text-[15px] whitespace-nowrap transition-colors";
 
   return (
     <>
       <aside
         className={cn(
-          "fixed inset-y-3 left-3 z-40 flex w-[248px] flex-col overflow-hidden rounded-[26px] bg-board p-5 transition-[translate,width,box-shadow] duration-[420ms] ease-[cubic-bezier(.2,.9,.25,1)] lg:sticky lg:top-3 lg:bottom-auto lg:z-auto lg:h-[calc(100dvh-1.5rem)] lg:shrink-0 lg:self-start lg:translate-x-0",
-          collapsed && "lg:w-[84px]",
+          "fixed inset-y-3 left-3 z-40 flex w-[248px] print:hidden flex-col overflow-hidden rounded-[26px] bg-board p-5 transition-[translate,width,box-shadow] duration-[420ms] ease-[cubic-bezier(.2,.9,.25,1)] lg:sticky lg:top-3 lg:bottom-auto lg:z-auto lg:h-[calc(100dvh-1.5rem)] lg:shrink-0 lg:self-start lg:translate-x-0",
+          "lg:rail:w-[84px]",
           open ? "translate-x-0 shadow-2xl" : "-translate-x-[110%]",
         )}
         aria-label="Navigation principale"
       >
         <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 rounded-xl" onClick={onClose} {...bind(PRODUCT)}>
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-800 text-white">
-              <Logo className="size-7" />
+          <Link href={moduleDef(mod).home} className="flex items-center gap-1 rounded-xl" onClick={onClose} {...bind(PRODUCT)}>
+            <span className="grid size-11 shrink-0 place-items-center text-brand-ink">
+              <Logo className="size-8 text-brand-800" />
             </span>
-            <span className={cn("text-[22px] font-extrabold tracking-[-0.02em]", fade)}>{PRODUCT}</span>
+            <span className={cn("text-[22px] font-extrabold tracking-[-0.02em] text-nowrap", fade)}>{PRODUCT}</span>
           </Link>
           <button className="grid size-9 place-items-center rounded-full lg:hidden" onClick={onClose} aria-label="Fermer le menu">
             <X className="size-5" />
           </button>
         </div>
 
-        <div ref={navRef} className="relative mt-8 flex-1">
-          <span ref={railRef} aria-hidden className="absolute -left-5 top-0 h-7 w-[3px] rounded-r-full bg-brand-800 opacity-0" />
-          <SectionLabel collapsed={collapsed}>Menu</SectionLabel>
-          <ul className="space-y-0.5">
-            {NAV.map(({ href, label, icon: Icon, badge }) => {
-              const active = isActive(path, href);
-              const count = badge && openCount > 0 ? openCount : 0;
-              return (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    onClick={onClose}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(itemCls, active ? "font-semibold text-ink" : "text-muted hover:bg-card/70 hover:text-ink")}
-                    {...bind(count ? `${label} · ${count} en cours` : label)}
-                  >
-                    <Icon className={cn("size-[19px] shrink-0", active && "text-brand-800")} strokeWidth={active ? 2.1 : 1.7} />
-                    <span className={fade}>{label}</span>
-                    {count > 0 && (
-                      <>
-                        <span
-                          className={cn("tnum ml-auto grid h-5 min-w-5 place-items-center rounded-md bg-brand-800 px-1 text-[11px] font-semibold text-white", fade)}
-                          aria-label={`${count} en cours`}
-                        >
-                          {count}
-                        </span>
-                        <span
-                          aria-hidden
-                          className={cn(
-                            "absolute top-2.5 left-[26px] hidden size-2 rounded-full bg-brand-800 ring-2 ring-board transition-[opacity,scale] duration-300 lg:block",
-                            collapsed ? "scale-100 opacity-100" : "scale-50 opacity-0",
-                          )}
-                        />
-                      </>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+        <div className="mt-5 lg:hidden">
+          <ModuleSwitcher onSwitch={onClose} />
+        </div>
 
-          <SectionLabel collapsed={collapsed} className="mt-7">
+        {/* Scrolls when the sections outgrow a short screen; it spans the
+            aside's padding so the rail on its left edge is not clipped. */}
+        <div
+          ref={navRef}
+          className="no-scrollbar relative -mx-5 mt-8 min-h-0 flex-1 overflow-y-auto px-5"
+          style={more ? { maskImage: "linear-gradient(to bottom, black calc(100% - 40px), transparent)", WebkitMaskImage: "linear-gradient(to bottom, black calc(100% - 40px), transparent)" } : undefined}
+        >
+          <span ref={railRef} aria-hidden className="absolute top-0 left-0 h-7 w-[3px] rounded-r-full bg-brand-800 opacity-0" />
+          <div>
+            <SectionLabel>{moduleDef(mod).label}</SectionLabel>
+            <ul className="space-y-0.5">
+              {items.map(({ href, label, icon: Icon, badge }) => {
+                const active = href === current;
+                const count = badge ? badges[badge] : 0;
+                const what = badge ? `${count} ${BADGE_TEXT[badge]}` : "";
+                return (
+                  <li key={href}>
+                    <Link
+                      href={href}
+                      onClick={onClose}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(itemCls, active ? "font-semibold text-ink" : "text-muted hover:bg-card/70 hover:text-ink")}
+                      {...bind(count ? `${label} · ${what}` : label)}
+                    >
+                      <Icon className={cn("size-[19px] shrink-0", active && "text-brand-ink")} strokeWidth={active ? 2.1 : 1.7} />
+                      <span className={fade}>{label}</span>
+                      {count > 0 && (
+                        <>
+                          <span
+                            className={cn("tnum ml-auto grid h-5 min-w-5 place-items-center rounded-md bg-brand-800 px-1 text-[11px] font-semibold text-white", fade)}
+                            aria-label={what}
+                          >
+                            {count}
+                          </span>
+                          <span
+                            aria-hidden
+                            className={cn(
+                              "absolute top-2.5 left-[26px] hidden size-2 scale-50 rounded-full bg-brand-800 opacity-0 ring-2 ring-board transition-[opacity,scale] duration-300 lg:block",
+                              "rail:scale-100 rail:opacity-100",
+                            )}
+                          />
+                        </>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          <SectionLabel className="mt-7">
             Général
           </SectionLabel>
           <ul className="space-y-0.5">
+            <li>
+              <Link
+                href="/parametres"
+                onClick={onClose}
+                aria-current={current === "/parametres" ? "page" : undefined}
+                className={cn(itemCls, current === "/parametres" ? "font-semibold text-ink" : "text-muted hover:bg-card/70 hover:text-ink")}
+                {...bind("Paramètres")}
+              >
+                <Settings2 className={cn("size-[19px] shrink-0", current === "/parametres" && "text-brand-ink")} strokeWidth={current === "/parametres" ? 2.1 : 1.7} />
+                <span className={fade}>Paramètres</span>
+              </Link>
+            </li>
             <li>
               <button
                 onClick={() => toast("Centre d'aide à venir")}
@@ -252,7 +384,10 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
             </li>
             <li>
               <button
-                onClick={() => toast("Déconnexion désactivée")}
+                onClick={() => {
+                  logout();
+                  router.replace("/connexion");
+                }}
                 className={cn(itemCls, "text-muted hover:bg-card/70 hover:text-ink")}
                 {...bind("Déconnexion")}
               >
@@ -263,11 +398,12 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
           </ul>
         </div>
 
+        {mod === "production" && (
         <div className="relative">
           <div
             className={cn(
               "surface-deep contours relative w-[208px] overflow-hidden rounded-[20px] p-4 transition-[opacity,visibility] duration-200",
-              collapsed && "lg:invisible lg:opacity-0",
+              "lg:rail:invisible lg:rail:opacity-0",
             )}
           >
             <span className="grid size-8 place-items-center rounded-full bg-white/15">
@@ -279,9 +415,9 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
               onClick={exportYear}
               className="mt-4 h-10 w-full rounded-full bg-brand-600 text-[14px] font-medium text-white ring-1 ring-white/15 hover:bg-brand-400 hover:text-brand-950"
             >
-              Exporter l&apos;année en PDF
+              Générer le PDF
             </button>
-            <DevFailingExport />
+            {/* <DevFailingExport /> */}
           </div>
           <button
             onClick={exportYear}
@@ -289,12 +425,13 @@ function Sidebar({ open, onClose, collapsed }: { open: boolean; onClose: () => v
             {...bind(`${reportLabel} (PDF)`)}
             className={cn(
               "surface-deep absolute bottom-0 left-0 hidden size-11 place-items-center rounded-xl transition-[opacity,scale,visibility] duration-300 lg:grid",
-              collapsed ? "scale-100 opacity-100" : "invisible scale-75 opacity-0",
+              "invisible scale-75 opacity-0 rail:visible rail:scale-100 rail:opacity-100",
             )}
           >
             <FileDown className="size-[18px]" />
           </button>
         </div>
+        )}
       </aside>
       {tooltip}
       {open && <div className="fixed inset-0 z-30 bg-brand-950/25 lg:hidden" onClick={onClose} aria-hidden />}
@@ -383,9 +520,12 @@ function ScrollJump({ y, max }: { y: number; max: number }) {
 }
 
 function Topbar({ onMenu, collapsed, onCollapse, raised }: { onMenu: () => void; collapsed: boolean; onCollapse: () => void; raised: boolean }) {
-  const { user, toast, inventories } = useStore();
-  const initials = user.name.split(" ").map((p) => p[0]).join("");
-  const Toggle = collapsed ? PanelLeftOpen : PanelLeftClose;
+  const { user } = useStore();
+  const { account } = useAuth();
+  const multi = (account?.modules.length ?? 0) > 1; // the module switcher takes room in the bar
+  const name = user.name;
+  const role = user.role;
+  const initials = name.split(" ").map((p) => p[0]).join("");
 
   return (
     <header
@@ -403,29 +543,24 @@ function Topbar({ onMenu, collapsed, onCollapse, raised }: { onMenu: () => void;
         aria-label={collapsed ? "Déplier le menu" : "Replier le menu"}
         aria-expanded={!collapsed}
       >
-        <Toggle className="size-4" strokeWidth={1.8} />
+        <PanelLeftClose className="size-4 rail:hidden" strokeWidth={1.8} />
+        <PanelLeftOpen className="hidden size-4 rail:block" strokeWidth={1.8} />
       </button>
+      <div className="hidden shrink-0 lg:block">
+        <ModuleSwitcher />
+      </div>
       <CommandMenu collapsed={collapsed} onCollapse={onCollapse} />
       <div className="ml-auto flex items-center gap-2.5">
         <div className="hidden md:block">
           <CentreSwitcher />
         </div>
-        <button
-          className="relative grid size-11 place-items-center rounded-full bg-card"
-          aria-label="Notifications"
-          onClick={() => {
-            const alert = inventories.find((i) => i.status === "EN_COURS");
-            toast(alert ? "Inventaire en cours" : "Aucune notification", "bell");
-          }}
-        >
-          <Bell className="size-[19px]" />
-          <span className="absolute top-2.5 right-3 size-2 rounded-full bg-alert ring-2 ring-card" />
-        </button>
-        <Link href="/parametres" className="flex items-center gap-2.5 rounded-full pr-2" aria-label={`Paramètres du compte de ${user.name}`}>
+        <ThemeToggle />
+        <AlertBell />
+        <Link href="/parametres" className="flex items-center gap-2.5 rounded-full pr-2" aria-label={`Paramètres du compte de ${name}`}>
           <span className="grid size-11 place-items-center rounded-full bg-[#f2cdb8] text-[14px] font-semibold text-[#5b2f19]">{initials}</span>
-          <span className="hidden flex-col leading-tight xl:flex">
-            <span className="text-[15px] font-medium">{user.name}</span>
-            <span className="text-[12px] text-muted">{user.role}</span>
+          <span className={cn("hidden flex-col leading-tight", multi ? "2xl:flex" : "xl:flex")}>
+            <span className="text-[15px] font-medium">{name}</span>
+            <span className="text-[12px] text-muted">{role}</span>
           </span>
         </Link>
       </div>
@@ -436,9 +571,32 @@ function Topbar({ onMenu, collapsed, onCollapse, raised }: { onMenu: () => void;
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const { ready, density } = useStore();
+  const { ready: storeReady, toast } = useStore();
+  const { ready: authReady, account } = useAuth();
+  const sales = useSalesMaybe();
   const path = usePathname();
+  const router = useRouter();
+  const allowed = !!account && canOpen(account.modules, path);
+  const ready = storeReady && !!sales && allowed;
   const mainRef = useRef<HTMLElement>(null);
+
+  // Signed out: to the login page. Outside one's modules: back to one's own.
+  useEffect(() => {
+    if (!authReady || path === "/connexion") return;
+    if (!account) router.replace(`/connexion?suite=${encodeURIComponent(path)}`);
+    else if (!canOpen(account.modules, path)) {
+      toast(`Module ${moduleDef(moduleOf(path) ?? account.modules[0]).label.toLowerCase()} réservé à ses responsables`, "warning");
+      router.replace(lastPath[account.modules[0]] ?? moduleDef(account.modules[0]).home);
+    }
+  }, [authReady, account, path, router, toast]);
+
+  useEffect(() => {
+    const m = moduleOf(path);
+    if (m) {
+      lastModule = m;
+      lastPath[m] = path;
+    }
+  }, [path]);
 
   useEffect(() => {
     try {
@@ -449,6 +607,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const toggleCollapsed = () => {
     const next = !collapsed;
     setCollapsed(next);
+    setRail(next);
     try {
       localStorage.setItem(COLLAPSED_KEY, next ? "1" : "0");
     } catch {}
@@ -479,32 +638,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { dependencies: [path, ready], scope: mainRef },
   );
 
+  if (path === "/connexion") return <>{children}</>;
+
   return (
     // Expanded fills the window, keeping the same 12px gutter on every side.
-    <div
-      className={cn(
-        "mx-auto flex min-h-dvh gap-3 p-3 transition-[max-width] duration-420 ease-[cubic-bezier(.2,.9,.25,1)]",
-        density === "expanded" ? "max-w-full" : "max-w-[1680px]",
-      )}
-    >
+    // The width comes from the data-wide attribute on <html> (lib/look.ts).
+    // overflow-clip: nothing may make the document taller than the shell,
+    // or the sticky sidebar gets pushed up past the bottom of its container.
+    // Unlike hidden, clip is no scroll container, so sticky still works;
+    // popovers and the island are fixed and escape it.
+    <div className="mx-auto flex min-h-dvh max-w-[1680px] gap-3 overflow-clip p-3 transition-[max-width] duration-420 ease-[cubic-bezier(.2,.9,.25,1)] wide:max-w-full print:p-0">
       <Sidebar open={open} onClose={() => setOpen(false)} collapsed={collapsed} />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         {/* Sticky, backed by canvas down to its middle: the gutter above and
             the top corners read as page background, while content slides
             right under its lower edge. */}
-        <div className="sticky top-0 z-20 -mt-3 pt-3">
+        <div className="sticky top-0 z-20 -mt-3 pt-3 print:hidden">
           <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-11 bg-canvas" />
           <Topbar onMenu={() => setOpen(true)} collapsed={collapsed} onCollapse={toggleCollapsed} raised={scroll.y > 0} />
         </div>
-        <main ref={mainRef} id="main" className="flex-1 rounded-[26px] bg-board p-4 sm:p-5">
-          <div className="mb-4 md:hidden">
+        <main ref={mainRef} id="main" className="flex-1 rounded-[26px] bg-board p-4 sm:p-5 print:rounded-none print:bg-white print:p-0">
+          <div className="mb-4 md:hidden print:hidden">
             <CentreSwitcher />
           </div>
           {ready ? children : <div className="grid h-[60vh] place-items-center text-muted">Chargement…</div>}
         </main>
       </div>
-      <ScrollJump y={scroll.y} max={scroll.max} />
-      <Island />
+      <div className="print:hidden">
+        <ScrollJump y={scroll.y} max={scroll.max} />
+        <Island />
+      </div>
     </div>
   );
 }

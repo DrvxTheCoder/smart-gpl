@@ -6,6 +6,7 @@ import { cn } from "@/lib/format";
 import { fillToHeightRatio, levelTone, type LevelTone } from "@/lib/tankLevel";
 import { TANK_GEOMETRY, type TankGeometry, type TankKind } from "./tankGeometry";
 import { cigarArt } from "./svg/CigarTank";
+import { citerneArt } from "./svg/CiterneTank";
 import { sphereArt } from "./svg/SphereTank";
 import type { TankArt } from "./svg/types";
 
@@ -18,6 +19,7 @@ import type { TankArt } from "./svg/types";
 const TANKS: Record<TankKind, { geometry: TankGeometry; art: TankArt }> = {
   sphere: { geometry: TANK_GEOMETRY.sphere, art: sphereArt },
   cigar: { geometry: TANK_GEOMETRY.cigar, art: cigarArt },
+  citerne: { geometry: TANK_GEOMETRY.citerne, art: citerneArt },
 };
 
 const TONE_COLOR: Record<LevelTone, string> = {

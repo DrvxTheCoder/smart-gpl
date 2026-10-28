@@ -1,4 +1,8 @@
-export type TankType = "SPHERE" | "CIGARE" | "AUTRE";
+import type { SalesConfig } from "./sales/types";
+
+export type * from "./sales/types";
+
+export type TankType = "SPHERE" | "CIGARE" | "CITERNE" | "AUTRE";
 export type CalcMode = "AUTOMATIC" | "PERCENTAGE";
 export type InventoryStatus = "EN_COURS" | "TERMINE";
 
@@ -94,6 +98,7 @@ export interface TenantConfig {
   bottleTypes: BottleType[];
   centres: Centre[];
   correction: CorrectionConfig;
+  sales: SalesConfig;
 }
 
 export interface TankReading {

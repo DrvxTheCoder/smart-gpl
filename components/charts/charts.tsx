@@ -28,7 +28,7 @@ import { XAxis } from "./bklit/x-axis";
 
 /** Bklit's signature ease: slow in, fast middle, slow settle. */
 const EASE = "cubic-bezier(0.85, 0, 0.15, 1)";
-const SHADES = ["var(--b-950)", "var(--b-800)", "var(--b-600)", "var(--b-400)", "var(--b-200)", "#d9a441", "#9aa39e"];
+const SHADES = ["var(--b-strong)", "var(--b-800)", "var(--b-600)", "var(--b-400)", "var(--b-200)", "#d9a441", "#9aa39e"];
 
 function Hatch({ id }: { id: string }) {
   return <PatternLines id={id} width={7} height={7} orientation={["diagonal"]} stroke="var(--hatch)" strokeWidth={1.6} background="var(--card)" />;
@@ -65,7 +65,7 @@ export function WeekBars({ data, unit = "T" }: { data: BarDatum[]; unit?: string
     const rank = new Map([...closed].sort((a, b) => b.value - a.value).map((d, k) => [d.full, k]));
     return data.map((d) => {
       const r = rank.get(d.full);
-      const tone = d.state !== "closed" ? "var(--b-400)" : r === 0 ? "var(--b-950)" : r != null && r <= 2 ? "var(--b-800)" : "var(--b-400)";
+      const tone = d.state !== "closed" ? "var(--b-400)" : r === 0 ? "var(--b-strong)" : r != null && r <= 2 ? "var(--b-800)" : "var(--b-400)";
       return {
         ...d,
         tone,
@@ -114,6 +114,66 @@ export function WeekBars({ data, unit = "T" }: { data: BarDatum[]; unit?: string
         {data.map((d) => (
           <li key={d.full}>
             {d.full} : {d.state === "empty" ? "pas de production" : `${fmt(d.value, 1)} ${unit}${d.state === "open" ? ", en cours" : ""}`}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------
+   Forecast vs actual: the forecast is a hatched pill (planned), what
+   happened a solid pill in front of it. Future periods show the hatch only.
+   ------------------------------------------------------------------ */
+export interface ForecastDatum {
+  label: string;
+  full: string;
+  forecast: number;
+  actual: number | null; // null: period not over yet
+}
+
+export function ForecastBars({ data, unit = "bt", labels = { plan: "Prévision", done: "Réalisé" }, barGap = 0.3 }: { data: ForecastDatum[]; unit?: string; labels?: { plan: string; done: string }; barGap?: number }) {
+  const rows = useMemo(
+    () =>
+      data.map((d) => ({
+        ...d,
+        plan: d.forecast > 0 ? d.forecast : undefined,
+        done: d.actual != null && d.actual > 0 ? d.actual : undefined,
+        tone: d.actual == null ? "var(--b-400)" : d.actual >= d.forecast * 0.95 ? "var(--b-800)" : "var(--b-600)",
+      })),
+    [data],
+  );
+  const current = data.find((d) => d.actual == null)?.label;
+  const row = (v: number | null) => (v == null ? "À venir" : `${fmt(v)} ${unit}`);
+  return (
+    <div className="relative h-full overflow-x-clip">
+      <BarChart data={rows} xDataKey="label" aspectRatio="auto" className="h-full" margin={{ top: 8, right: 0, bottom: 34, left: 0 }} barGap={barGap} animationDuration={1100} animationEasing={EASE}>
+        <Hatch id="fc-hatch" />
+        <Grid horizontal numTicksRows={4} hideHorizontalEdgeLines />
+        <Bar dataKey="plan" overlay lineCap="pill" fill="url(#fc-hatch)" stroke="var(--hatch)" fadedOpacity={0.3} />
+        <Bar dataKey="done" overlay lineCap="pill" fill={(d) => String(d.tone)} stroke="var(--b-800)" fadedOpacity={0.3} />
+        <BarXAxis labelClassName={(l) => (l === current ? "font-semibold text-ink" : undefined)} />
+        <ChartTooltip
+          showCrosshair={false}
+          showDots={false}
+          content={({ point }) => {
+            const d = point as (typeof rows)[number];
+            return (
+              <TooltipContent
+                title={d.full}
+                rows={[
+                  { color: "var(--hatch)", label: labels.plan, value: `${fmt(d.forecast)} ${unit}` },
+                  { color: "var(--b-400)", label: labels.done, value: row(d.actual) },
+                ]}
+              />
+            );
+          }}
+        />
+      </BarChart>
+      <ul className="sr-only">
+        {data.map((d) => (
+          <li key={d.full}>
+            {d.full} : {labels.plan.toLowerCase()} {fmt(d.forecast)} {unit}, {labels.done.toLowerCase()} {row(d.actual)}
           </li>
         ))}
       </ul>

@@ -1,15 +1,14 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_CONFIG, generateInventories } from "./seed";
 import { migrateStoredConfig, storedConfig } from "./tenant-io";
 import type { Centre, Inventory, TenantConfig } from "./types";
 import type { OnProgress, ReportFile } from "./year-report";
 
-const CONFIG_KEY = "jauge:config"; // { version, config }, see STORAGE_VERSION
-const LEGACY_CONFIG_KEY = "jauge:config:v1"; // bare v1 config, migrated on boot
-const EDITS_KEY = "jauge:edits:v1"; // inventories changed on this device, by id
-const DENSITY_KEY = "jauge:density"; // a per-device display preference, not tenant config
+import { CONFIG_KEY, DENSITY_KEY, EDITS_KEY, LEGACY_CONFIG_KEY } from "./keys";
+import { useAuth } from "./auth";
+import { applyLook, setWide } from "./look";
 
 export type Density = "compact" | "expanded";
 
@@ -68,6 +67,7 @@ interface Store {
 const Ctx = createContext<Store | null>(null);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
+  const { account } = useAuth();
   const [ready, setReady] = useState(false);
   const [config, setConfigState] = useState<TenantConfig>(DEFAULT_CONFIG);
   const [inventories, setInventories] = useState<Inventory[]>([]);
@@ -78,6 +78,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const jobsRef = useRef<Job[]>([]);
   const jobSeq = useRef(0);
+
+  // The inline script already applied the saved look; this only matters after
+  // React's dev remount, which resets <html>'s attributes.
+  useLayoutEffect(applyLook, []);
 
   // Client-only boot: mock data depends on "today", and saved branding lives on this device.
   useEffect(() => {
@@ -104,9 +108,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setReady(true);
   }, []);
 
+  // Not before boot: the default config would repaint over the saved brand.
   useEffect(() => {
-    document.documentElement.style.setProperty("--brand", config.branding.brand);
-  }, [config.branding.brand]);
+    if (ready) document.documentElement.style.setProperty("--brand", config.branding.brand);
+  }, [ready, config.branding.brand]);
 
   const setConfig = useCallback((fn: (c: TenantConfig) => TenantConfig) => {
     setConfigState((prev) => {
@@ -120,6 +125,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const setDensity = useCallback((d: Density) => {
     setDensityState(d);
+    setWide(d === "expanded");
     try {
       localStorage.setItem(DENSITY_KEY, d);
     } catch {}
@@ -212,7 +218,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       density,
       setDensity,
       centre,
-      user: { name: "Awa Ndiaye", email: "a.ndiaye@baobab-energie.sn", role: "Chef de production" },
+      user: account ? { name: account.name, email: account.email, role: account.title } : { name: "", email: "", role: "" },
       toast,
       notice,
       dismissNotice,
@@ -220,7 +226,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       startJob,
       dismissJob,
     }),
-    [ready, config, setConfig, resetConfig, inventories, updateInventory, centreId, density, setDensity, centre, toast, notice, dismissNotice, jobs, startJob, dismissJob],
+    [ready, config, setConfig, resetConfig, inventories, updateInventory, centreId, density, setDensity, centre, account, toast, notice, dismissNotice, jobs, startJob, dismissJob],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -7,7 +7,7 @@ import type { TankType } from "@/lib/types";
    volume ratio onto its height.
    ------------------------------------------------------------------ */
 
-export type TankKind = "sphere" | "cigar";
+export type TankKind = "sphere" | "cigar" | "citerne";
 
 export interface Box {
   x: number;
@@ -36,6 +36,12 @@ export const TANK_GEOMETRY: Record<TankKind, TankGeometry> = {
     clipBox: { x: 11.01, y: 10.68, w: 47.48, h: 20.12 },
     model: "horizontal-cylinder",
   },
+  // Body: x 2.90–69.92, cylinder y 10.72–62.90 under the dome and rail; the liquid sits 1 inside the shell.
+  citerne: {
+    viewBox: { x: 0, y: 0, w: 72.83, h: 66.21 },
+    clipBox: { x: 3.9, y: 11.72, w: 65.02, h: 50.18 },
+    model: "vertical-cylinder",
+  },
 };
 
 /** Tallest viewBox; illustrations share one scale so a cigar keeps its size next to a sphere. */
@@ -45,5 +51,6 @@ export const TANK_REF_HEIGHT = Math.max(...Object.values(TANK_GEOMETRY).map((g) 
 export function tankKind(type: TankType): TankKind | null {
   if (type === "SPHERE") return "sphere";
   if (type === "CIGARE") return "cigar";
+  if (type === "CITERNE") return "citerne";
   return null;
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Cylinder, Factory, Palette, Plus, RotateCcw, SlidersHorizontal, Trash2, ArrowLeftRight, Container, Monitor, Download, FileUp } from "@/components/ui/icons";
+import { Cylinder, Factory, Palette, Plus, RotateCcw, SlidersHorizontal, Trash2, ArrowLeftRight, Container, Monitor, Download, FileUp, Users, Workflow, Store, FileText, ShieldUser } from "@/components/ui/icons";
 import { useStore, type Density } from "@/lib/store";
 import { cn, fmt } from "@/lib/format";
 import type { Centre, FlowField, TankType, TenantConfig } from "@/lib/types";
@@ -10,19 +10,32 @@ import { Button, Card, CardTitle, Dialog, Field, NumberInput, glide, inputCls, u
 import { Select } from "@/components/ui/select";
 import { Logo, PRODUCT } from "@/components/shell/app-shell";
 import { CorrectionCard } from "@/components/settings/correction-card";
+import { ThemeCard } from "@/components/settings/theme-card";
 import { downloadText, takeFile } from "@/components/settings/files";
 import { exportTenantJson, parseTenantJson } from "@/lib/tenant-io";
+import { useSales } from "@/lib/sales/store";
+import { ACCOUNTS, useAuth } from "@/lib/auth";
+import { MultiCombobox, type ComboOption } from "@/components/ui/multi-combobox";
+import { Sortable, SortableItem, byIds } from "@/components/ui/sortable";
+import { canSeeSetting } from "@/lib/settings-access";
+import { BrandsCard, ConsignmentPanel, CustomersPanel, ReportsPanel, RolesPanel, WorkflowPanel } from "@/components/settings/sales-settings";
 
-type Tab = "marque" | "centres" | "reservoirs" | "flux" | "bouteilles" | "regles" | "affichage";
+type Tab = "marque" | "centres" | "reservoirs" | "flux" | "bouteilles" | "regles" | "clients" | "ventes" | "consignation" | "rapports" | "roles" | "affichage";
 const TABS: { id: Tab; label: string; icon: typeof Palette; sub: string }[] = [
   { id: "marque", label: "Entreprise et marque", icon: Palette, sub: "Nom, couleur, en-têtes de rapports" },
   { id: "centres", label: "Centres et lignes", icon: Factory, sub: "Sites, responsables, capacités" },
   { id: "reservoirs", label: "Réservoirs", icon: Container, sub: "Sphères, cigares, capacités" },
   { id: "flux", label: "Entrées et sorties", icon: ArrowLeftRight, sub: "Champs propres à chaque centre" },
-  { id: "bouteilles", label: "Bouteilles", icon: Cylinder, sub: "Formats et poids unitaires" },
+  { id: "bouteilles", label: "Marques et bouteilles", icon: Cylinder, sub: "Formats, poids, marques, consignes" },
   { id: "regles", label: "Règles de calcul", icon: SlidersHorizontal, sub: "Seuils, arrêts, correction" },
+  { id: "clients", label: "Clients et contrats", icon: Users, sub: "Catégories, tarifs, solvabilité" },
+  { id: "ventes", label: "Ventes et flux", icon: Workflow, sub: "Étapes, numérotation, motifs" },
+  { id: "consignation", label: "Consignation", icon: Store, sub: "Grossistes, relances, comptages" },
+  { id: "rapports", label: "Rapports", icon: FileText, sub: "État journalier, export Sage" },
+  { id: "roles", label: "Rôles", icon: ShieldUser, sub: "Comptes et permissions" },
   { id: "affichage", label: "Affichage", icon: Monitor, sub: "Largeur de l'interface" },
 ];
+
 
 const PRESETS = [
   { name: "Forêt", hex: "#17603b" },
@@ -43,9 +56,13 @@ const slug = (s: string) =>
 
 function Inner() {
   const { config, setConfig, resetConfig, toast, centre } = useStore();
+  const { resetSales } = useSales();
+  const { account } = useAuth();
+  const tabs = TABS.filter((t) => canSeeSetting(account, t.id));
   const params = useSearchParams();
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>((params.get("tab") as Tab) || "marque");
+  const [picked, setTab] = useState<Tab>((params.get("tab") as Tab) || tabs[0].id);
+  const tab = tabs.some((t) => t.id === picked) ? picked : tabs[0].id;
   const [cid, setCid] = useState(config.centres[0].id);
   const [template, setTemplate] = useState<{ name: string; config: TenantConfig | null; errors: string[] } | null>(null);
   const templateRef = useRef<HTMLInputElement>(null);
@@ -53,12 +70,41 @@ function Inner() {
   const navPill = useIndicator(navRef, '[aria-current="page"]', [tab]);
   const centresRef = useRef<HTMLDivElement>(null);
   const centrePill = useIndicator(centresRef, '[aria-pressed="true"]', [cid, tab, config.centres.length]);
+  // On desktop the section panel ends at the window's bottom edge, so it
+  // scrolls on its own and the page itself never has to. Its height follows
+  // where it starts, which moves when the header wraps.
+  const gridRef = useRef<HTMLDivElement>(null);
+  const headRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const fit = () => {
+      const top = grid.getBoundingClientRect().top + window.scrollY;
+      // 32px: the main's bottom padding (sm:p-5) plus the shell's (p-3).
+      grid.style.setProperty("--panel-h", `${Math.max(window.innerHeight - top - 32, 320)}px`);
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    if (headRef.current) ro.observe(headRef.current);
+    window.addEventListener("resize", fit);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+  }, []);
   useEffect(() => {
     const t = params.get("tab") as Tab | null;
     if (t && TABS.some((x) => x.id === t)) setTab(t);
   }, [params]);
 
   const c = centre(cid);
+  // No user directory yet: the demo accounts, plus whoever already runs a centre.
+  const people = useMemo(() => {
+    const out = new Map<string, ComboOption>(ACCOUNTS.map((a) => [a.name, { value: a.name, label: a.name, sub: a.title }]));
+    for (const x of config.centres)
+      for (const m of x.managers) if (!out.has(m)) out.set(m, { value: m, label: m, sub: `Chef de production · ${x.name}` });
+    return [...out.values()].sort((a, b) => a.label.localeCompare(b.label, "fr"));
+  }, [config.centres]);
   const setCentre = (fn: (c: Centre) => Centre) => setConfig((cfg) => ({ ...cfg, centres: cfg.centres.map((x) => (x.id === cid ? fn(x) : x)) }));
   const go = (t: Tab) => {
     setTab(t);
@@ -80,7 +126,7 @@ function Inner() {
           onClick={() => setCid(x.id)}
           className={cn(
             "relative h-9 rounded-full border px-3.5 text-[13px] font-medium transition-colors duration-300",
-            x.id === cid ? "border-transparent text-white" : "border-line bg-white hover:border-brand-600",
+            x.id === cid ? "border-transparent text-white" : "border-line bg-field hover:border-brand-600",
           )}
         >
           {x.name}
@@ -91,43 +137,46 @@ function Inner() {
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+      <div ref={headRef} className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[34px] font-semibold tracking-[-0.03em] sm:text-[40px]">Paramètres</h1>
           <p className="mt-1 text-[15px] text-muted">Adaptez {PRODUCT} aux installations et aux habitudes de {config.branding.companyName}.</p>
         </div>
-        <div className="flex flex-wrap gap-2.5">
-          <Button variant="ghost" onClick={() => downloadText(`modele-${slug(config.branding.companyName)}.json`, exportTenantJson(config), "application/json")}>
-            <Download className="size-4" />
-            Exporter le modèle
-          </Button>
-          <Button variant="ghost" onClick={() => templateRef.current?.click()}>
-            <FileUp className="size-4" />
-            Importer un modèle
-          </Button>
-          <input
-            ref={templateRef}
-            type="file"
-            accept=".json,application/json"
-            className="hidden"
-            onChange={async (e) => {
-              const f = await takeFile(e);
-              if (!f) return;
-              const parsed = parseTenantJson(f.text);
-              setTemplate({ name: f.name, config: parsed.value, errors: parsed.errors });
-            }}
-          />
-          <Button
-            variant="ghost"
-            onClick={() => {
-              resetConfig();
-              toast("Démo restaurée", "success");
-            }}
-          >
-            <RotateCcw className="size-4" />
-            Restaurer la démo
-          </Button>
-        </div>
+        {account?.admin && (
+          <div className="flex flex-wrap gap-2.5">
+            <Button variant="ghost" onClick={() => downloadText(`modele-${slug(config.branding.companyName)}.json`, exportTenantJson(config), "application/json")}>
+              <Download className="size-4" />
+              Exporter le modèle
+            </Button>
+            <Button variant="ghost" onClick={() => templateRef.current?.click()}>
+              <FileUp className="size-4" />
+              Importer un modèle
+            </Button>
+            <input
+              ref={templateRef}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={async (e) => {
+                const f = await takeFile(e);
+                if (!f) return;
+                const parsed = parseTenantJson(f.text);
+                setTemplate({ name: f.name, config: parsed.value, errors: parsed.errors });
+              }}
+            />
+            <Button
+              variant="ghost"
+              onClick={() => {
+                resetConfig();
+                resetSales();
+                toast("Démo restaurée", "success");
+              }}
+            >
+              <RotateCcw className="size-4" />
+              Restaurer la démo
+            </Button>
+          </div>
+        )}
       </div>
 
       <Dialog open={template !== null} onClose={() => setTemplate(null)} title={template?.config ? "Appliquer ce modèle ?" : "Modèle refusé"} width="max-w-xl">
@@ -135,8 +184,8 @@ function Inner() {
           <>
             <p className="text-[14px] text-muted">
               <b className="text-ink">{template.name}</b> remplace toute la configuration : {template.config.branding.companyName}, {template.config.centres.length} centre
-              {template.config.centres.length > 1 ? "s" : ""}, {template.config.correction.profiles.length} profil{template.config.correction.profiles.length > 1 ? "s" : ""} de correction. Les inventaires
-              clôturés gardent leurs valeurs.
+              {template.config.centres.length > 1 ? "s" : ""}, {template.config.correction.profiles.length} profil{template.config.correction.profiles.length > 1 ? "s" : ""} de correction,{" "}
+              {template.config.sales.categories.length} catégorie{template.config.sales.categories.length > 1 ? "s" : ""} de clients. Les inventaires et les documents de vente validés gardent leurs valeurs.
             </p>
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setTemplate(null)}>
@@ -176,29 +225,29 @@ function Inner() {
         )}
       </Dialog>
 
-      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <Card className="h-fit p-2.5 lg:sticky lg:top-[108px]">
+      <div ref={gridRef} className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <Card className="h-fit min-w-0 p-2.5 lg:sticky lg:top-27">
           <nav aria-label="Sections des paramètres">
             <ul ref={navRef} className="no-scrollbar relative flex gap-1 overflow-x-auto lg:flex-col">
               <li
                 aria-hidden
-                className={cn("pointer-events-none absolute top-0 left-0 rounded-2xl bg-brand-800", navPill.ready && glide)}
+                className={cn("pointer-events-none absolute top-0 left-0 rounded-2xl bg-brand-800 cursor-pointer", navPill.ready && glide)}
                 style={{ transform: `translate(${navPill.x}px, ${navPill.y}px)`, width: navPill.w, height: navPill.h }}
               />
-              {TABS.map(({ id, label, sub, icon: Icon }) => (
-                <li key={id} className="shrink-0">
+              {tabs.map(({ id, label, sub, icon: Icon }) => (
+                <li key={id} className="shrink-0 ">
                   <button
                     type="button"
                     aria-current={tab === id ? "page" : undefined}
                     onClick={() => go(id)}
                     className={cn("relative flex w-full items-center gap-3 rounded-2xl p-2.5 text-left transition-colors duration-300", tab === id ? "text-white" : "hover:bg-board")}
                   >
-                    <span className={cn("grid size-9 shrink-0 place-items-center rounded-xl transition-colors duration-300", tab === id ? "bg-white/15" : "bg-board")}>
-                      <Icon className="size-[18px]" />
+                    <span className={cn("grid size-7 shrink-0 place-items-center rounded-lg transition-colors duration-300", tab === id ? "bg-white/15" : "bg-board")}>
+                      <Icon className="size-4.5" />
                     </span>
                     <span>
                       <span className="block text-[14px] font-medium">{label}</span>
-                      <span className={cn("hidden text-[12px] transition-colors duration-300 lg:block", tab === id ? "text-white/70" : "text-muted")}>{sub}</span>
+                      {/* <span className={cn("hidden text-[12px] transition-colors duration-300 lg:block", tab === id ? "text-white/70" : "text-muted")}>{sub}</span> */}
                     </span>
                   </button>
                 </li>
@@ -208,8 +257,10 @@ function Inner() {
         </Card>
 
         {/* On desktop a long section scrolls inside its own column, so the
-            section list stays beside it. */}
-        <div key={tab} className="panel-in scroll-area min-w-0 lg:-mr-2.5 lg:max-h-[calc(100dvh-140px)] lg:overflow-y-auto lg:[scrollbar-gutter:stable]">
+            section list stays beside it. `relative` makes it the containing
+            block of absolute children (sr-only labels…): otherwise they are
+            not clipped by it and stretch the page below the shell. */}
+        <div key={tab} className="panel-in rounded-card scroll-area relative min-w-0 lg:-mr-2.5 lg:max-h-(--panel-h) lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-gutter:stable]">
           {tab === "marque" && (
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
               <Card>
@@ -228,8 +279,8 @@ function Inner() {
                   </Field>
                 </div>
 
-                <h3 className="mt-8 text-[15px] font-medium">Couleur de marque</h3>
-                <p className="text-[13px] text-muted">Une seule couleur suffit : toutes les nuances de l&apos;interface et des rapports en découlent.</p>
+                <h3 className="mt-4 text-[15px] font-medium">Couleur de marque</h3>
+                {/* <p className="text-[13px] text-muted">Choisissez la couleur de votre marque</p> */}
                 <div className="mt-4 flex flex-wrap gap-3">
                   {PRESETS.map((p) => {
                     const on = config.branding.brand.toLowerCase() === p.hex;
@@ -239,7 +290,7 @@ function Inner() {
                         type="button"
                         aria-pressed={on}
                         onClick={() => setConfig((cfg) => ({ ...cfg, branding: { ...cfg.branding, brand: p.hex } }))}
-                        className={cn("flex items-center gap-2 rounded-full border py-1.5 pr-3.5 pl-1.5 text-[13px] transition-colors", on ? "border-ink" : "border-line hover:border-faint")}
+                        className={cn("flex items-center gap-2 rounded-full border py-1.5 pr-3.5 pl-1.5 text-[13px] transition-colors cursor-pointer", on ? "border-brand-800 dark:border-ink/30 border-2" : "border-line hover:border-faint/50 border-2")}
                       >
                         <span className="size-7 rounded-full" style={{ background: p.hex }} />
                         {p.name}
@@ -261,7 +312,7 @@ function Inner() {
 
               <Card>
                 <CardTitle>Aperçu de l&apos;en-tête de rapport</CardTitle>
-                <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-white">
+                <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-field">
                   <div className="flex items-center gap-3 border-b-4 border-brand-800 p-4">
                     <span className="grid size-11 place-items-center rounded-xl bg-brand-800 text-[15px] font-bold text-white">{config.branding.shortName || "—"}</span>
                     <div>
@@ -278,12 +329,12 @@ function Inner() {
                     ))}
                     <div className="mt-3 flex gap-2">
                       <span className="rounded-md bg-brand-800 px-2 py-1 text-[10px] font-semibold text-white">Stock théorique</span>
-                      <span className="rounded-md bg-brand-100 px-2 py-1 text-[10px] font-semibold text-brand-950">Stock physique</span>
+                      <span className="rounded-md bg-brand-100 px-2 py-1 text-[10px] font-semibold text-brand-deep">Stock physique</span>
                     </div>
                   </div>
                 </div>
-                <div className="mt-4 flex items-center gap-2 text-[12px] text-muted">
-                  <Logo className="size-4" /> Propulsé par {PRODUCT}, mention discrète en pied de page.
+                <div className="mt-4 flex items-center gap-1.5 text-[12px] text-muted text-center">
+                  Propulsé par {" "}<Logo className="size-4 -mr-0.5" />{PRODUCT}
                 </div>
               </Card>
             </div>
@@ -313,7 +364,7 @@ function Inner() {
                   Ajouter un centre
                 </Button>
               </div>
-              <div className="mt-6 grid gap-4 sm:grid-cols-[1fr_120px]">
+              <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_120px]">
                 <Field label="Nom du centre">
                   <input className={inputCls} value={c.name} onChange={(e) => setCentre((x) => ({ ...x, name: e.target.value }))} />
                 </Field>
@@ -323,13 +374,21 @@ function Inner() {
                 <Field label="Adresse" className="sm:col-span-2">
                   <input className={inputCls} value={c.address} onChange={(e) => setCentre((x) => ({ ...x, address: e.target.value }))} />
                 </Field>
-                <Field label="Chefs de production" hint="Séparés par des virgules" className="sm:col-span-2">
-                  <input
-                    className={inputCls}
-                    value={c.managers.join(", ")}
-                    onChange={(e) => setCentre((x) => ({ ...x, managers: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) }))}
+                {/* Not a Field: its <label> would forward clicks to the chips' buttons. */}
+                <div className="flex min-w-0 flex-col gap-1.5 sm:col-span-2">
+                  <label htmlFor="centre-managers" className="text-[13px] text-muted">
+                    Chefs de production
+                  </label>
+                  <MultiCombobox
+                    id="centre-managers"
+                    value={c.managers}
+                    onChange={(managers) => setCentre((x) => ({ ...x, managers }))}
+                    options={people}
+                    placeholder="Rechercher un utilisateur"
+                    empty="Aucun utilisateur trouvé"
+                    creatable
                   />
-                </Field>
+                </div>
               </div>
 
               <div className="mt-8 flex items-baseline justify-between">
@@ -338,9 +397,12 @@ function Inner() {
                   Capacité installée : <b className="text-ink">{fmt(c.lines.reduce((a, l) => a + l.capacityTph, 0), 1)} T/h</b>
                 </p>
               </div>
-              <ul className="mt-3 space-y-2">
+              <Sortable ids={c.lines.map((l) => l.id)} onReorder={(ids) => setCentre((x) => ({ ...x, lines: byIds(x.lines, ids) }))} className="mt-3 space-y-2">
                 {c.lines.map((l) => (
-                  <li key={l.id} className="grid grid-cols-[1fr_140px_auto] items-end gap-3 rounded-2xl bg-board p-3">
+                  <SortableItem key={l.id} id={l.id} label={l.name} className="grid grid-cols-[auto_1fr_140px_auto] items-end gap-3 rounded-2xl bg-board p-3 pl-1.5">
+                    {(handle) => (
+                      <>
+                      <span className="flex h-10 items-center">{handle}</span>
                       <div className="flex items-center gap-2">
                         {/* <small>Designation</small> */}
                         <input className={cn(inputCls, "mt-1")} placeholder="Nom de la ligne" value={l.name} onChange={(e) => setCentre((x) => ({ ...x, lines: x.lines.map((y) => (y.id === l.id ? { ...y, name: e.target.value } : y)) }))} />
@@ -350,9 +412,11 @@ function Inner() {
                         <NumberInput value={l.capacityTph} onChange={(v) => setCentre((x) => ({ ...x, lines: x.lines.map((y) => (y.id === l.id ? { ...y, capacityTph: v } : y)) }))} />
                       </div>
                     <RemoveBtn label={`Supprimer ${l.name}`} disabled={c.lines.length <= 1} onClick={() => setCentre((x) => ({ ...x, lines: x.lines.filter((y) => y.id !== l.id) }))} />
-                  </li>
+                      </>
+                    )}
+                  </SortableItem>
                 ))}
-              </ul>
+              </Sortable>
               <Button
                 size="sm"
                 variant="ghost"
@@ -372,6 +436,9 @@ function Inner() {
                 <table className="w-full min-w-[960px] text-[14px]">
                   <thead>
                     <tr className="text-left text-[12px] text-muted">
+                      <th className="w-10 pb-2">
+                        <span className="sr-only">Ordre</span>
+                      </th>
                       <th className="pb-2 font-medium">Nom</th>
                       <th className="pb-2 font-medium">Type</th>
                       <th className="pb-2 font-medium">Capacité m³</th>
@@ -382,11 +449,14 @@ function Inner() {
                       <th className="pb-2" />
                     </tr>
                   </thead>
-                  <tbody>
+                  <Sortable as="tbody" ids={c.reservoirs.map((r) => r.id)} onReorder={(ids) => setCentre((x) => ({ ...x, reservoirs: byIds(x.reservoirs, ids) }))}>
                     {c.reservoirs.map((r) => {
                       const upd = (patch: Partial<typeof r>) => setCentre((x) => ({ ...x, reservoirs: x.reservoirs.map((y) => (y.id === r.id ? { ...y, ...patch } : y)) }));
                       return (
-                        <tr key={r.id} className="border-t border-line">
+                        <SortableItem as="tr" key={r.id} id={r.id} label={r.name} className="bg-card">
+                          {(handle) => (
+                          <>
+                          <td className="py-2 pr-1">{handle}</td>
                           <td className="py-2 pr-2">
                             <input aria-label="Nom" className={inputCls} value={r.name} onChange={(e) => upd({ name: e.target.value })} />
                           </td>
@@ -398,6 +468,7 @@ function Inner() {
                               options={[
                                 { value: "SPHERE", label: "Sphère" },
                                 { value: "CIGARE", label: "Cigare" },
+                                { value: "CITERNE", label: "Citerne" },
                                 { value: "AUTRE", label: "Autre" },
                               ]}
                             />
@@ -433,10 +504,12 @@ function Inner() {
                           <td className="py-2">
                             <RemoveBtn label={`Supprimer ${r.name}`} onClick={() => setCentre((x) => ({ ...x, reservoirs: x.reservoirs.filter((y) => y.id !== r.id) }))} />
                           </td>
-                        </tr>
+                          </>
+                          )}
+                        </SortableItem>
                       );
                     })}
-                  </tbody>
+                  </Sortable>
                 </table>
               </div>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -483,39 +556,53 @@ function Inner() {
           )}
 
           {tab === "bouteilles" && (
-            <Card>
-              <CardTitle>Formats de bouteilles</CardTitle>
-              <p className="mt-1 text-[13px] text-muted">Le tonnage conditionné est calculé à partir du poids unitaire. Communs à tous les centres.</p>
-              <ul className="mt-5 space-y-2">
-                {config.bottleTypes.map((b) => (
-                  <li key={b.id} className="grid grid-cols-[1fr_140px_auto] items-end gap-3 rounded-2xl bg-board p-3">
-                    <Field label="Libellé">
-                      <input className={inputCls} value={b.label} onChange={(e) => setConfig((cfg) => ({ ...cfg, bottleTypes: cfg.bottleTypes.map((x) => (x.id === b.id ? { ...x, label: e.target.value } : x)) }))} />
-                    </Field>
-                    <Field label="Poids" unit="kg">
-                      <NumberInput value={b.kg} onChange={(v) => setConfig((cfg) => ({ ...cfg, bottleTypes: cfg.bottleTypes.map((x) => (x.id === b.id ? { ...x, kg: v } : x)) }))} />
-                    </Field>
-                    <RemoveBtn
-                      label={`Supprimer ${b.label}`}
-                      disabled={config.bottleTypes.length <= 1}
-                      onClick={() => setConfig((cfg) => ({ ...cfg, bottleTypes: cfg.bottleTypes.filter((x) => x.id !== b.id) }))}
-                    />
-                  </li>
-                ))}
-              </ul>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="mt-3"
-                onClick={() => setConfig((cfg) => ({ ...cfg, bottleTypes: [...cfg.bottleTypes, { id: `b${Date.now().toString(36)}`, label: "Nouveau format", kg: 10 }] }))}
-              >
-                <Plus className="size-4" />
-                Ajouter un format
-              </Button>
-            </Card>
+            <div className="grid grid-cols-1 gap-4">
+              <Card>
+                <CardTitle>Formats de bouteilles</CardTitle>
+                <p className="mt-1 text-[13px] text-muted">Le tonnage conditionné est calculé à partir du poids unitaire. Communs à tous les centres.</p>
+                <Sortable ids={config.bottleTypes.map((b) => b.id)} onReorder={(ids) => setConfig((cfg) => ({ ...cfg, bottleTypes: byIds(cfg.bottleTypes, ids) }))} className="mt-5 space-y-2">
+                  {config.bottleTypes.map((b) => (
+                    <SortableItem key={b.id} id={b.id} label={b.label} className="grid grid-cols-[auto_1fr_140px_auto] items-end gap-3 rounded-2xl bg-board p-3 pl-1.5">
+                      {(handle) => (
+                      <>
+                      <span className="flex h-10 items-center">{handle}</span>
+                      <Field label="Libellé">
+                        <input className={inputCls} value={b.label} onChange={(e) => setConfig((cfg) => ({ ...cfg, bottleTypes: cfg.bottleTypes.map((x) => (x.id === b.id ? { ...x, label: e.target.value } : x)) }))} />
+                      </Field>
+                      <Field label="Poids" unit="kg">
+                        <NumberInput value={b.kg} onChange={(v) => setConfig((cfg) => ({ ...cfg, bottleTypes: cfg.bottleTypes.map((x) => (x.id === b.id ? { ...x, kg: v } : x)) }))} />
+                      </Field>
+                      <RemoveBtn
+                        label={`Supprimer ${b.label}`}
+                        disabled={config.bottleTypes.length <= 1}
+                        onClick={() => setConfig((cfg) => ({ ...cfg, bottleTypes: cfg.bottleTypes.filter((x) => x.id !== b.id) }))}
+                      />
+                      </>
+                      )}
+                    </SortableItem>
+                  ))}
+                </Sortable>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="mt-3"
+                  onClick={() => setConfig((cfg) => ({ ...cfg, bottleTypes: [...cfg.bottleTypes, { id: `b${Date.now().toString(36)}`, label: "Nouveau format", kg: 10 }] }))}
+                >
+                  <Plus className="size-4" />
+                  Ajouter un format
+                </Button>
+              </Card>
+              <BrandsCard />
+            </div>
           )}
 
           {tab === "regles" && <RulesPanel config={config} setConfig={setConfig} />}
+
+          {tab === "clients" && <CustomersPanel />}
+          {tab === "ventes" && <WorkflowPanel />}
+          {tab === "consignation" && <ConsignmentPanel />}
+          {tab === "rapports" && <ReportsPanel />}
+          {tab === "roles" && <RolesPanel />}
 
           {tab === "affichage" && <DisplayPanel />}
         </div>
@@ -552,15 +639,20 @@ function FieldList({ title, sub, fields, onChange }: { title: string; sub: strin
     <div>
       <h3 className="text-[16px] font-medium">{title}</h3>
       <p className="text-[13px] text-muted">{sub}</p>
-      <ul className="mt-3 space-y-2">
+      <Sortable ids={fields.map((f) => f.id)} onReorder={(ids) => onChange(byIds(fields, ids))} className="mt-3 space-y-2">
         {fields.map((f) => (
-          <li key={f.id} className="flex items-center gap-2">
-            <input aria-label="Libellé" className={inputCls} value={f.label} onChange={(e) => onChange(fields.map((x) => (x.id === f.id ? { ...x, label: e.target.value } : x)))} />
-            <span className="w-8 shrink-0 text-[12px] text-faint">T</span>
-            <RemoveBtn label={`Supprimer ${f.label}`} disabled={fields.length <= 1} onClick={() => onChange(fields.filter((x) => x.id !== f.id))} />
-          </li>
+          <SortableItem key={f.id} id={f.id} label={f.label} className="-ml-2 flex items-center gap-2 rounded-xl bg-card">
+            {(handle) => (
+              <>
+                {handle}
+                <input aria-label="Libellé" className={inputCls} value={f.label} onChange={(e) => onChange(fields.map((x) => (x.id === f.id ? { ...x, label: e.target.value } : x)))} />
+                <span className="w-8 shrink-0 text-[12px] text-faint">T</span>
+                <RemoveBtn label={`Supprimer ${f.label}`} disabled={fields.length <= 1} onClick={() => onChange(fields.filter((x) => x.id !== f.id))} />
+              </>
+            )}
+          </SortableItem>
         ))}
-      </ul>
+      </Sortable>
       <form
         className="mt-3 flex gap-2"
         onSubmit={(e) => {
@@ -659,10 +751,12 @@ const DENSITIES: { id: Density; label: string; sub: string }[] = [
 function DisplayPanel() {
   const { density, setDensity } = useStore();
   return (
+    <div className="grid gap-4 xl:grid-cols-[auto_minmax(0,1fr)]">
+    <ThemeCard />
     <Card>
       <CardTitle>Largeur de l&apos;interface</CardTitle>
       <p className="mt-1 text-[13px] text-muted">Préférence propre à cet appareil.</p>
-      <div className="mt-5 grid grid-cols-3 gap-3" role="radiogroup" aria-label="Largeur de l'interface">
+      <div className="mt-5 grid grid-cols-2 gap-3" role="radiogroup" aria-label="Largeur de l'interface">
         {DENSITIES.map((d) => {
           const on = density === d.id;
           return (
@@ -672,23 +766,22 @@ function DisplayPanel() {
               role="radio"
               aria-checked={on}
               onClick={() => setDensity(d.id)}
-              className={cn("rounded-2xl border p-3 text-left transition-colors", on ? "border-brand-800 border-3" : "border-line hover:border-faint")}
+              className={cn("rounded-2xl p-1 px-1.5 text-left transition-colors cursor-pointer", on ? "bg-brand-800" : "border-line hover:border-brand-600 border-2")}
             >
-              <span aria-hidden className="flex h-24 justify-center rounded-xl bg-board p-1.5">
+              <span aria-hidden className="flex h-24 justify-center rounded-xl bg-brand-100 p-1.5">
                 <span className={cn("flex gap-1 transition-[width] duration-300", d.id === "compact" ? "w-[64%]" : "w-full")}>
-                  <span className="w-3 rounded-md bg-white" />
+                  <span className="w-3 rounded-lg bg-brand-200" />
                   <span className="flex flex-1 flex-col gap-1">
-                    <span className="h-3 rounded-md bg-white" />
-                    <span className="flex-1 rounded-md bg-white" />
+                    <span className="h-3 rounded-md bg-brand-200" />
+                    <span className="flex-1 rounded-md bg-brand-200" />
                   </span>
                 </span>
               </span>
-              <span className="mt-3 flex justify-between items-center gap-2 text-[14px] font-medium">
-
+              <span className={cn("mt-3 flex justify-center items-center gap-2 text-[14px] font-medium", on && "text-white")}>
                 {d.label}
-                <span className={cn("grid size-4 place-items-center rounded-full border", on ? "border-brand-800" : "border-line")}>
+                {/* <span className={cn("grid size-4 place-items-center rounded-full border", on ? "border-brand-800" : "border-line")}>
                   {on && <span className="size-2 rounded-full bg-brand-800" />}
-                </span>
+                </span> */}
               </span>
               {/* <span className="mt-1 block text-[12px] text-muted">{d.sub}</span> */}
             </button>
@@ -696,6 +789,7 @@ function DisplayPanel() {
         })}
       </div>
     </Card>
+    </div>
   );
 }
 

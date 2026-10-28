@@ -3,6 +3,7 @@
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/format";
+import { Minus, Plus } from "@/components/ui/icons";
 import type { Band } from "@/lib/calc";
 
 /* ---------------- Card ---------------- */
@@ -28,9 +29,9 @@ type Variant = "primary" | "ghost" | "soft" | "danger" | "light";
 const variants: Record<Variant, string> = {
   primary: "bg-brand-800 text-white hover:bg-brand-950",
   ghost: "border border-brand-800/80 text-ink hover:bg-brand-50",
-  soft: "bg-brand-100 text-brand-950 hover:bg-brand-200",
+  soft: "bg-brand-100 text-brand-deep hover:bg-brand-200",
   danger: "bg-alert text-white hover:brightness-95",
-  light: "bg-white text-brand-950 hover:bg-brand-50",
+  light: "bg-white text-brand-950 hover:bg-white/85",
 };
 
 type BtnProps = React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "sm" | "md" };
@@ -129,7 +130,7 @@ export function StatusBadge({ status }: { status: "EN_COURS" | "TERMINE" }) {
       En cours
     </span>
   ) : (
-    <span className="inline-flex h-6 items-center rounded-md bg-brand-100 px-2 text-[12px] font-medium text-brand-800">Clôturé</span>
+    <span className="inline-flex h-6 items-center rounded-md bg-brand-100 px-2 text-[12px] font-medium text-brand-ink">Clôturé</span>
   );
 }
 
@@ -188,7 +189,7 @@ export function Segmented<T extends string>({
   const pill = useIndicator(wrap, `[data-v="${value}"]`, [options.length]);
 
   return (
-    <div ref={wrap} role="group" aria-label={label} className={cn("no-scrollbar relative inline-flex max-w-full overflow-x-auto rounded-full bg-board p-1 ring-1 ring-line", className)}>
+    <div ref={wrap} role="group" aria-label={label} className={cn("no-scrollbar relative inline-flex w-fit max-w-full overflow-x-auto rounded-full bg-board p-1 ring-1 ring-line", className)}>
       <span
         aria-hidden
         className={cn("absolute top-0 left-0 rounded-full bg-brand-800", pill.ready && glide)}
@@ -275,7 +276,7 @@ export function Field({
 }
 
 export const inputCls =
-  "tnum h-10 w-full rounded-xl border border-line bg-white px-3 text-[15px] text-ink outline-none transition-colors placeholder:text-faint focus:border-brand-600 disabled:bg-board disabled:text-muted";
+  "tnum h-10 w-full rounded-xl border border-line bg-field px-3 text-[15px] text-ink outline-none transition-colors placeholder:text-faint focus:border-brand-600 disabled:bg-board disabled:text-muted";
 
 export function NumberInput({
   value,
@@ -322,6 +323,76 @@ export function NumberInput({
   );
 }
 
+/**
+ * Whole numbers (money in F CFA, bottle counts): grouped by thousands at rest,
+ * raw digits while typing, selected on focus. Never below `min`.
+ */
+export function IntegerInput({
+  value,
+  onChange,
+  min = 0,
+  disabled,
+  ariaLabel,
+  className,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  disabled?: boolean;
+  ariaLabel?: string;
+  className?: string;
+}) {
+  const group = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
+  const [txt, setTxt] = useState(group(value));
+  const focused = useRef(false);
+  useEffect(() => {
+    if (!focused.current) setTxt(group(value));
+  }, [value]);
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      // Styled full width; a tiny intrinsic size keeps it from widening narrow rows.
+      size={1}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      value={txt}
+      onFocus={(e) => {
+        focused.current = true;
+        setTxt(String(value));
+        const el = e.currentTarget;
+        requestAnimationFrame(() => el.select());
+      }}
+      onBlur={() => {
+        focused.current = false;
+        setTxt(group(value));
+      }}
+      onChange={(e) => {
+        const raw = e.target.value.replace(/\D/g, "");
+        setTxt(raw);
+        onChange(Math.max(Number(raw) || 0, min));
+      }}
+      className={cn(inputCls, className)}
+    />
+  );
+}
+
+/** Count with − and + around the field: 44px targets, usable with a thumb at the gate. */
+export function Stepper({ value, onChange, step = 1, min = 0, disabled, ariaLabel }: { value: number; onChange: (v: number) => void; step?: number; min?: number; disabled?: boolean; ariaLabel: string }) {
+  const btn = "grid size-11 shrink-0 place-items-center rounded-xl bg-card text-ink ring-1 ring-line transition-colors hover:bg-brand-50 disabled:opacity-40";
+  return (
+    <div className="flex w-full min-w-0 items-center gap-1.5" role="group" aria-label={ariaLabel}>
+      <button type="button" className={btn} disabled={disabled || value <= min} aria-label={`Retirer ${step}`} onClick={() => onChange(Math.max(value - step, min))}>
+        <Minus className="size-4" aria-hidden />
+      </button>
+      <IntegerInput value={value} min={min} disabled={disabled} ariaLabel={ariaLabel} onChange={onChange} className="h-11 min-w-0 text-center" />
+      <button type="button" className={btn} disabled={disabled} aria-label={`Ajouter ${step}`} onClick={() => onChange(value + step)}>
+        <Plus className="size-4" aria-hidden />
+      </button>
+    </div>
+  );
+}
+
 /* ---------------- Dialog (native <dialog>) ---------------- */
 export function Dialog({
   open,
@@ -349,13 +420,14 @@ export function Dialog({
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
       className={cn(
-        "m-auto w-[calc(100%-2rem)] rounded-[24px] bg-card p-0 text-ink backdrop:bg-brand-950/30 backdrop:backdrop-blur-[2px]",
+        // The card never scrolls (no native bar on its rounded edge): the content under the title does.
+        "m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-hidden rounded-3xl bg-card p-0 text-ink backdrop:bg-brand-950/30 backdrop:backdrop-blur-[2px]",
         width,
       )}
     >
-      <div className="p-6">
-        <h2 className="mb-4 text-[19px] font-semibold tracking-[-0.01em]">{title}</h2>
-        {children}
+      <div className="flex max-h-[calc(100dvh-2rem)] flex-col">
+        <h2 className="shrink-0 px-6 pt-6 pb-3 text-[19px] font-semibold tracking-[-0.01em]">{title}</h2>
+        <div className="scroll-area scroll-slim mr-1.5 min-h-0 flex-1 overflow-y-auto overscroll-contain pt-1 pr-4.5 pb-6 pl-6">{children}</div>
       </div>
     </dialog>
   );

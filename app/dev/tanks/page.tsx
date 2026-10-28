@@ -37,6 +37,7 @@ export default function TanksDev() {
         <div className="mt-3 flex items-end gap-6">
           <TankIllustration type="sphere" fill={live} className="h-48 w-auto" />
           <TankIllustration type="cigar" fill={live} className="h-24 w-auto" />
+          <TankIllustration type="citerne" fill={live} className="h-40 w-auto" />
         </div>
       </Card>
 
@@ -48,6 +49,7 @@ export default function TanksDev() {
           { key: "s2", name: "Sphère S2", type: "SPHERE", pct: 8, t: 43.2, capT: 540 },
           { key: "c1", name: "Cigare C1", type: "CIGARE", pct: 95, t: 128.3, capT: 135 },
           { key: "c2", name: "Cigare C2", type: "CIGARE", pct: 30, t: 40.5, capT: 135 },
+          { key: "v1", name: "Citerne V1", type: "CITERNE", pct: 62, t: 53, capT: 85.5 },
           { key: "x1", name: "Réservoir X", type: "AUTRE", pct: 40, t: 20, capT: 50 },
         ]}
       />

@@ -1,10 +1,10 @@
 /* ------------------------------------------------------------------
    Tank level math. Readings give a fill as a share of volume; the
    illustrations need the liquid height, which is not linear in volume
-   for a sphere or a horizontal cylinder.
+   for a sphere or a horizontal cylinder (a vertical one is linear).
    ------------------------------------------------------------------ */
 
-export type LevelModel = "sphere" | "horizontal-cylinder";
+export type LevelModel = "sphere" | "horizontal-cylinder" | "vertical-cylinder";
 
 const clamp01 = (v: number) => (Number.isFinite(v) ? Math.min(Math.max(v, 0), 1) : 0);
 
@@ -12,6 +12,8 @@ const clamp01 = (v: number) => (Number.isFinite(v) ? Math.min(Math.max(v, 0), 1)
 export function heightToFillRatio(model: LevelModel, x: number): number {
   const h = clamp01(x);
   if (model === "sphere") return h * h * (3 - 2 * h);
+  // Upright cylinder: the domed top is ignored, so volume follows height.
+  if (model === "vertical-cylinder") return h;
   // Circular segment of a cylinder lying on its side; the rounded ends are ignored.
   const theta = 2 * Math.acos(1 - 2 * h);
   return (theta - Math.sin(theta)) / (2 * Math.PI);

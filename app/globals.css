@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Per-device display preferences, set on <html> before the first paint
+   (lib/look.ts): the expanded page width, and the sidebar folded to a rail. */
+@custom-variant wide (&:where([data-wide] *));
+@custom-variant rail (&:where([data-rail] *));
+/* Theme, also set before the first paint: "light" or "dark", resolved from
+   the device preference or the system. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* ------------------------------------------------------------------
    Tokens. A tenant sets ONE colour (--brand); every shade is derived
    from it with color-mix, so any hex a company picks re-tints the app.
@@ -15,18 +23,30 @@
   --faint: #9aa39e;
   --line: #e1e6e2;
 
+  --field: #ffffff; /* inputs, chips and pickers sitting on a card */
+
   --ok: #23854f;
   --warn: #c98a0b;
   --alert: #c2412d;
+  --warn-ink: #7a5306; /* text on a warn tint */
+
+  /* What the brand shades mix towards: white in light, the card in dark. */
+  --tint: white;
 
   --b-950: color-mix(in oklab, var(--brand) 52%, #04110a);
   --b-800: color-mix(in oklab, var(--brand) 82%, #04110a);
   --b-600: var(--brand);
   --b-400: color-mix(in oklab, var(--brand) 58%, white);
-  --b-200: color-mix(in oklab, var(--brand) 24%, white);
-  --b-100: color-mix(in oklab, var(--brand) 11%, white);
-  --b-50: color-mix(in oklab, var(--brand) 5%, white);
+  --b-200: color-mix(in oklab, var(--brand) 24%, var(--tint));
+  --b-100: color-mix(in oklab, var(--brand) 11%, var(--tint));
+  --b-50: color-mix(in oklab, var(--brand) 5%, var(--tint));
   --hatch: color-mix(in oklab, var(--brand) 22%, #c9cfcb);
+
+  /* Roles, so dark mode can move text and fills apart. Brand as text (links,
+     accents), brand as strong text on a tint, and the strongest data shade. */
+  --b-ink: var(--b-800);
+  --b-deep: var(--b-950);
+  --b-strong: var(--b-950);
 
   /* Bklit chart tokens, derived from the brand like everything else. */
   --chart-1: var(--b-800);
@@ -60,6 +80,96 @@
   --muted-foreground: var(--muted);
 }
 
+/* ------------------------------------------------------------------
+   Dark. Same layering as light (canvas < board < card, each one step
+   closer), on neutral greys: the brand is the only colour in the page.
+   The brand still drives every shade: tints mix into the card instead of
+   white, solid fills lift a little so white text keeps its contrast, and
+   brand text turns to a pale tone of the brand.
+   ------------------------------------------------------------------ */
+:root[data-theme="dark"] {
+  --canvas: #111113;
+  --board: #18181a;
+  --card: #1f1f22;
+  --field: #262629;
+  --ink: #ececee;
+  --muted: #9e9ea6;
+  --faint: #6b6b73;
+  --line: #2e2e33;
+
+  --ok: #40b273;
+  --warn: #e0a63a;
+  --alert: #ee6b53;
+  --warn-ink: #f2c770;
+
+  --tint: var(--card);
+  --b-950: color-mix(in oklab, var(--brand) 50%, #0a0a0b);
+  --b-800: color-mix(in oklab, var(--brand) 90%, white);
+  --b-600: color-mix(in oklab, var(--brand) 76%, white);
+  --b-400: color-mix(in oklab, var(--brand) 55%, white);
+  --b-200: color-mix(in oklab, var(--brand) 34%, var(--tint));
+  --b-100: color-mix(in oklab, var(--brand) 20%, var(--tint));
+  --b-50: color-mix(in oklab, var(--brand) 10%, var(--tint));
+  --hatch: color-mix(in oklab, var(--brand) 30%, #45454b);
+
+  --b-ink: color-mix(in oklab, var(--brand) 42%, #f1f1f3);
+  --b-deep: color-mix(in oklab, var(--brand) 22%, #f6f6f7);
+  --b-strong: color-mix(in oklab, var(--brand) 38%, #f1f1f3);
+
+  --chart-1: var(--b-strong);
+  --chart-2: var(--b-600);
+  --chart-3: var(--b-800);
+  --chart-line-primary: var(--b-ink);
+  --chart-tooltip-background: color-mix(in oklab, #0a0a0b 92%, transparent);
+  --chart-marker-badge-background: var(--b-950);
+  --chart-segment-background: var(--b-50);
+
+  color-scheme: dark;
+}
+
+/* High contrast, a switch on top of either theme (Paramètres › Affichage).
+   Light: the pale lines turn near-black and secondary text darkens, nothing
+   else moves. Dark: pure black, white text, firmer lines, brighter states.
+   In both, cards get an outline so layers part by their edges. */
+:root[data-theme="light"][data-contrast="high"] {
+  --line: #3a423d;
+  --muted: #4b544e;
+  --faint: #6c756f;
+}
+
+:root[data-theme="dark"][data-contrast="high"] {
+  --canvas: #000000;
+  --board: #0b0b0c;
+  --card: #141416;
+  --field: #1c1c1f;
+  --ink: #ffffff;
+  --muted: #c9c9cf;
+  --faint: #9c9ca4;
+  --line: #4d4d55;
+
+  --ok: #5fd48e;
+  --warn: #ffc24d;
+  --alert: #ff7f69;
+  --warn-ink: #ffd88a;
+
+  /* Solid fills stay deep so white text on them keeps full contrast. */
+  --b-800: color-mix(in oklab, var(--brand) 88%, black);
+  --b-600: color-mix(in oklab, var(--brand) 70%, white);
+  --b-400: color-mix(in oklab, var(--brand) 45%, white);
+  --b-200: color-mix(in oklab, var(--brand) 42%, var(--tint));
+  --b-100: color-mix(in oklab, var(--brand) 28%, var(--tint));
+  --b-ink: color-mix(in oklab, var(--brand) 28%, white);
+  --b-deep: white;
+  --b-strong: color-mix(in oklab, var(--brand) 25%, white);
+}
+:root[data-contrast="high"] [data-card]:not(.surface-deep) {
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+:root[data-contrast="high"] :focus-visible {
+  outline-width: 3px;
+  outline-color: var(--b-ink);
+}
+
 @theme inline {
   --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
 
@@ -73,6 +183,8 @@
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-alert: var(--alert);
+  --color-field: var(--field);
+  --color-warn-ink: var(--warn-ink);
 
   --color-brand-950: var(--b-950);
   --color-brand-800: var(--b-800);
@@ -81,6 +193,8 @@
   --color-brand-200: var(--b-200);
   --color-brand-100: var(--b-100);
   --color-brand-50: var(--b-50);
+  --color-brand-ink: var(--b-ink);
+  --color-brand-deep: var(--b-deep);
 
   --color-foreground: var(--ink);
   --color-chart-label: var(--chart-label);
@@ -179,6 +293,26 @@ textarea:focus-visible {
     scrollbar-width: thin;
     scrollbar-color: var(--thumb) transparent;
   }
+}
+
+/* Slimmer still, for lists inside a card (board columns): the thumb is
+   faint until the pointer is over the list. */
+.scroll-area.scroll-slim {
+  --thumb: color-mix(in oklab, var(--ink) 10%, transparent);
+}
+.scroll-area.scroll-slim:hover,
+.scroll-area.scroll-slim:focus-within {
+  --thumb: color-mix(in oklab, var(--ink) 22%, transparent);
+}
+.scroll-area.scroll-slim::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scroll-area.scroll-slim::-webkit-scrollbar-track {
+  margin-block: 6px;
+}
+.scroll-area.scroll-slim::-webkit-scrollbar-thumb {
+  border-width: 1px;
 }
 
 /* Swipeable rows (tabs, segmented controls) scroll without a visible bar. */
@@ -300,6 +434,45 @@ textarea:focus-visible {
     linear-gradient(160deg, var(--b-800), var(--b-950));
   color: white;
 }
+/* In the dark the hero glows less and keeps a hairline edge, so it reads as
+   lit from within rather than as a hole in the page. */
+:root[data-theme="dark"] .surface-deep {
+  background:
+    radial-gradient(120% 90% at 100% 0%, color-mix(in oklab, var(--brand) 55%, transparent), transparent 62%),
+    linear-gradient(160deg, color-mix(in oklab, var(--brand) 78%, #0a0a0b), var(--b-950));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), inset 0 0 0 1px rgb(255 255 255 / 0.04);
+}
+
+/* Theme switch. During the swap every transition is off, so the page changes
+   in one frame instead of a cascade of per-element fades (except what opts
+   out with data-keep-motion). Where the browser
+   has view transitions, the new theme opens as a circle from the toggle
+   (lib/look.ts setThemePref). */
+:root[data-theme-switching] *:not([data-keep-motion], [data-keep-motion] *),
+:root[data-theme-switching] *::before,
+:root[data-theme-switching] *::after {
+  transition: none !important;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) {
+  animation: theme-reveal 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* Anything marked data-keep-motion is spared above and keeps animating
+   through the swap: the theme card's sun/moon, its switcher's sliding pill
+   and its contrast switch
+   (components/settings/theme-card.tsx). */
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0 at var(--vt-x, 50%) var(--vt-y, 0));
+  }
+  to {
+    clip-path: circle(var(--vt-r, 150%) at var(--vt-x, 50%) var(--vt-y, 0));
+  }
+}
 
 /* Fine contour lines on dark cards, a nod to gauge charts */
 .contours {
@@ -360,5 +533,62 @@ input[type="number"] {
       "an an re pr"
       "tm tm pg pr"
       "tm tm pg tr";
+  }
+}
+
+/* Commercial dashboard bento (/ventes). Same rhythm as .dash-grid. */
+.sales-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "s1" "s2" "s3" "s4" "fc" "wh" "dp" "ar" "fp";
+}
+@media (min-width: 640px) {
+  .sales-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: "s1 s2" "s3 s4" "fc fc" "wh wh" "dp dp" "ar fp";
+  }
+}
+@media (min-width: 1280px) {
+  .sales-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-areas:
+      "s1 s2 s3 s4"
+      "fc fc fc ar"
+      "wh wh dp dp"
+      "fp fp dp dp";
+  }
+}
+
+/* Printing a report: the page alone, on white. */
+@media print {
+  html,
+  body {
+    background: white;
+  }
+  /* Paper is white whatever the screen theme. */
+  :root[data-theme="dark"],
+  :root[data-contrast="high"],
+  :root[data-theme="dark"][data-contrast="high"] {
+    --canvas: #e8ebe8;
+    --board: #f2f4f2;
+    --card: #fbfcfb;
+    --field: #ffffff;
+    --ink: #16201a;
+    --muted: #69736d;
+    --faint: #9aa39e;
+    --line: #e1e6e2;
+    --ok: #23854f;
+    --warn: #c98a0b;
+    --alert: #c2412d;
+    --warn-ink: #7a5306;
+    --tint: white;
+    --b-950: color-mix(in oklab, var(--brand) 52%, #04110a);
+    --b-800: color-mix(in oklab, var(--brand) 82%, #04110a);
+    --b-600: var(--brand);
+    --b-400: color-mix(in oklab, var(--brand) 58%, white);
+    --b-ink: var(--b-800);
+    --b-deep: var(--b-950);
+    color-scheme: light;
   }
 }

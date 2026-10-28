@@ -133,7 +133,7 @@ function Inner() {
               </p>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-[14px]">
                 <thead>
                   <tr className="border-b border-line text-[12px] text-muted">
@@ -254,7 +254,7 @@ function Inner() {
                     key={c.date}
                     href={`/inventaires/${r.inv.id}`}
                     aria-label={label}
-                    className="flex min-h-[78px] flex-col items-start rounded-xl border border-line bg-white p-2 transition-colors hover:border-brand-600 sm:min-h-[92px]"
+                    className="flex min-h-[78px] flex-col items-start rounded-xl border border-line bg-field p-2 transition-colors hover:border-brand-600 sm:min-h-[92px]"
                   >
                     {body}
                   </Link>

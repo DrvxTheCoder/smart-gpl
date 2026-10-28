@@ -11,7 +11,7 @@ const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCa
 
 const triggerStyles = {
   field:
-    "tnum h-10 w-full rounded-xl border border-line bg-white pr-2.5 pl-3 text-[15px] hover:border-faint aria-expanded:border-brand-600 aria-expanded:ring-3 aria-expanded:ring-brand-600/12 focus-visible:border-brand-600",
+    "tnum h-10 w-full rounded-xl border border-line bg-field pr-2.5 pl-3 text-[15px] hover:border-faint aria-expanded:border-brand-600 aria-expanded:ring-3 aria-expanded:ring-brand-600/12 focus-visible:border-brand-600",
   pill: "h-11 rounded-full bg-board pr-3.5 pl-4 text-[14px] font-medium ring-1 ring-line hover:ring-faint aria-expanded:ring-brand-600",
   bare: "-ml-1 h-7 rounded-lg px-1 text-[15px] font-medium hover:bg-board aria-expanded:bg-board",
 };
@@ -179,7 +179,7 @@ export function Select<T extends string>({
                   className={cn(
                     "flex h-9 cursor-pointer items-center gap-2 rounded-xl px-2.5 text-[14px] transition-colors duration-150",
                     i === active ? "bg-board" : "",
-                    isSel ? "font-medium text-brand-800" : "text-ink",
+                    isSel ? "font-medium text-brand-ink" : "text-ink",
                   )}
                 >
                   <span className="min-w-0 flex-1 truncate">{o.label}</span>

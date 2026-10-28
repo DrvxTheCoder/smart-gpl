@@ -139,7 +139,7 @@ export function TimePicker({
         onClick={() => setOpen((o) => !o)}
         className={cn(
           "absolute top-1/2 right-1.5 grid size-7 -translate-y-1/2 place-items-center rounded-lg text-muted transition-colors hover:bg-board hover:text-ink disabled:pointer-events-none disabled:opacity-50",
-          open && "bg-brand-100 text-brand-800",
+          open && "bg-brand-100 text-brand-ink",
         )}
       >
         <Clock className="size-4" />
@@ -159,7 +159,7 @@ export function TimePicker({
                 const d = new Date();
                 set(d.getHours(), Math.floor(d.getMinutes() / minuteStep) * minuteStep);
               }}
-              className="h-8 rounded-full px-3 text-[13px] font-medium text-brand-800 hover:bg-brand-50"
+              className="h-8 rounded-full px-3 text-[13px] font-medium text-brand-ink hover:bg-brand-50"
             >
               Maintenant
             </button>

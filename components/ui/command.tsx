@@ -89,7 +89,7 @@ export function CommandItem({ className, ...props }: React.ComponentProps<typeof
   return (
     <Cmdk.Item
       className={cn(
-        "relative flex h-11 cursor-pointer items-center gap-3 rounded-xl px-3 text-[14px] text-ink outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-45 data-[selected=true]:bg-board [&>svg]:size-[18px] [&>svg]:shrink-0 [&>svg]:text-muted data-[selected=true]:[&>svg]:text-brand-800",
+        "relative flex h-11 cursor-pointer items-center gap-3 rounded-xl px-3 text-[14px] text-ink outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-45 data-[selected=true]:bg-board [&>svg]:size-[18px] [&>svg]:shrink-0 [&>svg]:text-muted data-[selected=true]:[&>svg]:text-brand-ink",
         className,
       )}
       {...props}

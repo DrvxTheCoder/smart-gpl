@@ -2,22 +2,35 @@ import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/plus-jakarta-sans";
 import "./globals.css";
 import { StoreProvider } from "@/lib/store";
+import { AuthProvider } from "@/lib/auth";
+import { SalesProvider } from "@/lib/sales/store";
 import { AppShell } from "@/components/shell/app-shell";
+import { lookScript } from "@/lib/look";
 
 export const metadata: Metadata = {
   title: "Smart GPL",
-  description: "Suivi de production GPL : inventaires journaliers, bilans de stock, réservoirs et rendements.",
+  description: "Production et ventes GPL : inventaires journaliers, commandes, expéditions, bouteilles par marque et grossistes.",
 };
 
-export const viewport: Viewport = { themeColor: "#e8ebe8", width: "device-width", initialScale: 1 };
+// theme-color is set by the look script, per theme.
+export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
+    // The inline script applies the saved look before the first paint; <html>
+    // then differs from the server render, hence suppressHydrationWarning.
+    <html lang="fr" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: lookScript }} />
+      </head>
       <body>
-        <StoreProvider>
-          <AppShell>{children}</AppShell>
-        </StoreProvider>
+        <AuthProvider>
+          <StoreProvider>
+            <SalesProvider>
+              <AppShell>{children}</AppShell>
+            </SalesProvider>
+          </StoreProvider>
+        </AuthProvider>
       </body>
     </html>
   );

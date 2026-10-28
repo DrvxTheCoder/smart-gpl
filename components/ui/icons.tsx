@@ -4,6 +4,26 @@ import { HugeiconsIcon, type HugeiconsProps, type IconSvgElement } from "@hugeic
 import {
   Add01Icon,
   Activity01Icon,
+  Agreement01Icon,
+  Alert02Icon,
+  Call02Icon,
+  ChartLineData01Icon,
+  DeliveryTruck01Icon,
+  Exchange01Icon,
+  InformationCircleIcon,
+  Invoice01Icon,
+  MinusSignIcon,
+  PrinterIcon,
+  RepeatIcon,
+  ShoppingCart01Icon,
+  Store01Icon,
+  Target02Icon,
+  UserGroupIcon,
+  UserShield01Icon,
+  Wallet01Icon,
+  WarehouseIcon,
+  WeightScaleIcon,
+  WorkflowSquare03Icon,
   ArrowDataTransferHorizontalIcon,
   ArrowDown01Icon,
   ArrowDown02Icon,
@@ -19,12 +39,14 @@ import {
   CylinderIcon,
   DashboardSquare01Icon,
   Delete02Icon,
+  DragDropVerticalIcon,
   FileExportIcon,
   FileImportIcon,
   Factory01Icon,
   LogoutSquare02Icon,
   Menu09Icon,
   Moon02Icon,
+  Sun03Icon,
   Notification01Icon,
   PaintBoardIcon,
   PauseIcon,
@@ -41,6 +63,9 @@ import {
   TaskDaily01Icon,
   Tick02Icon,
   Xls02Icon,
+  Location01Icon,
+  UserIcon,
+  Undo02Icon as Undo02Svg
 } from "@hugeicons/core-free-icons";
 
 export type IconProps = Omit<HugeiconsProps, "icon" | "ref">;
@@ -69,8 +94,33 @@ export const X = make(Cancel01Icon);
 export const PanelLeftClose = make(LayoutRightIcon);
 export const PanelLeftOpen = make(LayoutLeftIcon);
 
+// Sales and warehouse
+export const TrendingUp = make(ChartLineData01Icon);
+export const ShoppingCart = make(ShoppingCart01Icon);
+export const Users = make(UserGroupIcon);
+export const Target = make(Target02Icon);
+export const Store = make(Store01Icon);
+export const Warehouse = make(WarehouseIcon);
+export const Truck = make(DeliveryTruck01Icon);
+export const FileText = make(Invoice01Icon);
+export const Contract = make(Agreement01Icon);
+export const Wallet = make(Wallet01Icon);
+export const Phone = make(Call02Icon);
+export const MapPin = make(Location01Icon);
+export const User = make(UserIcon);
+export const Scale = make(WeightScaleIcon);
+export const Exchange = make(Exchange01Icon);
+export const Workflow = make(WorkflowSquare03Icon);
+export const ShieldUser = make(UserShield01Icon);
+export const AlertCircle = make(Alert02Icon);
+export const Info = make(InformationCircleIcon);
+
 // Actions
 export const Plus = make(Add01Icon);
+export const Grip = make(DragDropVerticalIcon);
+export const Minus = make(MinusSignIcon);
+export const Printer = make(PrinterIcon);
+export const Repeat = make(RepeatIcon);
 export const Trash2 = make(Delete02Icon);
 export const Pencil = make(PencilEdit02Icon);
 export const Check = make(Tick02Icon);
@@ -84,6 +134,7 @@ export const Play = make(PlayIcon);
 export const Pause = make(PauseIcon);
 export const Lock = make(SquareLock02Icon);
 export const Moon = make(Moon02Icon);
+export const Sun = make(Sun03Icon);
 
 // Direction
 export const ArrowLeft = make(ArrowLeft02Icon);
@@ -104,3 +155,4 @@ export const ArrowLeftRight = make(ArrowDataTransferHorizontalIcon);
 export const Cylinder = make(CylinderIcon);
 export const SlidersHorizontal = make(PreferenceHorizontalIcon);
 export const Monitor = make(ComputerIcon);
+export const Undo02Icon = make(Undo02Svg);
