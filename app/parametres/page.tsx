@@ -140,7 +140,7 @@ function Inner() {
       <div ref={headRef} className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[34px] font-semibold tracking-[-0.03em] sm:text-[40px]">Paramètres</h1>
-          <p className="mt-1 text-[15px] text-muted">Adaptez {PRODUCT} aux installations et aux habitudes de {config.branding.companyName}.</p>
+          <p className="mt-1 text-[15px] text-muted">Adaptez {PRODUCT} à votre entreprise</p>
         </div>
         {account?.admin && (
           <div className="flex flex-wrap gap-2.5">
@@ -753,9 +753,9 @@ function DisplayPanel() {
   return (
     <div className="grid gap-4 xl:grid-cols-[auto_minmax(0,1fr)]">
     <ThemeCard />
-    <Card>
+    <Card className="h-fit">
       <CardTitle>Largeur de l&apos;interface</CardTitle>
-      <p className="mt-1 text-[13px] text-muted">Préférence propre à cet appareil.</p>
+      <p className="mt-1 text-[13px] text-muted">Préférence propre à votre appareil.</p>
       <div className="mt-5 grid grid-cols-2 gap-3" role="radiogroup" aria-label="Largeur de l'interface">
         {DENSITIES.map((d) => {
           const on = density === d.id;

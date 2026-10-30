@@ -389,6 +389,60 @@ export function LineChart({
 }
 
 /* ------------------------------------------------------------------
+   Evolution over dates: one solid series with a soft area, any number of
+   dashed references (capacity, thresholds, theoretical stock).
+   ------------------------------------------------------------------ */
+export interface TrendSeries {
+  key: string;
+  label: string;
+  color?: string;
+  dashed?: boolean;
+}
+
+export function TrendChart({
+  data,
+  series,
+  unit,
+  decimals = 1,
+  label,
+  className,
+}: {
+  data: Record<string, number | string>[]; // `date` is yyyy-mm-dd
+  series: TrendSeries[];
+  unit: string;
+  decimals?: number;
+  label: string;
+  className?: string;
+}) {
+  const rows = useMemo(() => data.map((d) => ({ ...d, date: new Date(`${d.date}T12:00:00`) })), [data]);
+  const colorOf = (s: TrendSeries) => s.color ?? (s.dashed ? "var(--faint)" : "var(--b-800)");
+  if (rows.length < 2) {
+    return <p className={cn("grid place-items-center rounded-2xl bg-board text-[14px] text-muted", className)}>Pas assez de mesures sur cette période.</p>;
+  }
+  return (
+    <div role="img" aria-label={label} className={className}>
+      <AreaChart data={rows} aspectRatio="auto" className="h-full" margin={{ top: 16, right: 8, bottom: 34, left: 8 }} animationDuration={900} animationEasing={EASE}>
+        <Grid horizontal numTicksRows={4} hideHorizontalEdgeLines />
+        {series.map((s) =>
+          s.dashed ? (
+            <Area key={s.key} dataKey={s.key} stroke={colorOf(s)} fill={colorOf(s)} fillOpacity={0} strokeWidth={1.6} dashFromIndex={0} dashArray="5,5" showHighlight={false} />
+          ) : (
+            <Area key={s.key} dataKey={s.key} stroke={colorOf(s)} fill="var(--b-600)" fillOpacity={0.24} strokeWidth={2.4} />
+          ),
+        )}
+        <XAxis numTicks={6} />
+        <ChartTooltip
+          dotVariant="ring"
+          dotRadiusFraction={0.5}
+          dotColor={(_, line) => colorOf(series.find((s) => s.key === line.dataKey) ?? series[0])}
+          rows={(p) => series.map((s) => ({ color: s.dashed ? colorOf(s) : "var(--b-400)", label: s.label, value: `${fmt(Number(p[s.key]) || 0, decimals)} ${unit}` }))}
+        />
+      </AreaChart>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------
    KPI sparkline: smooth area, no chrome.
    ------------------------------------------------------------------ */
 export function Sparkline({ values, className }: { values: number[]; className?: string }) {

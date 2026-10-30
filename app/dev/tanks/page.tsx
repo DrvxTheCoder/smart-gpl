@@ -45,13 +45,14 @@ export default function TanksDev() {
         warned={0}
         blocked={[]}
         tanks={[
-          { key: "s1", name: "Sphère S1", type: "SPHERE", pct: 55.2, t: 298.2, capT: 540 },
-          { key: "s2", name: "Sphère S2", type: "SPHERE", pct: 8, t: 43.2, capT: 540 },
-          { key: "c1", name: "Cigare C1", type: "CIGARE", pct: 95, t: 128.3, capT: 135 },
-          { key: "c2", name: "Cigare C2", type: "CIGARE", pct: 30, t: 40.5, capT: 135 },
-          { key: "v1", name: "Citerne V1", type: "CITERNE", pct: 62, t: 53, capT: 85.5 },
-          { key: "x1", name: "Réservoir X", type: "AUTRE", pct: 40, t: 20, capT: 50 },
+          { key: "s1", name: "Sphère S1", type: "SPHERE", pct: 55.2, t: 298.2, capT: 540, capM3: 950 },
+          { key: "s2", name: "Sphère S2", type: "SPHERE", pct: 8, t: 43.2, capT: 540, capM3: 950 },
+          { key: "c1", name: "Cigare C1", type: "CIGARE", pct: 95, t: 128.3, capT: 135, capM3: 240 },
+          { key: "c2", name: "Cigare C2", type: "CIGARE", pct: 30, t: 40.5, capT: 135, capM3: 240 },
+          { key: "v1", name: "Citerne V1", type: "CITERNE", pct: 62, t: 53, capT: 85.5, capM3: 150 },
+          { key: "x1", name: "Réservoir X", type: "AUTRE", pct: 40, t: 20, capT: 50, capM3: 90 },
         ]}
+        detail={(key) => <p className="text-[14px] text-muted">Réservoir ouvert : {key ?? "aucun"}.</p>}
       />
     </div>
   );

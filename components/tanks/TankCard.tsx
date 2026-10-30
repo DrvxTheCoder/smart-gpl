@@ -7,11 +7,11 @@ import { TankIllustration } from "./TankIllustration";
 import { TANK_GEOMETRY, TANK_REF_HEIGHT, tankKind } from "./tankGeometry";
 
 /** One slide: name and tonnage, the animated tank, then the fill bar. */
-export function TankCard({ name, type, pct, tonnes, capT }: { name: string; type: TankType; pct: number; tonnes: number; capT: number }) {
+export function TankCard({ name, type, pct, tonnes, capT, capM3 }: { name: string; type: TankType; pct: number; tonnes: number; capT: number; capM3: number }) {
   const kind = tankKind(type);
   return (
     <div className="h-full rounded-2xl bg-board p-4">
-      <TankLevel name={name} pct={pct} tonnes={tonnes} capT={capT}>
+      <TankLevel name={name} pct={pct} tonnes={tonnes} capT={capT} capM3={capM3}>
         {/* Shared scale and baseline: every drawing is sized against the tallest viewBox. */}
         <div className="flex h-[132px] items-end justify-center py-2">
           {kind ? (

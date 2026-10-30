@@ -283,7 +283,7 @@ export function CustomersPanel() {
                     {pl.lines.map((l, i) => {
                       const upd = (patch: Partial<typeof l>) => set((s) => ({ ...s, priceLists: s.priceLists.map((x) => (x.id === pl.id ? { ...x, lines: x.lines.map((y, j) => (j === i ? { ...y, ...patch } : y)) } : x)) }));
                       return (
-                        <tr key={`${l.formatId}-${l.from}-${i}`} className="border-t border-line">
+                        <tr key={`${l.formatId}-${l.from}-${i}`} className="">
                           <td className="py-2 pr-2">
                             <Select ariaLabel="Format" disabled={!canPrice} value={l.formatId} onChange={(v) => upd({ formatId: v })} options={formats.map((f) => ({ value: f.id, label: f.label }))} />
                           </td>

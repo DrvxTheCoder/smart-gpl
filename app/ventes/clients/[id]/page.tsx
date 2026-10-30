@@ -55,7 +55,7 @@ export default function ClientPage() {
     }
     setCopied(true);
     hint.relabel("Copié");
-    toast(`Code ${code} copié`, "success");
+    toast(`Code client copié`, "success");
     window.setTimeout(() => {
       setCopied(false);
       hint.relabel("Copier le code client");
@@ -539,7 +539,7 @@ export default function ClientPage() {
                   <span className="text-[16px] font-medium text-muted"> / 100</span>
                 </p>
               </div>
-              <button type="button" onClick={() => setExplain(true)} className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-brand-ink hover:underline">
+              <button type="button" onClick={() => setExplain(true)} className={cn("mt-3 inline-flex items-center gap-1.5 text-xs font-medium hover:underline cursor-help", pos.solvency.tone === "ok" ? "text-ok" : pos.solvency.tone === "warn" ? "text-warn" : "text-alert")}>
                 <Info className="size-4" />
                 Comment c&apos;est calculé
               </button>

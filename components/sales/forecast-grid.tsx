@@ -53,7 +53,7 @@ export function ForecastGrid({ rows, formats, values, onChange, disabled }: { ro
           {rows.map((r, ri) => (
             <tr key={r.key} className="border-t border-line">
               <td className="sticky left-0 z-10 bg-card py-2 pr-3">
-                <p className="max-w-[170px] truncate font-medium" title={r.label}>{r.label}</p>
+                <p className="max-w-42.5 truncate font-medium" title={r.label}>{r.label}</p>
                 {r.sub && <p className="text-[12px] text-muted">{r.sub}</p>}
               </td>
               {formats.map((f, ci) => (

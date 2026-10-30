@@ -90,6 +90,7 @@ export function TankSlider({ slides, label }: { slides: Slide[]; label: string }
             role="group"
             aria-roledescription="diapositive"
             aria-label={`${s.label}, ${i + 1} sur ${slides.length}`}
+            data-expand-hint={s.key}
             className="shrink-0 basis-[85%] sm:basis-[calc(50%-6px)]"
           >
             {s.node}
@@ -119,7 +120,7 @@ export function TankSlider({ slides, label }: { slides: Slide[]; label: string }
               onClick={() => go(page - 1)}
               disabled={page === 0}
               aria-label="Réservoir précédent"
-              className="grid size-8 place-items-center rounded-full border border-ink/70 transition-colors hover:bg-brand-50 disabled:pointer-events-none disabled:opacity-35"
+              className="grid size-8 place-items-center rounded-full border border-line text-muted transition-colors hover:bg-brand-50 hover:text-ink disabled:pointer-events-none disabled:opacity-35"
             >
               <ChevronLeft className="size-4" />
             </button>
@@ -128,7 +129,7 @@ export function TankSlider({ slides, label }: { slides: Slide[]; label: string }
               onClick={() => go(page + 1)}
               disabled={page === stops.length - 1}
               aria-label="Réservoir suivant"
-              className="grid size-8 place-items-center rounded-full border border-ink/70 transition-colors hover:bg-brand-50 disabled:pointer-events-none disabled:opacity-35"
+              className="grid size-8 place-items-center rounded-full border border-line text-muted transition-colors hover:bg-brand-50 hover:text-ink disabled:pointer-events-none disabled:opacity-35"
             >
               <ChevronRight className="size-4" />
             </button>

@@ -143,13 +143,13 @@ export function LiveTimerCard({ inv, compact }: { inv: Inventory; compact?: bool
 const TONE_BAR: Record<LevelTone, string> = { ok: "bg-brand-800", warn: "bg-warn", alert: "bg-alert" };
 
 /** Name and tonnage over a fill bar. `children` (e.g. an illustration) sits between the two. */
-export function TankLevel({ name, pct, tonnes, capT, children }: { name: string; pct: number; tonnes: number; capT: number; children?: React.ReactNode }) {
+export function TankLevel({ name, pct, tonnes, capT, capM3, children }: { name: string; pct: number; tonnes: number; capT: number; capM3: number; children?: React.ReactNode }) {
   const p = Math.min(Math.max(pct, 0), 100);
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2">
       <span className="text-[15px] font-medium">{name}</span>
       <span className="tnum text-[13px] text-muted">
-        <b className="font-semibold text-ink">{fmt(tonnes, 1)}</b> / {fmt(capT, 0)} T
+        <b className="font-semibold text-ink">{fmt(tonnes, 1)}</b> / {fmt(capT, 0)} T ({fmt(capM3, 0)} m³)
       </span>
       {children && <div className="col-span-2">{children}</div>}
       <div

@@ -31,7 +31,7 @@ export function CommandDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="cmd-overlay fixed inset-0 z-50 bg-brand-950/25 backdrop-blur-[2px]" />
+        <Dialog.Overlay className="cmd-overlay fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px]" />
         <Dialog.Content
           className="cmd-content fixed top-[14vh] left-1/2 z-50 w-[calc(100%-32px)] max-w-[620px] -translate-x-1/2 overflow-hidden rounded-[22px] bg-card shadow-[0_30px_70px_-20px_rgba(4,17,10,0.45)] ring-1 ring-line"
           aria-describedby={undefined}

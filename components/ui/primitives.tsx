@@ -28,7 +28,7 @@ export function CardTitle({ children, className }: { children: React.ReactNode; 
 type Variant = "primary" | "ghost" | "soft" | "danger" | "light";
 const variants: Record<Variant, string> = {
   primary: "bg-brand-800 text-white hover:bg-brand-950",
-  ghost: "border border-brand-800/80 text-ink hover:bg-brand-50",
+  ghost: "border border-ink/20 text-ink hover:bg-brand-50",
   soft: "bg-brand-100 text-brand-deep hover:bg-brand-200",
   danger: "bg-alert text-white hover:brightness-95",
   light: "bg-white text-brand-950 hover:bg-white/85",
@@ -44,7 +44,7 @@ export const Button = forwardRef<HTMLButtonElement, BtnProps>(function Button(
     <button
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-full font-medium transition-colors disabled:pointer-events-none disabled:opacity-45",
+        "inline-flex items-center justify-center gap-2 rounded-full font-medium transition-colors disabled:pointer-events-none disabled:opacity-45 cursor-pointer",
         size === "md" ? "h-11 px-5 text-[15px]" : "h-8 px-3.5 text-[13px]",
         variants[variant],
         className,
@@ -92,7 +92,7 @@ export function CornerLink({ href, label, dark }: { href: string; label: string;
       aria-label={label}
       className={cn(
         "grid size-9 shrink-0 place-items-center rounded-full border transition-transform hover:rotate-45",
-        dark ? "border-transparent bg-white text-brand-950" : "border-ink/70 text-ink",
+        dark ? "border-transparent bg-white text-brand-950" : "border-line text-muted hover:text-ink",
       )}
     >
       <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
@@ -421,7 +421,7 @@ export function Dialog({
       onClick={(e) => e.target === ref.current && onClose()}
       className={cn(
         // The card never scrolls (no native bar on its rounded edge): the content under the title does.
-        "m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-hidden rounded-3xl bg-card p-0 text-ink backdrop:bg-brand-950/30 backdrop:backdrop-blur-[2px]",
+        "m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-hidden rounded-3xl bg-card p-0 text-ink backdrop:bg-black/30 backdrop:backdrop-blur-[2px]",
         width,
       )}
     >

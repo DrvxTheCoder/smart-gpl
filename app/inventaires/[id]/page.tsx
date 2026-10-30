@@ -425,7 +425,7 @@ export default function FichePage() {
                           </p>
                           {!tr.blocked && (
                             <div className="w-full sm:w-64">
-                              <TankLevel name="Remplissage" pct={tr.fillPct} tonnes={tr.liquidT} capT={res.capacityT} />
+                              <TankLevel name="Remplissage" pct={tr.fillPct} tonnes={tr.liquidT} capT={res.capacityT} capM3={res.capacityM3} />
                             </div>
                           )}
                         </div>

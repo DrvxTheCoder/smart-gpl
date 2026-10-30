@@ -8,10 +8,12 @@ import { aggregate, delta, inRange, periodRange, PERIODS, type PeriodKey } from 
 import { ecartBand, summarize, tankOutcomes } from "@/lib/calc";
 import { iso } from "@/lib/seed";
 import { cap, fmt, fmtDate, invCode } from "@/lib/format";
-import { Button, ButtonLink, Card, CardTitle, CornerLink, EcartPill, Segmented, StatusBadge } from "@/components/ui/primitives";
+import { Button, ButtonLink, Card, CardTitle, EcartPill, Segmented, StatusBadge } from "@/components/ui/primitives";
+import { ExpandButton, Expandable } from "@/components/ui/expandable";
 import { AnimatedNumber, SemiGauge, WeekBars, type BarDatum } from "@/components/charts/charts";
 import { LiveTimerCard } from "@/components/production/production";
 import { ReservoirsCard, type TankStock } from "@/components/tanks/ReservoirsCard";
+import { BottlesDetail, EcartDetail, RendementDetail, ReservoirsDetail, StockDetail, TonnageDetail, useHistory, WeekDetail } from "@/components/dashboard/details";
 import { DemandCard } from "@/components/sales/demand-card";
 
 function Trend({ value, invert, dark }: { value: number | null; invert?: boolean; dark?: boolean }) {
@@ -97,14 +99,24 @@ export default function Dashboard() {
         }
         phys += tr.liquidT;
         capT += res.capacityT;
-        tanks.push({ key: `${c.id}-${res.id}`, name: scopeCentres.length > 1 ? `${res.name}, ${c.code}` : res.name, type: res.type, pct: tr.fillPct, t: tr.liquidT, capT: res.capacityT });
+        tanks.push({ key: `${c.id}-${res.id}`, name: scopeCentres.length > 1 ? `${res.name}, ${c.code}` : res.name, type: res.type, pct: tr.fillPct, t: tr.liquidT, capT: res.capacityT, capM3: res.capacityM3 });
       }
     }
     return { phys, capT, pct: capT ? (phys / capT) * 100 : 0, tanks, blocked, warned };
   }, [invs, scopeCentres, config]);
 
+  const history = useHistory(invs, scopeCentres, config, centre);
+
   const recent = invs.slice(0, 5);
   const curLabel = period === "jour" ? fmtDate(cur[0], { weekday: "long", day: "numeric", month: "long" }) : `${fmtDate(cur[0], { day: "numeric", month: "short" })} au ${fmtDate(cur[1], { day: "numeric", month: "short" })}`;
+  const scopeLabel = centreId === "all" ? `${config.branding.companyName}, tous les centres` : focusCentre.name;
+  // The KPI dialogs follow the dashboard period and can change it.
+  const kpi = {
+    subtitle: `${scopeLabel}, ${curLabel}`,
+    actions: <Segmented options={PERIODS} value={period} onChange={setPeriod} label="Période" className="hidden md:inline-flex" />,
+    width: "max-w-5xl",
+  };
+  const kpiProps = { history, cur, aCur, aPrev, cfg: config };
 
   return (
     <div>
@@ -112,7 +124,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-[34px] font-semibold tracking-[-0.03em] sm:text-[40px]">Tableau de bord</h1>
           <p className="mt-1 text-[15px] text-muted">
-            {centreId === "all" ? `${config.branding.companyName}, tous les centres` : focusCentre.name}, {curLabel}
+            {scopeLabel}, {curLabel}
           </p>
         </div>
         <div className="flex flex-wrap gap-2.5">
@@ -137,21 +149,21 @@ export default function Dashboard() {
 
       <div className="dash-grid">
         {/* KPIs */}
-        <Card as="article" className="surface-deep contours flex flex-col justify-between gap-5 [grid-area:s1]">
+        <Expandable as="article" title="Bouteilles produites" {...kpi} detail={() => <BottlesDetail {...kpiProps} />} className="surface-deep contours flex flex-col justify-between gap-5 [grid-area:s1]">
           <div className="flex items-start justify-between">
             <h2 className="text-[17px] font-medium">Bouteilles produites</h2>
-            <CornerLink href="/analyses" label="Voir les analyses" dark />
+            <ExpandButton label="Détail des bouteilles produites" dark />
           </div>
           <p className="tnum text-[46px] leading-none font-semibold tracking-[-0.04em]">{fmt(aCur.bottlesN)}</p>
           <p className="text-[13px]">
             <Trend value={delta(aCur.bottlesN, aPrev.bottlesN)} dark />
           </p>
-        </Card>
+        </Expandable>
 
-        <Card as="article" className="flex flex-col justify-between gap-5 [grid-area:s2]">
+        <Expandable as="article" title="Tonnage conditionné" {...kpi} detail={() => <TonnageDetail {...kpiProps} />} className="flex flex-col justify-between gap-5 [grid-area:s2]">
           <div className="flex items-start justify-between">
             <h2 className="text-[17px] font-medium">Tonnage conditionné</h2>
-            <CornerLink href="/analyses" label="Voir les analyses" />
+            <ExpandButton label="Détail du tonnage conditionné" />
           </div>
           <p className="tnum text-[46px] leading-none font-semibold tracking-[-0.04em]">
             {fmt(aCur.conditionneT, 0)}
@@ -160,12 +172,12 @@ export default function Dashboard() {
           <p className="text-[13px]">
             <Trend value={delta(aCur.conditionneT, aPrev.conditionneT)} />
           </p>
-        </Card>
+        </Expandable>
 
-        <Card as="article" className="flex flex-col justify-between gap-5 [grid-area:s3]">
+        <Expandable as="article" title="Rendement horaire" {...kpi} detail={() => <RendementDetail {...kpiProps} />} className="flex flex-col justify-between gap-5 [grid-area:s3]">
           <div className="flex items-start justify-between">
             <h2 className="text-[17px] font-medium">Rendement horaire</h2>
-            <CornerLink href="/analyses" label="Voir les analyses" />
+            <ExpandButton label="Détail du rendement horaire" />
           </div>
           <p className="tnum text-[46px] leading-none font-semibold tracking-[-0.04em]">
             {fmt(aCur.rendementTph, 1)}
@@ -177,12 +189,12 @@ export default function Dashboard() {
             </div>
             <p className="tnum mt-2 text-[13px] text-muted">{fmt(aCur.capacityPct, 0)} % de la capacité installée</p>
           </div>
-        </Card>
+        </Expandable>
 
-        <Card as="article" className="flex flex-col justify-between gap-5 [grid-area:s4]">
+        <Expandable as="article" title="Écart moyen" {...kpi} detail={() => <EcartDetail {...kpiProps} invs={invs} centreOf={centre} />} className="flex flex-col justify-between gap-5 [grid-area:s4]">
           <div className="flex items-start justify-between">
             <h2 className="text-[17px] font-medium">Écart moyen</h2>
-            <CornerLink href="/inventaires" label="Voir les inventaires" />
+            <ExpandButton label="Détail de l'écart moyen" />
           </div>
           <p className="tnum text-[46px] leading-none font-semibold tracking-[-0.04em]">
             {fmt(aCur.meanAbsEcart, 2)}
@@ -196,20 +208,26 @@ export default function Dashboard() {
             </b>{" "}
             sur {aCur.days} jour{aCur.days > 1 ? "s" : ""}
           </p>
-        </Card>
+        </Expandable>
 
         {/* Week bars */}
-        <Card className="flex flex-col [grid-area:an]">
+        <Expandable
+          title="Production des 7 derniers jours"
+          subtitle={scopeLabel}
+          detail={() => <WeekDetail history={history} week={week} today={today} cfg={config} />}
+          className="flex flex-col [grid-area:an]"
+        >
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
               <CardTitle>Production des 7 derniers jours</CardTitle>
               <p className="mt-0.5 text-[13px] text-muted">Tonnage conditionné. Hachuré : journée en cours ou sans production.</p>
             </div>
+            <ExpandButton label="Détail de la semaine" />
           </div>
           <div className="min-h-[220px] flex-1">
             <WeekBars data={week} />
           </div>
-        </Card>
+        </Expandable>
 
         {/* Today */}
         <Card className="flex flex-col [grid-area:re]">
@@ -240,7 +258,7 @@ export default function Dashboard() {
         <Card className="[grid-area:pr] h-fit">
           <div className="mb-3 flex items-center justify-between">
             <CardTitle>Inventaires récents</CardTitle>
-            <Link href="/inventaires" className="rounded-full border border-ink/70 px-3 py-1 text-[13px] font-medium whitespace-nowrap hover:bg-brand-50">
+            <Link href="/inventaires" className="rounded-full border border-line px-3 py-1 text-[13px] font-medium whitespace-nowrap hover:bg-brand-50">
               Tout voir
             </Link>
           </div>
@@ -270,11 +288,26 @@ export default function Dashboard() {
         <div className="[grid-area:tr]">{todayInv && <LiveTimerCard inv={todayInv} />}</div>
 
         {/* Tanks */}
-        <ReservoirsCard className="[grid-area:tm]" tanks={stock.tanks} blocked={stock.blocked} warned={stock.warned} />
+        <ReservoirsCard
+          className="[grid-area:tm]"
+          tanks={stock.tanks}
+          blocked={stock.blocked}
+          warned={stock.warned}
+          subtitle={`${scopeLabel}, dernière mesure saisie`}
+          detail={(key) => <ReservoirsDetail tanks={stock.tanks} history={history} invs={invs} centres={scopeCentres} cfg={config} initial={key} />}
+        />
 
         {/* Gauge */}
-        <Card className="flex flex-col [grid-area:pg]">
-          <CardTitle>Stock physique</CardTitle>
+        <Expandable
+          title="Stock physique"
+          subtitle={scopeLabel}
+          detail={() => <StockDetail history={history} tanks={stock.tanks} phys={stock.phys} capT={stock.capT} pct={stock.pct} />}
+          className="flex flex-col [grid-area:pg]"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <CardTitle>Stock physique</CardTitle>
+            <ExpandButton label="Détail du stock physique" />
+          </div>
           <div className="flex flex-1 items-center py-4">
             <SemiGauge pct={stock.pct}>
               <p className="text-[40px] leading-none font-semibold tracking-[-0.04em]">
@@ -295,7 +328,7 @@ export default function Dashboard() {
               Creux disponible
             </li>
           </ul>
-        </Card>
+        </Expandable>
       </div>
 
       {/* <DemandCard /> */}
